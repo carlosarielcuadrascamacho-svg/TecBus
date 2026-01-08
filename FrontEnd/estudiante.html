@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mi Ruta - TECNM Guasave</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <link rel="stylesheet" href="assets/css/base.css" />
+    <link rel="stylesheet" href="assets/css/student.css" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <script>
+  // ☁️ SIEMPRE conectar a Render (incluso desde mi PC local)
+  const BACKEND_URL = "https://tecbus-api.onrender.com";
+  const SOCKET_URL = "https://tecbus-api.onrender.com";
+</script>
+  </head>
+
+  <body id="student-body">
+    <header>
+      <div class="menu-icon" id="btn-menu-toggle">
+        <i class="fas fa-bars"></i>
+      </div>
+      <div class="header-title">
+        <h1>TECNM Guasave</h1>
+        <p>Transporte Estudiantil</p>
+      </div>
+      
+      </div>
+    </header>
+
+    <div id="sidebar" class="sidebar">
+      <div class="logo-area">
+        <button class="sidebar-close-btn" id="btn-menu-close">
+          <i class="fas fa-times"></i>
+        </button>
+        <img 
+          src="assets/img/TecBus.png" 
+          alt="Logo TecBus"
+          style="
+            width: 80px;        /* Ajusta este tamaño según prefieras */
+            height: auto; 
+            margin-bottom: 10px;
+            display: block;      /* Para asegurar que respete los márgenes */
+            margin-left: auto;  /* Centrado horizontal */
+            margin-right: auto; /* Centrado horizontal */
+          "
+        >
+        <h2>TecBus</h2>
+        <p>Estudiante</p>
+      </div>
+
+      <nav class="main-nav">
+        <a href="#" class="nav-item active">
+          <i class="fas fa-map-marked-alt"></i> Mapa en Vivo
+        </a>
+        <a href="#" id="btn-open-horarios" class="nav-item">
+          <i class="fas fa-clock"></i> Consultar Horarios
+        </a>
+        <a href="#" id="btn-open-perfil-sidebar" class="nav-item">
+          <i class="fas fa-user-circle"></i> Mi Perfil
+        </a>
+        <a
+          href="#"
+          onclick="alert('Por ahora no hace nada oke?')"
+          class="nav-item"
+        >
+          <i class="fas fa-question-circle"></i> Ayuda
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="#" id="sidebar-logout" class="nav-item logout">
+          <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+        </a>
+        <p style="margin-top: 15px">© 2025 TecBus PCFL</p>
+      </div>
+    </div>
+
+    <div id="fullscreen-horarios" class="fullscreen-overlay">
+      <div class="fullscreen-header">
+        <div class="header-controls">
+          <i class="fas fa-calendar-alt logo-icon"></i>
+          <h2>Calendario de Rutas</h2>
+        </div>
+        <button class="close-fs-btn" id="btn-cerrar-horarios">
+          <i class="fas fa-times"></i> Cerrar
+        </button>
+      </div>
+
+      <div class="fullscreen-content">
+        <div class="ruta-selector-container">
+          <label for="calendar-ruta-selector"
+            >Selecciona la ruta para ver su horario:</label
+          >
+          <select id="calendar-ruta-selector" class="big-select">
+            <option value="">-- Elige una ruta --</option>
+          </select>
+        </div>
+
+        <div id="calendario-semanal" class="calendar-grid">
+          <p class="placeholder-text">
+            Selecciona una ruta arriba para cargar el calendario.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-perfil" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Mi Perfil</h2>
+          <button class="close-btn" id="btn-perfil-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="profile-card">
+          <i class="fas fa-user-graduate profile-avatar"></i>
+          <h3
+            id="perfil-nombre-completo"
+            style="color: white; margin-bottom: 5px"
+          >
+            Cargando...
+          </h3>
+          <p
+            id="perfil-rol"
+            style="
+              color: var(--color-primario);
+              text-transform: uppercase;
+              font-size: 0.9rem;
+            "
+          >
+            ESTUDIANTE
+          </p>
+
+          <div class="profile-info-group">
+            <div class="info-row">
+              <span class="info-label">Correo:</span>
+              <span class="info-value" id="perfil-correo">...</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">ID Usuario:</span>
+              <span class="info-value" id="perfil-id">...</span>
+            </div>
+          </div>
+
+          <button
+            class="btn btn-primary-lg"
+            style="margin-top: 20px; width: 100%"
+            onclick="document.getElementById('btn-perfil-close').click()"
+          >
+            Aceptar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-historial" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>📜 Historial de Búsquedas</h2>
+          <button class="close-btn" id="btn-historial-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div id="historial-list-container" class="horarios-lista">
+          <p class="horario-vacio">Cargando tu historial...</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="map-container">
+      <div id="map"></div>
+      <div class="map-floating-controls">
+        <button
+          id="btn-activar-notificaciones"
+          class="control-btn btn-glow-blue"
+          title="Activar Notificaciones"
+        >
+          <i class="fas fa-bell"></i>
+          <span>Alertas</span>
+        </button>
+
+        <button
+          id="btn-abrir-ayuda"
+          class="control-btn btn-glass"
+          title="Instrucciones de las Notificaciones"
+        >
+          <i class="fas fa-question"></i>
+        </button>
+      </div>
+      <div class="map-controls card-panel">
+        <label for="ruta-selector" class="control-label"
+          >🚚 Selecciona tu Ruta</label
+        >
+        <select id="ruta-selector" class="custom-select">
+          <option value="">Cargando rutas disponibles...</option>
+        </select>
+      </div>
+      <div class="action-panel card-panel">
+        <button id="btn-estoy-aqui" class="btn btn-primary-lg">
+          <i class="fas fa-location-arrow"></i> Notificar mi Parada
+        </button>
+        <button id="btn-ver-historial" class="btn btn-secondary-sm">
+          <i class="fas fa-history"></i> Ver Historial
+        </button>
+      </div>
+    </div>
+
+    <div id="fullscreen-instrucciones" class="fullscreen-overlay">
+      <div class="overlay-header">
+        <div class="header-title">
+          <i class="fas fa-broadcast-tower"></i>  Guía de Conexión
+        </div>
+        <button id="btn-cerrar-instrucciones" class="close-overlay-btn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="overlay-content">
+        <div class="container-fluid" style="max-width: 1200px">
+          <h2
+            class="text-center mb-5 fade-in-up"
+            style="color: white; font-weight: 700"
+          >
+            Activa tus Alertas
+          </h2>
+
+          <div class="instructions-grid">
+            <div class="instruction-card fade-in-up delay-1">
+              <div class="card-icon" style="color: #28a745">
+                <i class="fab fa-chrome"></i> <i class="fab fa-edge"></i>
+              </div>
+              <h3>Chrome / Edge</h3>
+              <p class="desc">Nativo y rápido.</p>
+              <ul class="steps">
+                <li>
+                  1. Clic en el botón <i class="fas fa-bell"></i> del mapa.
+                </li>
+                <li>
+                  2. Selecciona <span class="badge-allow">Permitir</span> cuando
+                  pregunte.
+                </li>
+                <li>
+                  3. Si no pregunta, clic en el candado 🔒 de la URL y
+                  "Restablecer permisos".
+                </li>
+              </ul>
+            </div>
+
+            <div class="instruction-card fade-in-up delay-2">
+              <div class="card-icon" style="color: #ff5722">
+                <i class="fas fa-shield-alt"></i>
+              </div>
+              <h3>Brave Browser</h3>
+              <p class="desc">Requiere permiso especial.</p>
+              <ul class="steps">
+                <li>
+                  1. Ve a <strong>Configuración</strong> >
+                  <strong>Privacidad</strong>.
+                </li>
+                <li>
+                  2. Activa:
+                  <em>"Usar servicios de Google para mensajería push"</em>.
+                </li>
+                <li>3. Reinicia el navegador.</li>
+              </ul>
+            </div>
+
+            <div class="instruction-card fade-in-up delay-3">
+              <div class="card-icon" style="color: #fff">
+                <i class="fab fa-apple"></i>
+              </div>
+              <h3>iOS (iPhone/iPad)</h3>
+              <p class="desc">Requiere instalar como App.</p>
+              <ul class="steps">
+                <li>
+                  1. Toca el botón <strong>Compartir</strong>
+                  <i class="fas fa-share-square"></i>.
+                </li>
+                <li>2. Elige <strong>"Agregar a Inicio"</strong>.</li>
+                <li>3. Abre la nueva App creada en tu inicio.</li>
+                <li>4. Activa las alertas desde ahí.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="assets/js/student_map.js"></script>
+  </body>
+</html>

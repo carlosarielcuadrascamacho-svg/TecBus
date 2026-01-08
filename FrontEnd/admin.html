@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel de Administración - TECNM Guasave</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+    />
+    <link rel="stylesheet" href="assets/css/base.css" />
+    <link rel="stylesheet" href="assets/css/admin.css" />
+    <script>
+  // ☁️ SIEMPRE conectar a Render (incluso desde mi PC local)
+  const BACKEND_URL = "https://tecbus-api.onrender.com";
+  const SOCKET_URL = "https://tecbus-api.onrender.com";
+</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  </head>
+  <body>
+    <div class="admin-layout">
+      <aside class="sidebar" id="sidebar">
+        <div class="logo-area">
+          <img 
+          src="assets/img/TecBus.png" 
+          alt="Logo TecBus"
+          style="
+            width: 80px;        /* Ajusta este tamaño según prefieras */
+            height: auto; 
+            margin-bottom: 10px;
+            display: block;      /* Para asegurar que respete los márgenes */
+            margin-left: auto;  /* Centrado horizontal */
+            margin-right: auto; /* Centrado horizontal */
+          "
+        >
+          <p>TECNM Admin</p>
+          <p class="subtitle">Transporte Guasave</p>
+        </div>
+
+        <nav class="main-nav">
+          <a href="#mapa" class="nav-item active">
+            <i class="fas fa-map-marker-alt"></i> Mapa de Flotilla
+          </a>
+          <a href="#camiones" class="nav-item">
+            <i class="fas fa-bus"></i> Gestión de Camiones
+          </a>
+          <a href="#rutas" class="nav-item">
+            <i class="fas fa-route"></i> Gestión de Rutas
+          </a>
+          <a href="#horarios" class="nav-item">
+            <i class="fas fa-calendar-alt"></i> Gestión de Horarios
+          </a>
+          <a href="#usuarios" class="nav-item">
+            <i class="fas fa-users-cog"></i> Gestión de Usuarios
+          </a>
+          <a href="#alertas" class="nav-item">
+            <i class="fas fa-exclamation-triangle"></i> Historial de Alertas
+          </a>
+          <a href="#configuracion" class="nav-item">
+            <i class="fas fa-cog"></i> Configuración
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <a href="?logout" class="nav-item" id="btn-cerrar-sesion">
+            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+          </a>
+          <p class="footer-copyright">© 2025 TecBus PCFL</p>
+        </div>
+      </aside>
+
+      <div class="backdrop" id="backdrop"></div>
+
+      <main class="content-area">
+        <header class="admin-header">
+          <i class="fas fa-bars menu-toggle" id="menu-toggle"></i>
+          <div class="header-title-admin">
+            <h2 id="page-title">Mapa de Flotilla</h2>
+            <p>Sistema de Transporte Estudiantil</p>
+          </div>
+          <div class="header-info">
+            <span id="current-date">31 de Octubre, 2025</span>
+            <!-- <i class="fas fa-user-circle profile-icon"></i> -->
+          </div>
+        </header>
+
+        <section id="mapa" class="dashboard-section active">
+          <div class="kpi-cards">
+            <div class="card">
+              <div class="card-icon"><i class="fas fa-bus"></i></div>
+              <div class="card-title">Total de Camiones</div>
+              <div class="card-value" id="kpi-total-buses">4</div>
+            </div>
+            <div class="card">
+              <div class="card-icon"><i class="fas fa-user-graduate"></i></div>
+              <div class="card-title">Estudiantes en Espera</div>
+              <div class="card-value" id="kpi-students-waiting">3</div>
+            </div>
+            <div class="card">
+              <div class="card-icon"><i class="fas fa-users-cog"></i></div>
+              <div class="card-title">Conductores Activos</div>
+              <div class="card-value" id="kpi-drivers-active">4</div>
+            </div>
+            <div class="card alert-card">
+              <div class="card-icon"><i class="fas fa-bell"></i></div>
+              <div class="card-title">Alertas Activas</div>
+              <div class="card-value" id="kpi-active-alerts">1</div>
+            </div>
+          </div>
+
+          <div class="map-flotilla-container">
+            <h3>Mapa de Flotilla en Tiempo Real</h3>
+            <div id="admin-map" class="full-map"></div>
+          </div>
+        </section>
+
+        <section id="usuarios" class="dashboard-section">
+          <div class="form-container">
+            <h3>Registrar Nuevo Usuario</h3>
+            <form id="form-registrar-usuario">
+              <div class="form-grid">
+                <div class="form-group" style="grid-column: 1 / -1">
+                  <label for="user-tipo">Tipo de Usuario</label>
+                  <select id="user-tipo" required>
+                    <option value="" disabled selected>
+                      -- Selecciona un Rol --
+                    </option>
+                    <option value="conductor">Conductor</option>
+                    <option value="administrador">Administrador</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="user-nombre">Nombre Completo</label>
+                  <input type="text" id="user-nombre" required />
+                </div>
+                <div class="form-group">
+                  <label for="user-email">Correo Electrónico</label>
+                  <input type="email" id="user-email" required />
+                </div>
+                <div class="form-group">
+                  <label for="user-password">Contraseña Temporal</label>
+                  <input type="password" id="user-password" required />
+                </div>
+
+                <div
+                  id="new-user-conductor-fields"
+                  class="form-group"
+                  style="display: none; grid-column: 1 / -1"
+                >
+                  <label for="user-licencia">¿Cuenta con Licencia Vigente?</label>
+                  <select id="user-licencia">
+                    <option value="Si">Sí</option>
+                    <option value="No">No</option>
+                  </select>
+                  </div>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Registrar Usuario
+              </button>
+            </form>
+          </div>
+
+          <div class="table-container">
+            <div class="table-header-flex">
+                <h3>Usuarios Registrados</h3>
+                <button class="btn-search-trigger" onclick="abrirModalBusqueda('usuario')">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Correo</th>
+                  <th>Tipo</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-usuarios-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="camiones" class="dashboard-section">
+          <div class="form-container">
+            <h3>Registrar Nuevo Camión</h3>
+            <form id="form-registrar-camion">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="camion-placa">Placa (ID Único)</label>
+                  <input
+                    type="text"
+                    id="camion-placa"
+                    placeholder="Ej. ABC-123"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="camion-unidad">Número de Unidad</label>
+                  <input
+                    type="text"
+                    id="camion-unidad"
+                    placeholder="Ej. TEC-01"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="camion-modelo">Modelo</label>
+                  <input
+                    type="text"
+                    id="camion-modelo"
+                    placeholder="Ej. Mercedes Benz"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="camion-capacidad">Capacidad (Pasajeros)</label>
+                  <input
+                    type="number"
+                    id="camion-capacidad"
+                    placeholder="Ej. 40"
+                  />
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Registrar Camión
+              </button>
+            </form>
+          </div>
+
+          <div class="table-container">
+            <div class="table-header-flex">
+                <h3>Camiones Registrados</h3>
+                <button class="btn-search-trigger" onclick="abrirModalBusqueda('camion')">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Placa</th>
+                  <th>No. Unidad</th>
+                  <th>Modelo</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-camiones-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="rutas" class="dashboard-section">
+          <div class="form-container">
+            <h3>Registrar Nueva Ruta</h3>
+            <form id="form-registrar-ruta">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="ruta-nombre">Nombre de la Ruta</label>
+                  <input
+                    type="text"
+                    id="ruta-nombre"
+                    placeholder="Ej. TEC-Central"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="ruta-descripcion">Descripción Corta</label>
+                  <input
+                    type="text"
+                    id="ruta-descripcion"
+                    placeholder="Ej. Ruta del TEC a la Central Camionera"
+                  />
+                </div>
+                <div class="form-group">
+      <label for="ruta-tiempo">Tiempo Estimado (min)</label>
+      <input type="number" id="ruta-tiempo" placeholder="Ej. 45" required />
+    </div>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Registrar Ruta
+              </button>
+            </form>
+          </div>
+
+          <div class="table-container">
+            <div class="table-header-flex">
+                <h3>Rutas Registradas</h3>
+                <button class="btn-search-trigger" onclick="abrirModalBusqueda('ruta')">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Descripción</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                  <th>Trazado</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-rutas-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="horarios" class="dashboard-section">
+          <div class="form-container">
+            <h3>Registrar Nueva Salida</h3>
+            <form id="form-registrar-horario">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="horario-ruta">Ruta</label>
+                  <select id="horario-ruta" required>
+                    <option value="">-- Cargar Rutas --</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="horario-dia">Día de la Semana</label>
+                  <select id="horario-dia" required>
+                    <option value="">Selecciona...</option>
+                    <option value="Lunes-Viernes">📅 Lunes a Viernes</option>
+                    <option value="Diario">
+                      📆 Todos los días (Lunes a Domingo)
+                    </option>
+                    <option disabled>──────────</option>
+                    <option value="Lunes">Lunes</option>
+                    <option value="Martes">Martes</option>
+                    <option value="Miércoles">Miércoles</option>
+                    <option value="Jueves">Jueves</option>
+                    <option value="Viernes">Viernes</option>
+                    <option value="Sábado">Sábado</option>
+                    <option value="Domingo">Domingo</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="horario-hora">Hora de Salida</label>
+                  <input type="time" id="horario-hora" required />
+                </div>
+                <div class="form-group">
+                  <label for="horario-camion">Camión Asignado</label>
+                  <select id="horario-camion" required>
+                    <option value="">-- Cargar Camiones --</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="horario-conductor">Conductor Asignado</label>
+                  <select id="horario-conductor" required>
+                    <option value="">-- Cargar Conductores --</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Registrar Salida
+              </button>
+            </form>
+          </div>
+
+          <div class="table-container">
+            <div class="table-header-flex">
+                <h3>Horarios Registrados</h3>
+                <button class="btn-search-trigger" onclick="abrirModalBusqueda('horario')" id="btn-open-search-horario">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Día</th>
+                  <th>Hora</th>
+                  <th>Ruta</th>
+                  <th>Camión (Unidad)</th>
+                  <th>Conductor</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-horarios-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="alertas" class="dashboard-section">
+          <div class="table-container">
+            <div class="table-header-flex">
+              <h3>Historial de Alertas</h3>
+              <div class="table-header-flex">
+                <button type="button" class="btn-search-trigger" onclick="abrirModalBusqueda('alerta')">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+              </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>CAMIÓN (UNIDAD)</th>
+                  <th>TIPO DE ALERTA</th>
+                  <th>DETALLES</th>
+                  <th>HORA</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-alertas-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="configuracion" class="dashboard-section">
+          <div class="form-container">
+            <h3>Configuración del Sistema</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="setting-horario">Horario de Servicio</label>
+                <input type="text" id="setting-horario" value="06:00 - 22:00" />
+              </div>
+              <div class="form-group">
+                <label for="setting-email">Correo para Notificaciones</label>
+                <input
+                  type="email"
+                  id="setting-email"
+                  value="admin@tecnm.mx"
+                />
+              </div>
+            </div>
+            <button class="btn btn-primary">
+              <i class="fas fa-save"></i> Guardar Cambios
+            </button>
+          </div>
+        </section>
+      </main>
+      
+      <div id="edit-user-modal" class="modal">
+        <div class="modal-content">
+          <span class="close-button">&times;</span>
+          <h2>Editar Usuario</h2>
+          <form id="form-edit-user">
+            <input type="hidden" id="edit-user-id" />
+            <div class="form-group">
+              <label for="edit-user-nombre">Nombre</label>
+              <input type="text" id="edit-user-nombre" required />
+            </div>
+            <div class="form-group">
+              <label for="edit-user-email">Correo</label>
+              <input type="email" id="edit-user-email" required />
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                  <label for="edit-user-tipo">Tipo</label>
+                  <select id="edit-user-tipo">
+                    <option value="estudiante">Estudiante</option>
+                    <option value="conductor">Conductor</option>
+                    <option value="administrador">Administrador</option>
+                  </select>
+                </div>
+            </div>
+
+            <div id="campos-conductor" class="form-group" style="display: none">
+              <label for="edit-user-licencia">¿Cuenta con Licencia Vigente?</label>
+              <select id="edit-user-licencia">
+                <option value="Si">Sí</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary btn-full">
+                  Guardar Cambios
+                </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="edit-camion-modal" class="modal">
+        <div class="modal-content">
+          <span class="close-button">&times;</span>
+          <h2>Editar Camión</h2>
+          <form id="form-edit-camion">
+            <input type="hidden" id="edit-camion-id" />
+            <div class="form-grid">
+                <div class="form-group">
+                  <label for="edit-camion-placa">Placa</label>
+                  <input type="text" id="edit-camion-placa" required />
+                </div>
+                <div class="form-group">
+                  <label for="edit-camion-unidad">Número de Unidad</label>
+                  <input type="text" id="edit-camion-unidad" required />
+                </div>
+            </div>
+            <div class="form-group">
+              <label for="edit-camion-modelo">Modelo</label>
+              <input type="text" id="edit-camion-modelo" />
+            </div>
+            <div class="form-group">
+              <label for="edit-camion-capacidad">Capacidad (Pasajeros)</label>
+              <input type="number" id="edit-camion-capacidad" required min="1" />
+            </div>
+
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary btn-full">
+                  Guardar Cambios
+                </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="edit-ruta-modal" class="modal">
+        <div class="modal-content">
+          <span class="close-button">&times;</span>
+          <h2>Editar Ruta</h2>
+          <form id="form-edit-ruta">
+            <input type="hidden" id="edit-ruta-id" />
+            <div class="form-group">
+              <label for="edit-ruta-nombre">Nombre de la Ruta</label>
+              <input type="text" id="edit-ruta-nombre" required />
+            </div>
+            <div class="form-group">
+              <label for="edit-ruta-descripcion">Descripción</label>
+              <input type="text" id="edit-ruta-descripcion" />
+            </div>
+            <div class="form-group">
+        <label for="edit-ruta-tiempo">Tiempo Estimado (min)</label>
+        <input type="number" id="edit-ruta-tiempo" required />
+      </div>
+            <div class="form-group">
+              <label for="edit-ruta-activa">Estado</label>
+              <select id="edit-ruta-activa">
+                <option value="true">Activa</option>
+                <option value="false">Inactiva</option>
+              </select>
+            </div>
+
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary btn-full">
+                  Guardar Cambios
+                </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="modal-editar-horario" class="modal">
+        <div class="modal-content">
+          <span class="close-button">&times;</span>
+          <h2>Editar Horario</h2>
+          <p>Modifica los detalles de esta salida.</p>
+          <form id="form-editar-horario">
+            <input type="hidden" id="edit-horario-id" />
+            <input type="hidden" id="edit-salida-id" />
+            
+            <div class="form-group">
+              <label>Ruta Asignada</label>
+              <select id="edit-horario-ruta" required></select>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                  <label>Día</label>
+                  <select id="edit-horario-dia" required>
+                    <option value="lunes">Lunes</option>
+                    <option value="martes">Martes</option>
+                    <option value="miercoles">Miércoles</option>
+                    <option value="jueves">Jueves</option>
+                    <option value="viernes">Viernes</option>
+                    <option value="sabado">Sábado</option>
+                    <option value="domingo">Domingo</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                    <label>Hora de Salida</label>
+                    <input type="time" id="edit-horario-salida" required />
+                </div>
+            </div>
+
+            <div class="form-group">
+              <label>Camión Asignado</label>
+              <select id="edit-horario-camion">
+                <option value="">-- Sin Asignar --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Conductor Asignado</label>
+              <select id="edit-horario-conductor">
+                <option value="">-- Sin Asignar --</option>
+              </select>
+            </div>
+
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary btn-grow">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="edit-ruta-mapa-modal" class="fullscreen-overlay">
+        <div class="fullscreen-header">
+            <div class="header-left">
+              <h2><i class="fas fa-map-marked-alt"></i> Editando: <span id="nombre-ruta-editor" style="color: var(--color-primario);">...</span></h2>
+              <p>Define el camino exacto que seguirá el camión.</p>
+            </div>
+            <button class="btn-close-fs close-button">
+              <i class="fas fa-times"></i> Cerrar Editor
+            </button>
+          </div>
+          <div class="fullscreen-content">
+             <div class="reference-search-box">
+                <div class="input-group autocomplete-wrapper">
+                  <i class="fas fa-map-marker-alt" style="color: #2ecc71"></i>
+                  <input type="text" id="ref-origin" placeholder="Buscar Origen..." autocomplete="off" />
+                  <ul id="list-origin" class="suggestions-list"></ul>
+                </div>
+                <div class="input-group autocomplete-wrapper">
+                  <i class="fas fa-flag-checkered" style="color: #e74c3c"></i>
+                  <input type="text" id="ref-destination" placeholder="Buscar Destino..." autocomplete="off" />
+                  <ul id="list-destination" class="suggestions-list"></ul>
+                </div>
+                <button type="button" id="btn-clear-refs" class="btn-clear" title="Limpiar mapa">
+                  <i class="fas fa-eraser"></i> Limpiar
+                </button>
+              </div>
+
+              <div class="editor-mode-switch">
+                  <button type="button" class="btn-mode active" id="btn-mode-tracing">
+                      <i class="fas fa-bezier-curve"></i> Trazado
+                  </button>
+                  <button type="button" class="btn-mode" id="btn-mode-stops">
+                      <i class="fas fa-map-pin"></i> Paradas
+                  </button>
+              </div>
+              
+              <div id="ruta-map-editor"></div>
+
+              <form id="form-edit-ruta-mapa" class="footer-controls">
+                <input type="hidden" id="edit-ruta-mapa-id" />
+                <div class="footer-actions">
+                  <button type="submit" class="btn btn-primary btn-save-floating">
+                    <i class="fas fa-save"></i> GUARDAR RUTA
+                  </button>
+                </div>
+              </form>
+          </div>
+      </div>
+
+      <div id="search-usuario-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2><i class="fas fa-search"></i> Buscar Usuario</h2>
+            <p>Rellena uno o más campos para filtrar.</p>
+            <form id="form-search-usuario">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" id="search-user-nombre" placeholder="Ej. Juan Pérez">
+                </div>
+                <div class="form-group">
+                    <label>Correo</label>
+                    <input type="text" id="search-user-email" placeholder="Ej. juan@tecnm.mx">
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="search-user-tipo">
+                            <option value="">-- Todos --</option>
+                            <option value="estudiante">Estudiante</option>
+                            <option value="conductor">Conductor</option>
+                            <option value="administrador">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select id="search-user-estado">
+                            <option value="">-- Todos --</option>
+                            <option value="activo">Activo</option>
+                            <option value="inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary btn-grow" onclick="filtrarAlertasManual()">Buscar</button>
+                    <button type="button" class="btn btn-secondary btn-reset-search btn-shrink">Limpiar</button>
+                </div>
+            </form>
+        </div>
+      </div>
+
+      <div id="search-camion-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2><i class="fas fa-search"></i> Buscar Camión</h2>
+            <form id="form-search-camion">
+                <div class="form-group">
+                  <label for="search-camion-placa">Placa</label>
+                  <input type="text" id="search-camion-placa" placeholder="Ej: VXS-123" />
+                </div>
+
+                <div class="form-group">
+                  <label for="search-camion-unidad">Número de Unidad</label>
+                  <input type="text" id="search-camion-unidad" placeholder="Ej: 10" />
+                </div>
+
+                <div class="form-group">
+                  <label for="search-camion-modelo">Modelo</label>
+                  <input type="text" id="search-camion-modelo" placeholder="Ej: Mercedes" />
+                </div>
+
+                <div class="form-group">
+                  <label for="search-camion-capacidad">Capacidad</label>
+                  <input type="number" id="search-camion-capacidad" placeholder="Ej: 40" />
+                </div>
+
+                <div class="form-group">
+                  <label for="search-camion-estado">Estado</label>
+                  <select id="search-camion-estado">
+                    <option value="">-- Todos --</option>
+                    <option value="Activo">Activo</option>
+                    <option value="Inactivo">Inactivo</option>
+                  </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary btn-grow">Buscar</button>
+                    <button type="button" class="btn btn-secondary btn-reset-search btn-shrink">Limpiar</button>
+                </div>
+            </form>
+        </div>
+      </div>
+
+      <div id="search-ruta-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2><i class="fas fa-search"></i> Buscar Ruta</h2>
+            <form id="form-search-ruta">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" id="search-ruta-nombre" placeholder="Ej. Centro">
+                </div>
+                <div class="form-group">
+                    <label>Estado</label>
+                    <select id="search-ruta-activa">
+                        <option value="">-- Todos --</option>
+                        <option value="true">Activa</option>
+                        <option value="false">Inactiva</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary btn-grow">Buscar</button>
+                    <button type="button" class="btn btn-secondary btn-reset-search btn-shrink">Limpiar</button>
+                </div>
+            </form>
+        </div>
+      </div>
+
+      <div id="search-horario-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2><i class="fas fa-search"></i> Buscar Horario</h2>
+            <form id="form-search-horario">
+                <div class="form-group">
+                    <label>Ruta</label>
+                    <select id="search-horario-ruta">
+                        <option value="">-- Todas --</option>
+                        </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Día</label>
+                    <select id="search-horario-dia">
+                        <option value="">-- Todos --</option>
+                        <option value="Lunes">Lunes</option>
+                        <option value="Martes">Martes</option>
+                        <option value="Miércoles">Miércoles</option>
+                        <option value="Jueves">Jueves</option>
+                        <option value="Viernes">Viernes</option>
+                        <option value="Sábado">Sábado</option>
+                        <option value="Domingo">Domingo</option>
+                        <option value="Lunes-Viernes">Lunes a Viernes</option>
+                        <option value="Diario">Diario</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Hora Aproximada</label>
+                    <input type="time" id="search-horario-hora">
+                </div>
+
+                <div class="form-group">
+                    <label>Camión</label>
+                    <select id="search-horario-camion">
+                        <option value="">-- Todos --</option>
+                         </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Conductor</label>
+                    <select id="search-horario-conductor">
+                        <option value="">-- Todos --</option>
+                         </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary btn-grow">Buscar</button>
+                    <button type="button" class="btn btn-secondary btn-reset-search btn-shrink">Limpiar</button>
+                </div>
+            </form>
+        </div>
+      </div>
+
+      <div id="search-alerta-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2><i class="fas fa-search"></i> Buscar Alerta</h2>
+            <form id="form-search-alerta">
+                <div class="form-group">
+                    <label>Camión (Unidad)</label>
+                    <input type="text" id="search-alerta-unidad" placeholder="Ej. TEC-01">
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Tipo de Alerta</label>
+                        <select id="search-alerta-tipo">
+                            <option value="">-- Todos --</option>
+                            <option value="retraso">Retraso</option>
+                            <option value="accidente">Accidente</option>
+                            <option value="falla mecánica">Falla Mecánica</option>
+                            <option value="tráfico">Tráfico Pesado</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" id="search-alerta-fecha">
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary btn-grow">Buscar</button>
+                    <button type="button" class="btn btn-secondary btn-reset-search btn-shrink">Limpiar</button>
+                </div>
+            </form>
+        </div>
+      </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="assets/js/admin_sidebar.js"></script>
+    <script src="assets/js/admin_dashboard.js"></script>
+  </body>
+</html>
