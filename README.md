@@ -5,7 +5,6 @@
 
 ![Estado](https://img.shields.io/badge/Estado-En_Desarrollo-green)
 ![Versión](https://img.shields.io/badge/Versión-1.0.0-blue)
-![Licencia](https://img.shields.io/badge/Licencia-MIT-orange)
 
 ## 📌 Descripción
 
