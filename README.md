@@ -104,6 +104,9 @@ Landing Page · Vista Estudiante · Panel Administrativo
 👥 Equipo de Desarrollo
 
 Danna Paola Buenrostro Lugo - DBA
+
 Fernanda Garcia Felix — Desarrollador Backend
+
 Inge — Desarrollador Backend y Frontend
+
 Luis — Tester
