@@ -47,7 +47,7 @@ Conecta a **estudiantes, conductores y administradores** en una sola plataforma,
 - HTML5  
 - CSS3  
 - JavaScript (Vanilla)  
-- APIs de mapas (Google Maps / Leaflet)  
+- APIs de mapas (Leaflet)  
 - Progressive Web App (PWA)  
 - Service Workers  
 
