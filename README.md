@@ -105,8 +105,8 @@ Landing Page · Vista Estudiante · Panel Administrativo
 
 Danna Paola Buenrostro Lugo - DBA
 
+Carlos Ariel Cuadras Camacho - Desarrollador Backend y Frontend
+
 Fernanda Garcia Felix — Desarrollador Backend
 
-Inge — Desarrollador Backend y Frontend
-
-Luis — Tester
+Luis Angel Gutierrez Peñuelas — Tester
