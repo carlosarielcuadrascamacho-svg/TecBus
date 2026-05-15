@@ -279,10 +279,33 @@
     </footer>
 
     <script>
-        // Navbar scroll
+        // Navbar scroll background
         window.addEventListener('scroll', () => {
             const nav = document.querySelector('.navbar');
             nav.classList.toggle('scrolled', window.scrollY > 20);
+        });
+
+        // Scroll Spy (Actualiza el menú activo según la sección visible)
+        const sections = document.querySelectorAll('header, section');
+        const navLinksSpy = document.querySelectorAll('.nav-menu .nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                // Restamos la altura del navbar (80px) + un pequeño margen
+                if (window.scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinksSpy.forEach(link => {
+                link.classList.remove('active');
+                if (current && link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
         });
 
         // Lógica del Acordeón de Preguntas
