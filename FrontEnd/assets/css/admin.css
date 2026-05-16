@@ -737,6 +737,69 @@
     transform: translateY(-2px);
 }
 
+/* --- Barra de Búsqueda en Vivo (Live Search) --- */
+.live-search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: #2a2a2a;
+    border: 1px solid var(--color-secundario);
+    border-radius: 8px;
+    padding: 0 15px;
+    height: 40px;
+    width: 100%;
+    max-width: 300px;
+    transition: all 0.3s ease;
+}
+
+.live-search-wrapper:focus-within {
+    border-color: var(--color-primario);
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.2);
+    max-width: 350px;
+}
+
+.live-search-wrapper i {
+    color: var(--color-texto-gris);
+    margin-right: 10px;
+    font-size: 0.9rem;
+}
+
+.live-search-input {
+    background: transparent;
+    border: none;
+    color: var(--color-texto-claro);
+    font-size: 0.9rem;
+    width: 100%;
+    outline: none;
+    font-family: inherit;
+}
+
+.live-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* --- Caja de Ayuda en el Editor --- */
+.editor-help-box {
+    background-color: rgba(0, 123, 255, 0.1);
+    border-left: 4px solid var(--color-primario);
+    padding: 10px 15px;
+    margin: 10px 25px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.editor-help-box i {
+    color: var(--color-primario);
+}
+
+.editor-help-box b {
+    color: var(--color-texto-claro);
+}
+
 /* =========================================================
    9. EDITOR DE MAPA (LIMPIO Y FLOTANTE)
    ========================================================= */

@@ -99,6 +99,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ============================================================
+  //  LÓGICA DE BÚSQUEDA EN VIVO (LIVE SEARCH)
+  // ============================================================
+  function setupLiveSearch(inputId, getLatestData, renderFunc, filterFields) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      input.addEventListener("input", (e) => {
+          const dataArray = getLatestData();
+          const term = e.target.value.toLowerCase().trim();
+          if (!term) { renderFunc(dataArray); return; }
+          const filtered = dataArray.filter(item => filterFields.some(field => {
+              // Soporte para campos anidados (ej: 'ruta.nombre')
+              const val = field.split('.').reduce((obj, key) => (obj && obj[key] !== undefined) ? obj[key] : undefined, item);
+              return val && String(val).toLowerCase().includes(term);
+          }));
+          renderFunc(filtered);
+      });
+  }
+
+  setupLiveSearch("live-search-user", () => usuariosCargados, renderTablaUsuarios, ["nombre", "email", "tipo"]);
+  setupLiveSearch("live-search-camion", () => camionesCargados, renderTablaCamiones, ["numeroUnidad", "placas", "modelo"]);
+  setupLiveSearch("live-search-ruta", () => rutasCargadas, renderTablaRutas, ["nombre", "descripcion"]);
+  setupLiveSearch("live-search-horario", () => horariosCargados, renderTablaHorarios, ["ruta.nombre", "camion.numeroUnidad", "conductor.nombre", "dia"]);
+  setupLiveSearch("live-search-alerta", () => alertasCargadas, renderTablaAlertas, ["titulo", "mensaje", "tipo"]);
+
   // Carga inicial por defecto (Mapa y KPIs)
   inicializarDashboard();
 
@@ -131,6 +156,34 @@ document.addEventListener("DOMContentLoaded", () => {
     el.innerHTML = `<div style="background-color:var(--color-error); border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; color: white; border: 3px solid white; font-size: 16px; animation: pulse 1.5s infinite; box-shadow: 0 0 15px var(--color-error);"><i class="fas fa-bus"></i></div>`;
     return el;
   }
+
+  // --- OVERRIDE ALERT Y CONFIRM NATIVOS ---
+  window.alert = function(message) {
+    if (!message) return;
+    const isError = message.toLowerCase().includes('error');
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: isError ? 'error' : 'success',
+      title: message.replace(/✅|❌/g, '').trim(),
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true
+    });
+  };
+
+  window.confirmAsync = async function(mensaje) {
+    const result = await Swal.fire({
+      title: mensaje,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e74c3c',
+      cancelButtonColor: '#95a5a6',
+      confirmButtonText: 'Sí, continuar',
+      cancelButtonText: 'Cancelar'
+    });
+    return result.isConfirmed;
+  };
 
   // --- FUNCIÓN PRINCIPAL DASHBOARD (KPIs y Mapa) ---
   async function inicializarDashboard() {
@@ -344,13 +397,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function renderEmptyState(colspan, message) {
+    return `<tr>
+      <td colspan="${colspan}" style="text-align: center; padding: 40px 20px;">
+        <div style="font-size: 3rem; color: var(--color-secundario); margin-bottom: 15px;">
+          <i class="fas fa-folder-open"></i>
+        </div>
+        <p style="color: var(--color-texto-gris); font-size: 1.1rem; margin: 0;">${message}</p>
+      </td>
+    </tr>`;
+  }
+
   function renderTablaUsuarios(lista) {
     const tbody = document.getElementById("tabla-usuarios-body");
     if (!tbody) return;
     tbody.innerHTML = "";
 
     if (lista.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5">No hay usuarios.</td></tr>';
+      tbody.innerHTML = renderEmptyState(5, "No se encontraron usuarios.");
       return;
     }
 
@@ -559,7 +623,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function handleDeleteUser(id) {
-    if (!confirm("¿Eliminar usuario?")) return;
+    if (!(await confirmAsync("¿Eliminar usuario?"))) return;
     try {
       const response = await fetch(`${BACKEND_URL}/api/users/${id}`, {
         method: "DELETE",
@@ -587,8 +651,7 @@ document.addEventListener("DOMContentLoaded", () => {
     tbody.innerHTML = "";
 
     if (lista.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="5">No se encontraron camiones.</td></tr>';
+      tbody.innerHTML = renderEmptyState(5, "No se encontraron camiones.");
       return;
     }
 
@@ -746,7 +809,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function handleDeleteCamion(id) {
-    if (!confirm("¿Eliminar camión?")) return;
+    if (!(await confirmAsync("¿Eliminar camión?"))) return;
     try {
       const response = await fetch(`${BACKEND_URL}/api/camiones/${id}`, {
         method: "DELETE",
@@ -807,8 +870,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!tablaBody) return;
     tablaBody.innerHTML = "";
     if (lista.length === 0) {
-      tablaBody.innerHTML =
-        '<tr><td colspan="5">No se encontraron rutas.</td></tr>';
+      tablaBody.innerHTML = renderEmptyState(5, "No se encontraron rutas.");
       return;
     }
     lista.forEach((r) => {
@@ -910,7 +972,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function handleDeleteRuta(id) {
-    if (!confirm("¿Eliminar ruta?")) return;
+    if (!(await confirmAsync("¿Eliminar ruta?"))) return;
     try {
       const response = await fetch(`${BACKEND_URL}/api/rutas/${id}`, {
         method: "DELETE",
@@ -1018,8 +1080,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!tbody) return;
     tbody.innerHTML = "";
     if (lista.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="6">No se encontraron horarios.</td></tr>';
+      tbody.innerHTML = renderEmptyState(6, "No se encontraron horarios.");
       return;
     }
     lista.forEach((h) => {
@@ -1141,7 +1202,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document
     .getElementById("tabla-horarios-body")
-    ?.addEventListener("click", (e) => {
+    ?.addEventListener("click", async (e) => {
       const btnEdit = e.target.closest(".btn-edit-horario");
       const btnDelete = e.target.closest(".btn-delete-horario");
       if (btnEdit) {
@@ -1150,7 +1211,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (btnDelete) {
         const { id, salidaId } = btnDelete.dataset;
-        if (confirm("¿Eliminar horario?")) eliminarHorario(id, salidaId);
+        if (await confirmAsync("¿Eliminar horario?")) eliminarHorario(id, salidaId);
       }
     });
 
@@ -1371,7 +1432,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  let editorMode = "tracing";
+  let editorMode = "stops";
   let editorMap = null;
   let arrayPuntosTrazado = [];
   let arrayPuntosParada = [];
@@ -1386,14 +1447,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function setEditorMode(mode) {
     editorMode = mode;
+    const helpText = document.getElementById("editor-help-text");
     if (mode === "tracing") {
       btnModeTracing.classList.add("active");
       btnModeStops.classList.remove("active");
       if (editorMap) editorMap.getContainer().style.cursor = "crosshair";
+      if (helpText) helpText.innerHTML = "<b>Modo Trazado:</b> Haz clic para dibujar el camino línea por línea (ideal para caminos rurales o atajos).";
     } else {
       btnModeStops.classList.add("active");
       btnModeTracing.classList.remove("active");
       if (editorMap) editorMap.getContainer().style.cursor = "default";
+      if (helpText) helpText.innerHTML = "<b>Modo Paradas:</b> Coloca los puntos donde suben estudiantes. La ruta se trazará <b>automáticamente</b> por las calles.";
     }
   }
 
@@ -1819,7 +1883,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!tablaBody) return;
     tablaBody.innerHTML = "";
     if (listaAlertas.length === 0) {
-      tablaBody.innerHTML = '<tr><td colspan="4">No hay alertas.</td></tr>';
+      tablaBody.innerHTML = renderEmptyState(4, "No hay alertas.");
       return;
     }
     listaAlertas.forEach((alerta) => {
