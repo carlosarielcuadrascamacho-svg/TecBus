@@ -108,24 +108,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const initialLat = 25.567,
     initialLng = -108.473,
     initialZoom = 13;
-  const map = L.map("admin-map").setView([initialLat, initialLng], initialZoom);
-
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    attribution: "&copy; OpenStreetMap &copy; CARTO",
-  }).addTo(map);
-
-  const busIcon = L.divIcon({
-    className: "custom-bus-icon",
-    html: `<div style="background-color:var(--color-primario); border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align: center; color: white; border: 2px solid white; font-size: 14px;"><i class="fas fa-bus"></i></div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
+    
+  const map = new maplibregl.Map({
+    container: 'admin-map',
+    style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    center: [initialLng, initialLat],
+    zoom: initialZoom,
+    attributionControl: false
   });
-  const alertIcon = L.divIcon({
-    className: "custom-bus-icon-alert",
-    html: `<div style="background-color:var(--color-error); border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; color: white; border: 3px solid white; font-size: 16px; animation: pulse 1.5s infinite;"><i class="fas fa-bus"></i></div>`,
-    iconSize: [35, 35],
-    iconAnchor: [17, 17],
-  });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+  function createBusElement() {
+    const el = document.createElement('div');
+    el.className = "custom-bus-icon";
+    el.innerHTML = `<div style="background-color:var(--color-primario); border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; color: white; border: 2px solid white; font-size: 14px; box-shadow: 0 0 10px var(--color-primario);"><i class="fas fa-bus"></i></div>`;
+    return el;
+  }
+
+  function createAlertElement() {
+    const el = document.createElement('div');
+    el.className = "custom-bus-icon-alert";
+    el.innerHTML = `<div style="background-color:var(--color-error); border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; color: white; border: 3px solid white; font-size: 16px; animation: pulse 1.5s infinite; box-shadow: 0 0 15px var(--color-error);"><i class="fas fa-bus"></i></div>`;
+    return el;
+  }
 
   // --- FUNCIÓN PRINCIPAL DASHBOARD (KPIs y Mapa) ---
   async function inicializarDashboard() {
@@ -141,7 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
         camionesCargados = camiones;
 
         // Limpiar y redibujar marcadores
-        Object.values(busMarkers).forEach((m) => map.removeLayer(m));
+        Object.values(busMarkers).forEach((m) => m.remove());
         busMarkers = {};
 
         // --- AQUÍ ACTUALIZAMOS EL KPI DE TOTAL DE CAMIONES ---
@@ -151,11 +156,11 @@ document.addEventListener("DOMContentLoaded", () => {
         camiones.forEach((c) => {
           if (c.ubicacionActual && c.ubicacionActual.coordinates) {
             const [lng, lat] = c.ubicacionActual.coordinates;
-            const m = L.marker([lat, lng], { icon: busIcon })
-              .addTo(map)
-              .bindPopup(
-                `🚍 <b>${c.numeroUnidad}</b><br>Vel: ${c.velocidad || 0} km/h`
-              );
+            const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`🚍 <b>${c.numeroUnidad}</b><br>Vel: ${c.velocidad || 0} km/h`);
+            const m = new maplibregl.Marker({ element: createBusElement() })
+              .setLngLat([lng, lat])
+              .setPopup(popup)
+              .addTo(map);
             busMarkers[c._id] = m;
           }
         });
@@ -222,7 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
   socket.on("locationUpdate", (data) => {
     const marker = busMarkers[data.camionId];
     if (marker) {
-      marker.setLatLng([data.location.lat, data.location.lng]);
+      marker.setLngLat([data.location.lng, data.location.lat]);
     } else {
       // Si es un camión nuevo, recargamos todo el mapa para asegurarnos
       inicializarDashboard();
@@ -236,10 +241,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const marker = busMarkers[data.camionId];
     if (marker) {
-      marker.setIcon(alertIcon);
-      marker
-        .bindPopup(`🚨 <b>ALERTA: ${data.tipo}</b><br>${data.detalles || ""}`)
-        .openPopup();
+      const el = marker.getElement();
+      el.className = "custom-bus-icon-alert";
+      el.innerHTML = `<div style="background-color:var(--color-error); border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; color: white; border: 3px solid white; font-size: 16px; animation: pulse 1.5s infinite; box-shadow: 0 0 15px var(--color-error);"><i class="fas fa-bus"></i></div>`;
+      
+      const popup = marker.getPopup();
+      if(popup) {
+          popup.setHTML(`🚨 <b>ALERTA: ${data.tipo}</b><br>${data.detalles || ""}`);
+      } else {
+          marker.setPopup(new maplibregl.Popup({ offset: 15 }).setHTML(`🚨 <b>ALERTA: ${data.tipo}</b><br>${data.detalles || ""}`));
+      }
+      marker.togglePopup();
     }
   });
 
@@ -249,16 +261,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (kpiStudents) kpiStudents.textContent = studentCount;
 
     if (data.location && data.location.lat && data.location.lng) {
-      L.circle([data.location.lat, data.location.lng], {
-        color: "var(--color-exito)",
-        fillColor: "#2ecc71",
-        fillOpacity: 0.5,
-        radius: 30,
-      })
-        .addTo(map)
-        .bindPopup(
-          `<b>Estudiante Esperando</b><br>Hora: ${new Date().toLocaleTimeString()}`
-        );
+      const studentEl = document.createElement('div');
+      studentEl.style.cssText = 'width: 40px; height: 40px; background-color: rgba(46, 204, 113, 0.5); border: 2px solid var(--color-exito); border-radius: 50%; animation: pulse 2s infinite;';
+      
+      const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`<b>Estudiante Esperando</b><br>Hora: ${new Date().toLocaleTimeString()}`);
+      new maplibregl.Marker({ element: studentEl })
+          .setLngLat([data.location.lng, data.location.lat])
+          .setPopup(popup)
+          .addTo(map);
     }
   });
 
@@ -1318,29 +1328,27 @@ document.addEventListener("DOMContentLoaded", () => {
   window.cerrarModalEditarHorario = () =>
     modalEditarHorario.classList.remove("modal-visible");
 
-  // 1. Icono de Estudiante
-  const studentIconAdmin = L.divIcon({
-    className: "student-marker-admin",
-    html: `<div style="background-color: #0dcaf0; color: white; width: 25px; height: 25px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.5);"><i class="fas fa-user"></i></div>`,
-    iconSize: [25, 25],
-    iconAnchor: [12, 12],
-  });
+  // 1. Icono de Estudiante (DOM Element para MapLibre)
+  function createStudentAdminElement() {
+    const el = document.createElement('div');
+    el.className = "student-marker-admin";
+    el.innerHTML = `<div style="background-color: #0dcaf0; color: white; width: 25px; height: 25px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.5);"><i class="fas fa-user"></i></div>`;
+    return el;
+  }
 
   // 2. Escuchar evento
   socket.on("studentWaiting", (data) => {
     console.log("Admin: Estudiante esperando", data);
 
-    const marker = L.marker([data.location.lat, data.location.lng], {
-      icon: studentIconAdmin,
-    })
-      .addTo(map) // Asegúrate que tu variable de mapa se llame 'map'
-      .bindPopup(
-        `<strong>Estudiante esperando</strong><br>Ruta: ${data.rutaId}`
-      );
+    const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`<strong>Estudiante esperando</strong><br>Ruta: ${data.rutaId}`);
+    const marker = new maplibregl.Marker({ element: createStudentAdminElement() })
+      .setLngLat([data.location.lng, data.location.lat])
+      .setPopup(popup)
+      .addTo(map);
 
     // Limpiar después de 5 min
     setTimeout(() => {
-      if (map.hasLayer(marker)) map.removeLayer(marker);
+      marker.remove();
     }, 300000);
   });
 
@@ -1361,8 +1369,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let editorMap = null;
   let arrayPuntosTrazado = [];
   let arrayPuntosParada = [];
-  let traceLayerGroup = L.layerGroup();
-  let stopsLayerGroup = L.layerGroup();
+  let traceMarkers = [];
+  let stopMarkers = [];
   let marcadoresGuia = [];
 
   if (btnModeTracing && btnModeStops) {
@@ -1385,22 +1393,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function inicializarEditorMapa() {
     if (editorMap) return;
-    editorMap = L.map("ruta-map-editor").setView(
-      [initialLat, initialLng],
-      initialZoom
-    );
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-      {
-        attribution: "&copy; OpenStreetMap &copy; CARTO",
-      }
-    ).addTo(editorMap);
+    
+    editorMap = new maplibregl.Map({
+      container: 'ruta-map-editor',
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center: [initialLng, initialLat],
+      zoom: initialZoom,
+      attributionControl: false
+    });
+    editorMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
-    traceLayerGroup.addTo(editorMap);
-    stopsLayerGroup.addTo(editorMap);
+    editorMap.on('load', () => {
+      editorMap.addSource('trace-source', {
+        'type': 'geojson',
+        'data': { 'type': 'Feature', 'properties': {}, 'geometry': { 'type': 'LineString', 'coordinates': [] } }
+      });
+
+      editorMap.addLayer({
+        'id': 'trace-layer',
+        'type': 'line',
+        'source': 'trace-source',
+        'layout': { 'line-join': 'round', 'line-cap': 'round' },
+        'paint': { 'line-color': '#007bff', 'line-width': 5, 'line-opacity': 0.7 }
+      });
+      dibujarTrazado(); // Refresh in case data was loaded before style
+    });
 
     editorMap.on("click", (e) => {
-      const { lat, lng } = e.latlng;
+      const { lng, lat } = e.lngLat;
       if (editorMode === "tracing") {
         arrayPuntosTrazado.push([lat, lng]);
         dibujarTrazado();
@@ -1418,59 +1438,57 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function dibujarTrazado() {
-    traceLayerGroup.clearLayers();
-    if (arrayPuntosTrazado.length === 0) return;
-    L.polyline(arrayPuntosTrazado, {
-      color: "#007bff",
-      weight: 5,
-      opacity: 0.7,
-    }).addTo(traceLayerGroup);
+    traceMarkers.forEach(m => m.remove());
+    traceMarkers = [];
+    
+    if (editorMap && editorMap.getSource('trace-source')) {
+       const coords = arrayPuntosTrazado.map(p => [p[1], p[0]]); // GeoJSON needs [lng, lat]
+       editorMap.getSource('trace-source').setData({ 'type': 'Feature', 'properties': {}, 'geometry': { 'type': 'LineString', 'coordinates': coords } });
+    }
 
-    const dotIcon = L.divIcon({
-      className: "dot-marker",
-      html: "",
-      iconSize: [12, 12],
-      iconAnchor: [6, 6],
-    });
     arrayPuntosTrazado.forEach((coords, index) => {
-      const marker = L.marker(coords, { icon: dotIcon, draggable: true });
-      marker.bindPopup(
-        `<div style="text-align:center;"><small>Punto #${
-          index + 1
-        }</small><br><button onclick="borrarPuntoTrazo(${index})" class="btn btn-danger btn-sm">Eliminar</button></div>`
-      );
-      marker.on("dragend", (e) => {
-        const newPos = e.target.getLatLng();
+      const el = document.createElement('div');
+      el.className = 'dot-marker';
+      el.style.cssText = 'background-color:#007bff; border:2px solid white; width:12px; height:12px; border-radius:50%;';
+      
+      const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`<div style="text-align:center;"><small>Punto #${index + 1}</small><br><button onclick="borrarPuntoTrazo(${index})" class="btn btn-danger btn-sm">Eliminar</button></div>`);
+      
+      const marker = new maplibregl.Marker({ element: el, draggable: true })
+        .setLngLat([coords[1], coords[0]])
+        .setPopup(popup)
+        .addTo(editorMap);
+        
+      marker.on("dragend", () => {
+        const newPos = marker.getLngLat();
         arrayPuntosTrazado[index] = [newPos.lat, newPos.lng];
         dibujarTrazado();
       });
-      marker.addTo(traceLayerGroup);
+      traceMarkers.push(marker);
     });
   }
 
   function dibujarParadas() {
-    stopsLayerGroup.clearLayers();
-    const stopIcon = L.divIcon({
-      className: "parada-marker",
-      html: '<i class="fas fa-bus"></i>',
-      iconSize: [30, 30],
-      iconAnchor: [15, 30],
-      popupAnchor: [0, -30],
-    });
+    stopMarkers.forEach(m => m.remove());
+    stopMarkers = [];
+    
     arrayPuntosParada.forEach((parada, index) => {
       const [lng, lat] = parada.ubicacion.coordinates;
-      const marker = L.marker([lat, lng], { icon: stopIcon, draggable: true });
-      marker.bindPopup(
-        `<div style="text-align:center;"><strong>${parada.nombre}</strong><br><button onclick="borrarParada(${index})" class="btn btn-danger btn-sm">Borrar</button></div>`
-      );
-      marker.on("dragend", (e) => {
-        const newPos = e.target.getLatLng();
-        arrayPuntosParada[index].ubicacion.coordinates = [
-          newPos.lng,
-          newPos.lat,
-        ];
+      const el = document.createElement('div');
+      el.className = 'parada-marker';
+      el.innerHTML = '<div style="background-color:#ffc107; color:#000; width:30px; height:30px; border-radius:50%; display:flex; justify-content:center; align-items:center; border:2px solid white; font-size:14px; box-shadow: 0 2px 4px rgba(0,0,0,0.5);"><i class="fas fa-bus"></i></div>';
+      
+      const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`<div style="text-align:center;"><strong>${parada.nombre}</strong><br><button onclick="borrarParada(${index})" class="btn btn-danger btn-sm">Borrar</button></div>`);
+      
+      const marker = new maplibregl.Marker({ element: el, draggable: true })
+        .setLngLat([lng, lat])
+        .setPopup(popup)
+        .addTo(editorMap);
+        
+      marker.on("dragend", () => {
+        const newPos = marker.getLngLat();
+        arrayPuntosParada[index].ubicacion.coordinates = [newPos.lng, newPos.lat];
       });
-      marker.addTo(stopsLayerGroup);
+      stopMarkers.push(marker);
     });
   }
 
@@ -1498,7 +1516,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   function limpiarGuias() {
-    marcadoresGuia.forEach((m) => editorMap.removeLayer(m));
+    marcadoresGuia.forEach((m) => m.remove());
     marcadoresGuia = [];
     if (inputRefOrigin) inputRefOrigin.value = "";
     if (inputRefDest) inputRefDest.value = "";
@@ -1529,7 +1547,7 @@ document.addEventListener("DOMContentLoaded", () => {
     limpiarGuias();
     setTimeout(() => {
       inicializarEditorMapa();
-      editorMap.invalidateSize();
+      editorMap.resize();
       dibujarTrazado();
       dibujarParadas();
       actualizarListaUI();
@@ -1752,10 +1770,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const color = tipo === "origen" ? "#2ecc71" : "#e74c3c"; // Verde o Rojo
 
-    // Icono Personalizado
-    const guideIcon = L.divIcon({
-      className: "guide-marker",
-      html: `<div style="
+    const el = document.createElement('div');
+    el.className = "guide-marker";
+    el.innerHTML = `<div style="
               background-color: ${color};
               width: 32px; height: 32px;
               border-radius: 50%;
@@ -1766,22 +1783,20 @@ document.addEventListener("DOMContentLoaded", () => {
               <i class="fas ${
                 tipo === "origen" ? "fa-play" : "fa-flag-checkered"
               }"></i>
-          </div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
-    });
+          </div>`;
 
-    const marker = L.marker([lat, lng], { icon: guideIcon })
-      .addTo(editorMap)
-      .bindPopup(
-        `<strong style="color:${color}">${tipo.toUpperCase()}</strong><br>${titulo}`
-      )
-      .openPopup();
+    const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`<strong style="color:${color}">${tipo.toUpperCase()}</strong><br>${titulo}`);
 
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat([lng, lat])
+      .setPopup(popup)
+      .addTo(editorMap);
+
+    marker.togglePopup();
     marcadoresGuia.push(marker);
 
     // Centrar el mapa en el lugar seleccionado
-    editorMap.setView([lat, lng], 15);
+    editorMap.jumpTo({ center: [lng, lat], zoom: 15 });
   }
   // ----------------------------------------------------
 
