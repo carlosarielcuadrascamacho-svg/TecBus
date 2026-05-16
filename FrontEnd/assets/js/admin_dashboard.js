@@ -100,6 +100,68 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ============================================================
+  //  4. SISTEMA DE PESTAÑAS (TABS)
+  // ============================================================
+  const tabButtons = document.querySelectorAll(".btn-tab");
+  tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tabId = btn.getAttribute("data-tab");
+      const section = btn.closest(".dashboard-section");
+      if (!section) return;
+
+      // Desactivar otros botones de la misma sección
+      section
+        .querySelectorAll(".btn-tab")
+        .forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      // Desactivar otros contenidos
+      section
+        .querySelectorAll(".tab-content")
+        .forEach((c) => c.classList.remove("active"));
+      const targetContent = document.getElementById(tabId);
+      if (targetContent) targetContent.classList.add("active");
+
+      // Acciones especiales según el tab
+      if (tabId === "tab-horarios-timeline") {
+        renderTimeline();
+      }
+    });
+  });
+
+  // --- LÓGICA DE NAVEGACIÓN TIMELINE ---
+  let currentTimelineDay = "Lunes";
+  const daysList = [
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+    "Domingo",
+    "Lunes-Viernes",
+    "Diario",
+  ];
+
+  document.getElementById("btn-prev-day")?.addEventListener("click", () => {
+    let idx = daysList.indexOf(currentTimelineDay);
+    idx = (idx - 1 + daysList.length) % daysList.length;
+    currentTimelineDay = daysList[idx];
+    document.getElementById("timeline-current-day").textContent =
+      currentTimelineDay;
+    renderTimeline();
+  });
+
+  document.getElementById("btn-next-day")?.addEventListener("click", () => {
+    let idx = daysList.indexOf(currentTimelineDay);
+    idx = (idx + 1) % daysList.length;
+    currentTimelineDay = daysList[idx];
+    document.getElementById("timeline-current-day").textContent =
+      currentTimelineDay;
+    renderTimeline();
+  });
+
+  // ============================================================
   //  LÓGICA DE BÚSQUEDA EN VIVO (LIVE SEARCH)
   // ============================================================
   function setupLiveSearch(inputId, getLatestData, renderFunc, filterFields) {
@@ -119,9 +181,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   setupLiveSearch("live-search-user", () => usuariosCargados, renderTablaUsuarios, ["nombre", "email", "tipo"]);
-  setupLiveSearch("live-search-camion", () => camionesCargados, renderTablaCamiones, ["numeroUnidad", "placas", "modelo"]);
+  setupLiveSearch("live-search-camion", () => camionesCargados, renderTablaCamiones, ["numeroUnidad", "placa", "modelo"]);
   setupLiveSearch("live-search-ruta", () => rutasCargadas, renderTablaRutas, ["nombre", "descripcion"]);
-  setupLiveSearch("live-search-horario", () => horariosCargados, renderTablaHorarios, ["ruta.nombre", "camion.numeroUnidad", "conductor.nombre", "dia"]);
+  setupLiveSearch("live-search-horario", () => horariosCargados, renderTablaHorarios, ["rutaNombre", "camionUnidad", "conductorNombre", "diaSemana", "hora"]);
   setupLiveSearch("live-search-alerta", () => alertasCargadas, renderTablaAlertas, ["titulo", "mensaje", "tipo"]);
 
   // Carga inicial por defecto (Mapa y KPIs)
@@ -2009,6 +2071,109 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Actualizar cada 30 segundos automáticamente
   setInterval(cargarDashboardStats, 30000);
+  // --- RENDERIZADO DE LÍNEA DE TIEMPO ---
+  function renderTimeline() {
+    const grid = document.getElementById("horarios-timeline-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+
+    // 1. Headers (Horas 00-23)
+    grid.appendChild(createTimelineCell("Recurso", "timeline-header-cell"));
+    for (let i = 0; i < 24; i++) {
+      grid.appendChild(
+        createTimelineCell(
+          `${i.toString().padStart(2, "0")}:00`,
+          "timeline-header-cell"
+        )
+      );
+    }
+
+    // 2. Agrupar por Camión (para las filas)
+    const camiones = [
+      ...new Set(horariosCargados.map((h) => h.camionUnidad || "Sin Camión")),
+    ];
+
+    if (camiones.length === 0) {
+        const emptyMsg = document.createElement("div");
+        emptyMsg.style.gridColumn = "1 / -1";
+        emptyMsg.style.padding = "40px";
+        emptyMsg.style.textAlign = "center";
+        emptyMsg.innerHTML = `<p style="color: #666;">No hay datos para mostrar en la línea de tiempo.</p>`;
+        grid.appendChild(emptyMsg);
+        return;
+    }
+
+    camiones.forEach((camion) => {
+      // Label de la fila (Camión)
+      grid.appendChild(
+        createTimelineCell(
+          `<i class="fas fa-bus"></i> ${camion}`,
+          "timeline-row-label"
+        )
+      );
+
+      // Celdas de la fila (una por hora)
+      for (let h = 0; h < 24; h++) {
+        const cell = document.createElement("div");
+        cell.className = "timeline-cell";
+
+        // Filtrar horarios que caen en este camión, este día y esta hora
+        const events = horariosCargados.filter((item) => {
+          const matchDay =
+            item.diaSemana === currentTimelineDay ||
+            (currentTimelineDay === "Lunes-Viernes" &&
+              ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"].includes(
+                item.diaSemana
+              )) ||
+            item.diaSemana === "Diario";
+          const itemHour = parseInt(item.hora.split(":")[0]);
+          return item.camionUnidad === camion && matchDay && itemHour === h;
+        });
+
+        events.forEach((event) => {
+          const eventEl = document.createElement("div");
+          eventEl.className = "timeline-event";
+          const minutes = parseInt(event.hora.split(":")[1]);
+          const offset = (minutes / 60) * 100;
+          eventEl.style.left = `${offset}%`;
+          eventEl.style.width = "55px"; // Duración aproximada de una salida
+          eventEl.innerHTML = `
+                    <span class="event-time">${event.hora}</span>
+                    <span class="event-route" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${event.rutaNombre}</span>
+                  `;
+          eventEl.title = `${event.rutaNombre} - ${event.conductorNombre} (${event.hora})`;
+          
+          // Tooltip con SweetAlert al hacer clic
+          eventEl.onclick = () => {
+              Swal.fire({
+                  title: `Salida: ${event.rutaNombre}`,
+                  html: `
+                    <div style="text-align: left;">
+                        <p><b>Día:</b> ${event.diaSemana}</p>
+                        <p><b>Hora:</b> ${event.hora}</p>
+                        <p><b>Camión:</b> ${event.camionUnidad}</p>
+                        <p><b>Conductor:</b> ${event.conductorNombre}</p>
+                    </div>
+                  `,
+                  icon: 'info',
+                  confirmButtonText: 'Cerrar'
+              });
+          };
+
+          cell.appendChild(eventEl);
+        });
+
+        grid.appendChild(cell);
+      }
+    });
+  }
+
+  function createTimelineCell(text, className) {
+    const el = document.createElement("div");
+    el.className = className;
+    el.innerHTML = text;
+    return el;
+  }
 });
 
 async function cargarDashboardStats() {

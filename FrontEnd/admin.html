@@ -317,8 +317,21 @@
         </section>
 
         <section id="horarios" class="dashboard-section">
-          <div class="form-container">
-            <h3>Registrar Nueva Salida</h3>
+          <div class="section-header-tabs">
+            <h3>Gestión de Horarios</h3>
+            <div class="tab-controls">
+                <button class="btn-tab active" data-tab="tab-horarios-lista">
+                    <i class="fas fa-list"></i> Lista
+                </button>
+                <button class="btn-tab" data-tab="tab-horarios-timeline">
+                    <i class="fas fa-stream"></i> Línea de Tiempo
+                </button>
+            </div>
+          </div>
+
+          <div id="tab-horarios-lista" class="tab-content active">
+            <div class="form-container">
+              <h3>Registrar Nueva Salida</h3>
             <form id="form-registrar-horario">
               <div class="form-grid">
                 <div class="form-group">
@@ -390,7 +403,28 @@
               <tbody id="tabla-horarios-body"></tbody>
             </table>
           </div>
-        </section>
+        </div>
+
+        <div id="tab-horarios-timeline" class="tab-content">
+            <div class="timeline-container">
+                <div class="timeline-controls">
+                    <button class="btn btn-secondary btn-sm" id="btn-prev-day"><i class="fas fa-chevron-left"></i></button>
+                    <h4 id="timeline-current-day">Lunes</h4>
+                    <button class="btn btn-secondary btn-sm" id="btn-next-day"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="timeline-wrapper">
+                    <div id="horarios-timeline-grid" class="timeline-grid">
+                        <!-- Se genera dinámicamente -->
+                    </div>
+                </div>
+                <div class="timeline-legend">
+                    <div class="legend-item"><span class="legend-color" style="background: var(--color-primario);"></span> Registrado</div>
+                    <div class="legend-item"><span class="legend-color" style="background: #27ae60;"></span> En Curso</div>
+                    <div class="legend-item"><span class="legend-color" style="background: #f39c12;"></span> Terminado</div>
+                </div>
+            </div>
+        </div>
+      </section>
 
         <section id="alertas" class="dashboard-section">
           <div class="table-container">
