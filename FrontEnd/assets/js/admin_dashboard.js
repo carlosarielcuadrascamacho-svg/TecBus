@@ -556,14 +556,27 @@ document.addEventListener("DOMContentLoaded", () => {
         : `<span class="status-inactive">● Inactivo</span>`;
 
       // 3. RENDERIZADO
+      let tipoTexto = u.tipo === "conductor" ? "Conductor" : "Admin";
+      let badgeClass = u.tipo === "conductor" ? "badge-conductor" : "badge-admin";
+      let icon = u.tipo === "conductor" ? "fa-bus" : "fa-user-shield";
+      const estaActivo = u.estado === "activo" || u.estado === "En Servicio" || u.estado === "En Ruta";
+      const estadoHtml = `
+        <div class="status-pill">
+          <span class="status-dot-pulse ${estaActivo ? 'active' : 'inactive'}"></span>
+          ${estaActivo ? 'Activo' : 'Offline'}
+        </div>
+      `;
+
       row.innerHTML = `
-        <td>${u.nombre}</td>
-        <td>${u.email}</td>
-        <td><span class="badge ${badgeClass}">${tipoTexto}</span></td>
+        <td><b>${u.nombre}</b></td>
+        <td><span class="text-muted">${u.email}</span></td>
+        <td><span class="badge ${badgeClass}"><i class="fas ${icon}"></i> ${tipoTexto}</span></td>
         <td>${estadoHtml}</td>
         <td>
-            <button class="btn btn-secondary btn-sm btn-edit-user" data-id="${u._id}"><i class="fas fa-edit"></i></button>
-            <button class="btn btn-danger btn-sm btn-delete-user" data-id="${u._id}"><i class="fas fa-trash"></i></button>
+            <div class="table-actions" style="display:flex; gap:5px;">
+                <button class="btn btn-secondary btn-sm btn-edit-user" title="Editar" data-id="${u._id}"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-danger btn-sm btn-delete-user" title="Eliminar" data-id="${u._id}"><i class="fas fa-trash"></i></button>
+            </div>
         </td>`;
       tbody.appendChild(row);
     });
@@ -761,18 +774,25 @@ document.addEventListener("DOMContentLoaded", () => {
         ? `<span class="status-active">● Activo</span>`
         : `<span class="status-inactive">● Inactivo</span>`;
 
+      // Lógica de Estado del Camión
+      const estaActivo = c.estado === "En Servicio" || c.estado === "activo";
+      const estadoHtml = `
+        <div class="status-pill">
+          <span class="status-dot-pulse ${estaActivo ? 'active' : 'inactive'}"></span>
+          ${estaActivo ? 'Operativo' : 'Inactivo'}
+        </div>
+      `;
+
       row.innerHTML = `
-          <td>${c.placa}</td>
-          <td>${c.numeroUnidad}</td>
-          <td>${c.modelo || "N/A"}</td>
+          <td><code class="text-primary" style="font-weight:700">${c.placa}</code></td>
+          <td><b>${c.numeroUnidad}</b></td>
+          <td><span class="text-muted">${c.modelo || "N/A"}</span></td>
           <td>${estadoHtml}</td>
           <td>
-              <button class="btn btn-secondary btn-sm btn-edit-camion" data-id="${
-                c._id
-              }"><i class="fas fa-edit"></i></button>
-              <button class="btn btn-danger btn-sm btn-delete-camion" data-id="${
-                c._id
-              }"><i class="fas fa-trash"></i></button>
+              <div class="table-actions" style="display:flex; gap:5px;">
+                  <button class="btn btn-secondary btn-sm btn-edit-camion" title="Editar" data-id="${c._id}"><i class="fas fa-edit"></i></button>
+                  <button class="btn btn-danger btn-sm btn-delete-camion" title="Eliminar" data-id="${c._id}"><i class="fas fa-trash"></i></button>
+              </div>
           </td>`;
       tbody.appendChild(row);
     });
