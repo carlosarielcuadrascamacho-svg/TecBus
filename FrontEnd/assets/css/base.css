@@ -45,3 +45,11 @@ a {
   background-color: var(--color-superficie);
   border-color: var(--color-secundario);
 }
+
+/* 4. Correcciones UI Globales */
+.maplibregl-popup-content {
+  color: #000 !important; /* Fuerza el color de texto a negro para los popups del mapa */
+}
+.maplibregl-popup-content * {
+  color: #000 !important; /* Fuerza el color de texto a negro para los elementos internos del popup */
+}

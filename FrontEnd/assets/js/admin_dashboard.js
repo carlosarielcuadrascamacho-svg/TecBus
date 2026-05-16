@@ -1945,18 +1945,19 @@ async function cargarDashboardStats() {
       const data = await res.json();
 
       // 1. Actualizar Tarjetas (KPIs)
-      document.getElementById(
-        "kpi-total-km"
-      ).textContent = `${data.resumen.totalKm} km`;
-      document.getElementById("kpi-max-speed").textContent =
-        data.resumen.topVelocidad;
+      const kpiTotalKm = document.getElementById("kpi-total-km");
+      if (kpiTotalKm) kpiTotalKm.textContent = `${data.resumen.totalKm} km`;
+      
+      const kpiMaxSpeed = document.getElementById("kpi-max-speed");
+      if (kpiMaxSpeed) kpiMaxSpeed.textContent = data.resumen.topVelocidad;
+      
       const kpiActiveUnits = document.getElementById("kpi-active-units");
       if (kpiActiveUnits) {
         kpiActiveUnits.textContent = data.resumen.totalUnidadesActivas;
       }
       // 2. Actualizar Tabla
       const tbody = document.getElementById("stats-table-body");
-      tbody.innerHTML = ""; // Limpiar tabla
+      if (tbody) tbody.innerHTML = ""; // Limpiar tabla
 
       data.detalles.forEach((d) => {
         const row = `
@@ -1969,7 +1970,7 @@ async function cargarDashboardStats() {
                         <td>${d.actualizado}</td>
                     </tr>
                 `;
-        tbody.innerHTML += row;
+        if (tbody) tbody.innerHTML += row;
       });
     }
   } catch (error) {
