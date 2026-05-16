@@ -290,16 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
             'paint': { 'line-color': '#007bff', 'line-width': 6, 'line-opacity': 0.8 }
           });
 
-          // Marcar las paradas visualmente
-          puntosParada.forEach((p) => {
-            const stopEl = document.createElement('div');
-            stopEl.style.cssText = 'background-color:#ffc107; border:2px solid white; width:12px; height:12px; border-radius:50%; box-shadow:0 0 4px black;';
-            const m = new maplibregl.Marker({ element: stopEl })
-              .setLngLat([p.ubicacion.coordinates[0], p.ubicacion.coordinates[1]])
-              .setPopup(new maplibregl.Popup({ offset: 10 }).setText(p.nombre))
-              .addTo(map);
-            window.stopMarkersArray.push(m);
-          });
+          // Las paradas se marcan visualmente más abajo (fuera del if)
 
           // Establecer destino (último punto del trazo)
           const ultimo = coords[coords.length - 1];
@@ -337,6 +328,17 @@ document.addEventListener("DOMContentLoaded", () => {
               console.error("Error obteniendo ruta OSRM", err);
           }
         }
+
+        // Marcar las paradas visualmente para ambos casos
+        puntosParada.forEach((p) => {
+          const stopEl = document.createElement('div');
+          stopEl.style.cssText = 'background-color:#ffc107; border:2px solid white; width:12px; height:12px; border-radius:50%; box-shadow:0 0 4px black;';
+          const m = new maplibregl.Marker({ element: stopEl })
+            .setLngLat([p.ubicacion.coordinates[0], p.ubicacion.coordinates[1]])
+            .setPopup(new maplibregl.Popup({ offset: 10 }).setText(p.nombre))
+            .addTo(map);
+          window.stopMarkersArray.push(m);
+        });
 
         if (coordsForBounds.length > 0) {
           const bounds = coordsForBounds.reduce(function(b, coord) {
