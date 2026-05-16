@@ -1928,3 +1928,63 @@
 .modal-route-info b {
     color: var(--color-primario);
 }
+
+/* --- ANALYTICS DASHBOARD --- */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    padding: 10px;
+}
+
+.analytics-card {
+    background: rgba(30, 30, 30, 0.4);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease;
+}
+
+.analytics-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.analytics-card.main-chart {
+    grid-column: 1 / -1;
+}
+
+.card-header {
+    margin-bottom: 25px;
+}
+
+.card-header h4 {
+    font-size: 1.1rem;
+    color: #fff;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-header h4 i {
+    color: var(--color-primario);
+}
+
+.card-header p {
+    font-size: 0.85rem;
+    color: var(--color-texto-gris);
+}
+
+canvas {
+    width: 100% !important;
+    max-height: 350px;
+}
+
+@media (max-width: 768px) {
+    .analytics-card.main-chart {
+        grid-column: auto;
+    }
+}

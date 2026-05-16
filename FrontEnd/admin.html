@@ -9,6 +9,8 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
     />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link
       rel="stylesheet"
       href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"
@@ -41,6 +43,9 @@
         <nav class="main-nav">
           <a href="#mapa" class="nav-item active">
             <i class="fas fa-map-marker-alt"></i> <span>Mapa de Flotilla</span>
+          </a>
+          <a href="#estadisticas" class="nav-item">
+            <i class="fas fa-chart-line"></i> <span>Estadísticas</span>
           </a>
           <a href="#camiones" class="nav-item">
             <i class="fas fa-bus"></i> <span>Gestión de Camiones</span>
@@ -504,6 +509,34 @@
               </thead>
               <tbody id="tabla-alertas-body"></tbody>
             </table>
+          </div>
+        </section>
+
+        <section id="estadisticas" class="dashboard-section">
+          <div class="analytics-grid">
+            <div class="analytics-card main-chart">
+              <div class="card-header">
+                <h4><i class="fas fa-users"></i> Demanda de Estudiantes por Hora</h4>
+                <p>Monitoreo de flujo en tiempo real</p>
+              </div>
+              <canvas id="chart-demanda"></canvas>
+            </div>
+            
+            <div class="analytics-card">
+              <div class="card-header">
+                <h4><i class="fas fa-tachometer-alt"></i> Uso de Flota (KM)</h4>
+                <p>Kilometraje total por unidad hoy</p>
+              </div>
+              <canvas id="chart-flota"></canvas>
+            </div>
+
+            <div class="analytics-card">
+              <div class="card-header">
+                <h4><i class="fas fa-exclamation-triangle"></i> Tipos de Alertas</h4>
+                <p>Distribución de incidentes semanal</p>
+              </div>
+              <canvas id="chart-alertas"></canvas>
+            </div>
           </div>
         </section>
 
