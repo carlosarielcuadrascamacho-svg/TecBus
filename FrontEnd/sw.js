@@ -20,7 +20,7 @@ console.log("Service Worker Cargado...");
 // FrontEnd/sw.js
 
 self.addEventListener("push", (event) => {
-  let data = { title: "TecBus", body: "Nueva notificación", url: "/" };
+  let data = { title: "SmartBus", body: "Nueva notificación", url: "/" };
 
   if (event.data) {
     try {

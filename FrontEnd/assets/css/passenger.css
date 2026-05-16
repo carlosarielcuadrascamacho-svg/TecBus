@@ -3,11 +3,19 @@
  * Esto asegura que el mapa ocupe toda la pantalla.
 */
 :root {
-    --color-fondo-modal: #1e1e1e;
-    --color-borde-modal: #333;
-    --color-texto-modal: #e0e0e0;
-    --color-item-bg: #2a2a2a;
-    --color-acento-modal: #007bff; /* Azul TecBus */
+    --color-fondo: #030712;
+    --color-superficie: rgba(15, 23, 42, 0.6);
+    --color-primario: #0ea5e9;
+    --color-primario-rgb: 14, 165, 233;
+    --color-acento: #10b981;
+    --color-texto: #f8fafc;
+    --color-texto-gris: #94a3b8;
+    --color-borde: rgba(255, 255, 255, 0.1);
+    
+    --glass-bg: rgba(15, 23, 42, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-blur: blur(12px);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
 }
 
 body#student-body {
@@ -20,16 +28,18 @@ body#student-body {
 /* 2. Encabezado (Header) */
 /* ----------------------------------------------------- */
 header {
-  background-color: var(--color-superficie);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   padding: 12px 20px;
   display: flex;
   align-items: center;
-  /* Quitamos space-between para controlar el centrado manualmente */
   position: relative; 
   z-index: 1000;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
   flex-shrink: 0;
-  height: 70px; /* Altura fija ayuda al centrado vertical */
+  height: 70px;
 }
 
 /* El botón de menú se queda a la izquierda por flujo normal */
@@ -60,6 +70,28 @@ header {
   font-size: 0.7rem;
   margin: 0;
   color: var(--color-texto-gris);
+}
+
+.header-right {
+  position: absolute;
+  right: 20px;
+}
+
+.weather-widget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  font-size: 0.85rem;
+  color: var(--color-texto);
+}
+
+.weather-widget i {
+  color: #fbbf24; /* Sun color */
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
 }
 
 @media (min-width: 768px) {
@@ -99,17 +131,55 @@ header {
   height: 100%;
 }
 
+/* Marcador de Ubicación del Usuario */
+.user-location-marker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pulse-dot {
+  width: 15px;
+  height: 15px;
+  background-color: #007bff;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.8);
+  position: relative;
+}
+
+.pulse-dot::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  border: 2px solid #007bff;
+  border-radius: 50%;
+  animation: pulse-animation 2s infinite;
+}
+
+@keyframes pulse-animation {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
 .card-panel {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  width: 90%;
+  width: 92%;
   max-width: 500px;
-  background-color: var(--color-superficie);
-  padding: 15px;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
   z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Panel Superior (Estudiante) */
@@ -144,12 +214,359 @@ header {
   border-color: var(--color-primario);
 }
 
-/* Panel Inferior (Estudiante) */
+/* Panel Inferior (Estudiante) - OCULTO PERMANENTEMENTE */
 .action-panel {
-  bottom: 15px;
+  display: none !important;
+}
+
+/* 📋 TARJETA DE INFORMACIÓN DE RUTA (BOTTOM SHEET) */
+.info-card {
+  bottom: -400px; /* Oculto inicialmente */
+  padding: 10px 15px;
+  visibility: hidden;
+  opacity: 0;
+  max-width: 420px;
+  border-radius: 18px;
+  z-index: 1002;
+  box-sizing: border-box; /* Evita desbordamiento por padding */
+}
+
+.close-card-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--color-texto-gris);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.8rem;
+}
+
+.close-card-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.btn-restore-card {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  color: var(--color-primario);
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  box-shadow: var(--glass-shadow);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-restore-card:hover {
+  background: var(--color-primario);
+  color: white;
+  transform: translateX(-50%) translateY(-3px) scale(1.05);
+}
+
+.btn-restore-card.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(100px);
+  pointer-events: none;
+}
+
+.info-card.show {
+  bottom: 25px;
+  visibility: visible;
+  opacity: 1;
+}
+
+.drag-handle {
+  width: 40px;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin: 0 auto 15px;
+  display: none; /* Solo en móvil */
+}
+
+.info-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 12px;
+  padding-right: 5px; /* Margen de seguridad para la X */
+}
+
+.route-info-main {
+  flex: 1;
+}
+
+#card-route-name {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Evita que nombres largos empujen los botones */
+}
+
+.eta-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.eta-inline .eta-time {
+  font-size: 1.3rem; /* Ligeramente más pequeño para textos largos */
+  font-weight: 800;
+  color: var(--color-primario);
+  white-space: nowrap;
+}
+
+.eta-inline .eta-label {
+  font-size: 0.65rem;
+  color: var(--color-texto-gris);
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Un poco más cerrado en móvil */
+  flex-shrink: 0;
+}
+
+.fav-btn {
+  background: none;
+  border: none;
+  color: var(--color-texto-gris);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.fav-btn.active {
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+}
+
+.fav-btn i {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.fav-btn:active i {
+  transform: scale(1.4);
+}
+
+.traffic-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.traffic-badge.busy {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  animation: pulse-busy 2s infinite;
+}
+
+@keyframes pulse-busy {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.route-badge {
+  background: var(--color-primario);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.4);
+}
+
+.status-indicator {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-texto-gris);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-indicator::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: #666;
+  border-radius: 50%;
+}
+
+.status-indicator.online::before {
+  background: var(--color-acento);
+  box-shadow: 0 0 10px var(--color-acento);
+}
+
+/* Sección de Detalles del Camión */
+.bus-details-section {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  animation: slide-up 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.bus-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 10px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-item i {
+  font-size: 0.9rem;
+  color: var(--color-primario);
+  background: rgba(59, 130, 246, 0.1);
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.info-text {
   display: flex;
   flex-direction: column;
+}
+
+.info-text small {
+  font-size: 0.6rem;
+  color: var(--color-texto-gris);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-text span {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-texto);
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.info-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin-top: 8px;
+}
+
+.btn-primary-compact, .btn-secondary-compact {
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.btn-primary-compact:active, .btn-secondary-compact:active {
+  transform: scale(0.96);
+}
+
+.details-row-compact {
+  display: flex;
+  gap: 15px;
+  font-size: 0.75rem;
+  color: var(--color-texto-gris);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.details-row-compact span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Eliminamos el grid viejo */
+.details-grid { display: none; }
+
+/* Ajustes Móvil (Bottom Sheet) */
+@media (max-width: 600px) {
+  .info-card {
+    max-width: none;
+    width: 100%;
+    bottom: -400px;
+    left: 0;
+    transform: translateY(120%);
+    border-radius: 25px 25px 0 0;
+    padding: 15px 20px 25px; /* Más espacio inferior para el área de gestos */
+  }
+
+  .info-card.show {
+    bottom: 0;
+    transform: translateY(0);
+    left: 0;
+  }
+
+  #card-route-name {
+    font-size: 0.95rem;
+    max-width: 140px; /* Limitamos el ancho para dar espacio a los botones */
+  }
+
+  .eta-inline .eta-time {
+    font-size: 1.2rem;
+  }
+
+  .info-card-actions {
+    gap: 10px;
+  }
+
+  .btn-primary-compact, .btn-secondary-compact {
+    padding: 12px; /* Más fáciles de tocar */
+    font-size: 0.9rem;
+  }
+
+  .btn-restore-card {
+    width: 85%;
+    justify-content: center;
+    padding: 14px;
+    bottom: 30px; /* Más margen para no chocar con gestos de Android/iOS */
+    font-size: 0.95rem;
+  }
+
+  .drag-handle {
+    display: block;
+    margin-bottom: 15px;
+  }
 }
 
 /* ----------------------------------------------------- */
@@ -302,25 +719,24 @@ header {
 
 /* --- MODAL (Actualizado para mayor altura) --- */
 .modal-content {
-    background-color: var(--color-fondo-modal);
-    padding: 25px;
-    border-radius: 12px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    padding: 30px;
+    border-radius: 24px;
     width: 100%;
-    max-width: 600px; /* Un poco más ancho */
-    
-    /* --- CAMBIOS DE ALTURA --- */
-    min-height: 60vh; /* Mínimo el 60% de la altura de la pantalla */
-    max-height: 90vh; /* Máximo el 90% (para que no se salga) */
+    max-width: 600px;
+    min-height: 60vh;
+    max-height: 90vh;
     display: flex;
-    flex-direction: column; /* Para organizar título, contenido y pie */
-    overflow-y: auto; /* Scroll si el contenido es muy largo */
-    
-    box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-    border: 1px solid var(--color-borde-modal);
+    flex-direction: column;
+    overflow-y: auto;
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-border);
     position: relative;
     transform: translateY(-20px);
-    transition: transform 0.3s ease;
-    color: var(--color-texto-modal);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--color-texto);
 }
 
 .modal-dialog {
@@ -481,14 +897,17 @@ header {
     top: 0;
     left: 0;
     height: 100vh;
-    width: 260px;
-    background-color: var(--color-superficie); /* Gris oscuro/negro del admin */
+    width: 280px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     display: flex;
     flex-direction: column;
     z-index: 2000;
-    box-shadow: 3px 0 15px rgba(0, 0, 0, 0.5);
+    border-right: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
     transform: translateX(-100%); /* Oculto por defecto */
-    transition: transform 0.3s ease-out;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar.active {

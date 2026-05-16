@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panel de Conductor - TECNM Guasave</title>
+    <title>Panel de Conductor - SmartBus</title>
 
     <link
       rel="stylesheet"
@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="assets/css/driver.css" />
 
     <script>
-      // ☁️ SIEMPRE conectar a Render (incluso desde mi PC local)
+      // ☁️ SIEMPRE conectar a Render
       const BACKEND_URL = "https://tecbus-api.onrender.com";
       const SOCKET_URL = "https://tecbus-api.onrender.com";
     </script>
@@ -44,18 +44,18 @@
           <i class="fas fa-times"></i>
         </button>
         <img
-          src="assets/img/TecBus.png"
-          alt="Logo TecBus"
+          src="assets/img/SmartBusLogo.png"
+          alt="Logo SmartBus"
           style="
-            width: 80px; /* Ajusta este tamaño según prefieras */
+            width: 80px;
             height: auto;
             margin-bottom: 10px;
-            display: block; /* Para asegurar que respete los márgenes */
-            margin-left: auto; /* Centrado horizontal */
-            margin-right: auto; /* Centrado horizontal */
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
           "
         />
-        <h2>TecBus</h2>
+        <h2>SmartBus</h2>
         <p>Conductor</p>
       </div>
 
@@ -86,34 +86,42 @@
         <a href="#" id="sidebar-logout" class="nav-item logout">
           <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
         </a>
-        <p style="margin-top: 15px">© 2025 TecBus PCFL</p>
+        <p style="margin-top: 15px">© 2025 SmartBus PCFL</p>
       </div>
     </div>
 
     <div id="map-container">
       <div id="map"></div>
 
-      <div class="driver-info-panel card-panel">
-        <div class="route-status">
-          <!-- <div style="margin-bottom: 5px;">
-            <strong id="driver-bus-display" style="font-size: 1.1em;">Cargando unidad...</strong>
-          </div> -->
-          <span class="route-name" id="driver-route-display"
-            >Cargando ruta...</span
-          >
-          <br />
-          <span class="status-indicator" id="service-status"
-            >● Verificando...</span
-          >
+      <!-- CONSOLA COMPACTA (MINIMAL HUD) -->
+      <div id="driver-console" class="driver-console-compact">
+        <div class="console-main-row">
+          <div class="console-pill speed">
+            <i class="fas fa-tachometer-alt"></i>
+            <span id="console-speed">0 <small>km/h</small></span>
+          </div>
+          
+          <div class="console-pill next-stop">
+            <i class="fas fa-map-marker-alt"></i>
+            <div class="stop-details">
+              <span id="console-next-stop">Esperando ruta...</span>
+              <small id="console-dist-stop">-- m</small>
+            </div>
+          </div>
+
+          <div class="console-pill students">
+            <i class="fas fa-users"></i>
+            <span id="console-passengers">0</span>
+          </div>
+          
+          <button id="btn-reporte-incidente" class="btn-incident-circle" title="Reportar Incidente">
+            <i class="fas fa-exclamation-triangle"></i>
+          </button>
         </div>
-        <div class="students-count"><i class="fas fa-road"></i> En ruta</div>
       </div>
 
-      <div class="action-panel card-panel">
-        <button id="btn-reporte-incidente" class="btn btn-error-lg">
-          <i class="fas fa-exclamation-triangle"></i> Reportar Incidente
-        </button>
-      </div>
+      <!-- CONTENEDOR DE ALERTAS HUD (Más pequeñas) -->
+      <div id="hud-alerts-container" class="hud-alerts-compact"></div>
     </div>
 
     <div id="incident-modal" class="modal">

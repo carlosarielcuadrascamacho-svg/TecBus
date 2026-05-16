@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panel de Administración - TECNM Guasave</title>
+    <title>Panel de Administración - SmartBus</title>
 
     <link
       rel="stylesheet"
@@ -30,9 +30,9 @@
     <div class="admin-layout">
       <aside class="sidebar" id="sidebar">
         <div class="logo-area">
-          <img src="assets/img/TecBus.png" alt="Logo TecBus" class="sidebar-logo">
+          <img src="assets/img/SmartBusLogo.png" alt="Logo SmartBus" class="sidebar-logo">
           <div class="logo-text">
-            <span class="brand-name">TecBus</span>
+            <span class="brand-name">SmartBus</span>
             <span class="brand-subtitle">Control Center</span>
           </div>
           <button class="sidebar-toggle-btn" id="sidebar-toggle-mini">
@@ -87,7 +87,7 @@
           <i class="fas fa-bars menu-toggle" id="menu-toggle"></i>
           <div class="header-title-admin">
             <h2 id="page-title">Mapa de Flotilla</h2>
-            <p>Sistema de Transporte Estudiantil</p>
+            <p>Sistema de Transporte Inteligente</p>
           </div>
           <div class="header-info">
             <span id="current-date">31 de Octubre, 2025</span>
@@ -112,9 +112,9 @@
 
             <div class="kpi-card-premium waiting">
               <div class="kpi-content">
-                  <div class="kpi-icon-wrapper"><i class="fas fa-user-graduate"></i></div>
+                  <div class="kpi-icon-wrapper"><i class="fas fa-users"></i></div>
                   <div class="kpi-data">
-                      <span class="kpi-label">Estudiantes en Espera</span>
+                      <span class="kpi-label">Pasajeros en Espera</span>
                       <span class="kpi-value" id="kpi-students-waiting">3</span>
                   </div>
               </div>
@@ -491,20 +491,24 @@
         <section id="alertas" class="dashboard-section">
           <div class="table-container">
             <div class="table-header-flex">
-              <h3>Historial de Alertas</h3>
-              <div class="table-header-flex">
+              <h3>Historial de Alertas Recientes</h3>
+              <div class="table-actions-header">
                 <div class="live-search-wrapper">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="live-search-alerta" class="live-search-input" placeholder="Buscar alerta...">
+                    <input type="text" id="live-search-alerta" class="live-search-input" placeholder="Buscar por unidad o mensaje...">
                 </div>
+                <button class="btn btn-secondary btn-sm" onclick="abrirModalBusqueda('alerta')">
+                    <i class="fas fa-filter"></i> Filtros Avanzados
+                </button>
               </div>
-            <table class="data-table">
+            </div>
+            <table class="data-table premium-table">
               <thead>
                 <tr>
-                  <th>CAMIÓN (UNIDAD)</th>
-                  <th>TIPO DE ALERTA</th>
-                  <th>DETALLES</th>
-                  <th>HORA</th>
+                  <th><i class="fas fa-bus"></i> Unidad</th>
+                  <th><i class="fas fa-exclamation-circle"></i> Tipo</th>
+                  <th><i class="fas fa-info-circle"></i> Detalles</th>
+                  <th><i class="fas fa-clock"></i> Hora Registro</th>
                 </tr>
               </thead>
               <tbody id="tabla-alertas-body"></tbody>
@@ -516,7 +520,7 @@
           <div class="analytics-grid">
             <div class="analytics-card main-chart">
               <div class="card-header">
-                <h4><i class="fas fa-users"></i> Demanda de Estudiantes por Hora</h4>
+                <h4><i class="fas fa-users"></i> Demanda de Pasajeros por Hora</h4>
                 <p>Monitoreo de flujo en tiempo real</p>
               </div>
               <canvas id="chart-demanda"></canvas>
@@ -553,7 +557,7 @@
                 <input
                   type="email"
                   id="setting-email"
-                  value="admin@tecnm.mx"
+                  value="soporte@smartbus.mx"
                 />
               </div>
             </div>
@@ -585,7 +589,7 @@
                     <option value="administrador">Administrador</option>
                     <option value="usuario">Usuario</option>
                     <option value="conductor">Conductor</option>
-                    <option value="estudiante">Estudiante</option>
+                    <option value="estudiante">Pasajero</option>
                   </select>
                 </div>
             </div>
@@ -797,6 +801,40 @@
           <div class="modal-actions">
             <button class="btn btn-secondary btn-full close-modal">Cerrar</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Modal Búsqueda de Alertas -->
+      <div id="search-alerta-modal" class="modal">
+        <div class="modal-content">
+          <span class="close-button">&times;</span>
+          <h2>Filtrar Alertas</h2>
+          <p>Busca alertas específicas en el historial.</p>
+          <form id="form-search-alerta">
+            <div class="form-group">
+              <label for="search-alerta-unidad">Número de Unidad</label>
+              <input type="text" id="search-alerta-unidad" placeholder="Ej: TEC-01" />
+            </div>
+            <div class="form-group">
+              <label for="search-alerta-tipo">Tipo de Alerta</label>
+              <select id="search-alerta-tipo">
+                <option value="">Cualquier tipo</option>
+                <option value="SOS">🆘 Emergencia (SOS)</option>
+                <option value="Retraso">⏳ Retraso</option>
+                <option value="Mecánico">🔧 Problema Mecánico</option>
+                <option value="Ruta">🗺️ Desvío de Ruta</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="search-alerta-fecha">Fecha específica</label>
+              <input type="date" id="search-alerta-fecha" />
+            </div>
+            <div class="modal-actions">
+              <button type="submit" class="btn btn-primary btn-full">
+                <i class="fas fa-search"></i> Aplicar Filtros
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 

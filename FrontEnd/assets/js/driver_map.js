@@ -37,11 +37,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- CORRECCIÓN 1: Definir la variable faltante ---
   let rutaPolyline = null;
 
-  // Elementos UI Principales
-  const busDisplay = document.getElementById("driver-bus-display");
+  // Elementos UI de la NUEVA CONSOLA COMPACTA
+  const consoleSpeed = document.getElementById("console-speed");
+  const consolePassengers = document.getElementById("console-passengers");
+  const consoleNextStop = document.getElementById("console-next-stop");
+  const consoleDistStop = document.getElementById("console-dist-stop");
+  const hudContainer = document.getElementById("hud-alerts-container");
   const routeDisplay = document.getElementById("driver-route-display");
-  const statusDisplay = document.getElementById("service-status");
   const headerDisplay = document.getElementById("header-bus-display");
+  const busDisplay = document.getElementById("driver-bus-display"); // Podría ser null ahora
 
   // Elementos del Menú Lateral
   const sidebar = document.getElementById("sidebar");
@@ -128,8 +132,12 @@ document.addEventListener("DOMContentLoaded", () => {
             driverMarker.getPopup().setHTML(`📍 Ubicación Real (BD)<br>🚀 ${Math.round(velocidadDB)} km/h`);
             if(!driverMarker.getPopup().isOpen()) driverMarker.togglePopup();
 
+            // Actualizar Consola
+            if (consoleSpeed) consoleSpeed.innerHTML = `${Math.round(velocidadDB)} <small>km/h</small>`;
+            
             map.panTo([lngDB, latDB]);
             verificarLlegadaDestino(latDB, lngDB);
+            actualizarProximaParada(latDB, lngDB);
           } else {
             console.warn(
               "⚠️ Mi camión fue encontrado pero no tiene coordenadas en BD."
@@ -206,10 +214,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function finDelServicio() {
-    routeDisplay.textContent = "Jornada Finalizada";
-    statusDisplay.innerHTML = "● Fuera de Servicio";
-    statusDisplay.className = "status-indicator status-off";
-    statusDisplay.style.color = "var(--color-error)";
+    if (routeDisplay) routeDisplay.textContent = "Jornada Finalizada";
+    
     DESTINO_ACTUAL = null;
     if (map.getLayer("ruta-layer")) map.removeLayer("ruta-layer");
     if (map.getSource("ruta-source")) map.removeSource("ruta-source");
@@ -223,6 +229,32 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  // --- NUEVA LÓGICA: ACTUALIZAR PRÓXIMA PARADA ---
+  function actualizarProximaParada(latBus, lngBus) {
+    if (!window.stopMarkersArray || window.stopMarkersArray.length === 0) return;
+    
+    // Buscar la parada más cercana que esté ADELANTE (simplificado)
+    // Por ahora solo mostramos la más cercana de todas
+    let paradaMasCercana = null;
+    let distMin = Infinity;
+    
+    window.stopMarkersArray.forEach(marker => {
+        const coords = marker.getLngLat();
+        const dist = calcularDistanciaMetros(latBus, lngBus, coords.lat, coords.lng);
+        if (dist < distMin) {
+            distMin = dist;
+            paradaMasCercana = marker;
+        }
+    });
+
+    if (paradaMasCercana) {
+        const nombre = paradaMasCercana.getPopup().getContent().replace(/<[^>]*>?/gm, '');
+        if (consoleNextStop) consoleNextStop.textContent = nombre;
+        if (consoleDistStop) consoleDistStop.textContent = Math.round(distMin);
+    }
+  }
+
+
   // ============================================================
   // 5. CARGA DE DATOS Y RUTAS
   // ============================================================
@@ -231,10 +263,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function cargarRutaActiva(viaje) {
     // 1. Actualizar Textos UI
-    routeDisplay.textContent = viaje.rutaNombre;
-    statusDisplay.innerHTML = `● En Ruta (${viaje.hora})`;
-    statusDisplay.className = "status-indicator status-on";
-    statusDisplay.style.color = "var(--color-exito)";
+    if (routeDisplay) routeDisplay.textContent = viaje.rutaNombre;
 
     try {
       // 2. Limpiar mapa anterior
@@ -375,11 +404,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (headerDisplay) headerDisplay.textContent = "Sin Turno Activo";
         if (busDisplay) busDisplay.textContent = "Sin Turno Activo";
         if (routeDisplay) routeDisplay.textContent = "--";
-        if (statusDisplay) {
-          statusDisplay.innerHTML = "● Esperando Horario";
-          statusDisplay.className = "status-indicator status-off";
-          statusDisplay.style.color = "gray";
-        }
       } else if (!resCamion.ok) {
         console.warn("⚠️ Error desconocido al pedir camión:", resCamion.status);
         return;
@@ -456,8 +480,7 @@ document.addEventListener("DOMContentLoaded", () => {
       MIS_VIAJES_HOY.sort((a, b) => horaAInt(a.hora) - horaAInt(b.hora));
 
       if (MIS_VIAJES_HOY.length === 0) {
-        routeDisplay.textContent = "Día Libre";
-        statusDisplay.textContent = "● Sin Recorridos";
+        if (routeDisplay) routeDisplay.textContent = "Día Libre";
         return;
       }
 
@@ -510,8 +533,6 @@ document.addEventListener("DOMContentLoaded", () => {
   //       driverMarker.bindPopup("Esperando señal del ESP32...").openPopup();
   //     }
   //   }
-  // }
-
   // 4. LÓGICA DEL MENÚ LATERAL Y MODALES
 
   // Toggle Sidebar
@@ -927,60 +948,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (esPreparacion) {
           estadoActual = "Inicio de Recorridos";
-          statusDisplay.innerHTML = `● Preparando Salida (${viajeActivo.hora})`;
-          statusDisplay.className = "status-indicator status-on";
-          statusDisplay.style.color = "var(--color-warning)";
-          if (statusMsgBox) {
-            statusMsgBox.innerHTML = '<i class="fas fa-clock"></i> Abordando';
-            statusMsgBox.style.color = "var(--color-warning)";
-          }
+          if (consoleNextStop) consoleNextStop.textContent = "Abordando pasajeros...";
         } else {
           estadoActual = "En Servicio";
-          statusDisplay.innerHTML = `● En Ruta (Llegada: ${viajeActivo.horaFin})`;
-          statusDisplay.className = "status-indicator status-on";
-          statusDisplay.style.color = "var(--color-exito)";
-          if (statusMsgBox) {
-            statusMsgBox.innerHTML = '<i class="fas fa-road"></i> En Ruta';
-            statusMsgBox.style.color = "var(--color-exito)";
-          }
         }
       } else {
         // --- CASO: FUERA DE SERVICIO ---
         if (!resCamion.ok) {
           MI_CAMION_ID = null;
-          if (headerDisplay) headerDisplay.textContent = "Sin Turno Activo";
-          if (busDisplay) busDisplay.textContent = "Sin Turno Activo";
         }
 
-        statusDisplay.className = "status-indicator status-off";
-        statusDisplay.style.color = "var(--color-error)";
-
         if (viajeSiguiente) {
-          routeDisplay.textContent = "En Espera";
-          statusDisplay.innerHTML = `● Siguiente: ${viajeSiguiente.hora} (${viajeSiguiente.rutaNombre})`;
+          if (routeDisplay) routeDisplay.textContent = "En Espera";
           estadoActual = "En Espera";
-          if (statusMsgBox) {
-            statusMsgBox.innerHTML = '<i class="fas fa-coffee"></i> En Espera';
-            statusMsgBox.style.color = "gray";
-          }
         } else {
-          routeDisplay.textContent = "Jornada Finalizada";
-          statusDisplay.innerHTML = "● Fuera de Servicio";
+          if (routeDisplay) routeDisplay.textContent = "Jornada Finalizada";
           estadoActual = "Fuera de Servicio";
-          if (statusMsgBox) {
-            statusMsgBox.innerHTML = '<i class="fas fa-ban"></i> Terminado';
-            statusMsgBox.style.color = "var(--color-error)";
-          }
         }
       }
 
       gestionarEstadoBD(estadoActual);
     } catch (error) {
       console.error("Error estado conductor:", error);
-      if (statusDisplay) {
-        statusDisplay.textContent = "Error de Sistema";
-        statusDisplay.style.color = "red";
-      }
     }
   }
 
@@ -1018,14 +1007,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnMainReporte = document.getElementById("btn-reporte-incidente");
   const btnSendIncident = document.getElementById("send-incident");
 
-  const btnCloseIncident = incidentModal.querySelector(".close-button");
+  console.log("🛠️ Inicializando botón de reporte:", btnMainReporte ? "Encontrado ✅" : "No encontrado ❌");
+
+  const btnCloseIncident = incidentModal ? incidentModal.querySelector(".close-button") : null;
   if (btnCloseIncident) {
     btnCloseIncident.onclick = () =>
       incidentModal.classList.remove("modal-visible");
   }
 
-  if (btnMainReporte) {
-    btnMainReporte.onclick = () => incidentModal.classList.add("modal-visible");
+  if (btnMainReporte && incidentModal) {
+    btnMainReporte.addEventListener("click", (e) => {
+      e.preventDefault();
+      console.log("⚠️ Abriendo modal de incidente...");
+      incidentModal.classList.add("modal-visible");
+    });
   }
 
   window.onclick = (event) => {
@@ -1064,43 +1059,53 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 2. Escuchar el evento cuando un estudiante dice "Estoy Aquí"
   socket.on("studentWaiting", (data) => {
-    // Opcional: Filtrar si solo quieres ver estudiantes de TU ruta actual
-    // if (currentRutaId && data.rutaId !== currentRutaId) return;
-
     console.log("🔔 Estudiante solicitando parada:", data);
+    
+    // 1. Mostrar Alerta HUD
+    const alertId = `alert-${Date.now()}`;
+    const alertHtml = `
+      <div class="hud-alert-item" id="${alertId}">
+        <div class="hud-alert-icon"><i class="fas fa-hand-paper"></i></div>
+        <div class="hud-alert-content">
+          <b>¡Parada Solicitada!</b>
+          <small>Un estudiante te espera en la ruta</small>
+        </div>
+      </div>
+    `;
+    if (hudContainer) {
+      hudContainer.insertAdjacentHTML('beforeend', alertHtml);
+      // Vibración opcional
+      if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
+      
+      // Auto-eliminar alerta HUD después de 8 segundos
+      setTimeout(() => {
+        const el = document.getElementById(alertId);
+        if (el) {
+          el.classList.add('removing');
+          setTimeout(() => el.remove(), 400);
+        }
+      }, 8000);
+    }
 
+    // 2. Actualizar contador en consola
+    if (consolePassengers) {
+      let current = parseInt(consolePassengers.textContent) || 0;
+      consolePassengers.innerHTML = `${current + 1} <small>est.</small>`;
+    }
+
+    // 3. Agregar marcador al mapa (Existente)
     const studentEl = document.createElement('div');
     studentEl.className = "student-marker";
-    studentEl.innerHTML = `<div style="
-        background-color: #ffc107; 
-        color: #000; 
-        width: 30px; height: 30px; 
-        border-radius: 50%; 
-        border: 2px solid white; 
-        display: flex; justify-content: center; align-items: center;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        font-size: 14px;">
-        <i class="fas fa-hand-paper"></i>
-    </div>`;
+    studentEl.innerHTML = `<div style="background-color: #ffc107; color: #000; width: 30px; height: 30px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-size: 14px;"><i class="fas fa-hand-paper"></i></div>`;
 
-    // Agregar marcador al mapa
-    const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
-        <strong>¡Parada Solicitada!</strong><br>
-        <small>Hace un momento</small>
-    `);
-    
+    const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`<b>¡Parada Solicitada!</b>`);
     const marker = new maplibregl.Marker({ element: studentEl })
       .setLngLat([data.location.lng, data.location.lat])
       .setPopup(popup)
       .addTo(map);
 
     marker.togglePopup();
-
-    // AUTO-ELIMINAR: Quitar el marcador después de 5 minutos (300,000 ms)
-    // para no llenar el mapa de puntos viejos.
-    setTimeout(() => {
-      marker.remove();
-    }, 300000);
+    setTimeout(() => marker.remove(), 300000);
   });
 
   // 8. CERRAR SESIÓN

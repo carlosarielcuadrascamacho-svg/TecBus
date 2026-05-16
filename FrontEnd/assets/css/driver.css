@@ -66,81 +66,152 @@ header {
   height: 100%;
 }
 
-/* 4. Paneles Flotantes y Botones */
-.card-panel {
+/* 4. CONSOLA COMPACTA (HUD MINIMALISTA) */
+.driver-console-compact {
   position: absolute;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  width: 90%;
+  width: 95%;
   max-width: 500px;
-  background-color: var(--color-superficie);
-  padding: 15px;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
-  z-index: 1000;
-}
-.action-panel {
-  bottom: 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  /* IMPORTANTE: El resto de estilos (posición, etc.)
-     vienen ahora de la clase .card-panel que añadimos en el HTML */
-}
-.btn {
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  text-align: center;
-}
-.btn i {
-  margin-right: 8px;
-}
-.btn-error-lg {
-  padding: 15px;
-  font-size: 1.1rem;
-  background-color: var(--color-error);
-  color: var(--color-texto-claro);
-  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
-  width: 100%;
-  /* MEJORA: Transición suave para cambio de color */
-  transition: all 0.3s ease, background-color 0.3s ease;
-}
-.btn-error-lg:hover {
-  background-color: var(--color-error-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.6);
-}
-/* MEJORA: Estilo para el botón cuando está desactivado */
-.btn-error-lg:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: translateY(0);
-  box-shadow: none;
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50px; /* Estilo Cápsula */
+  padding: 8px 10px;
+  z-index: 1005;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
 }
 
-/* 5. Estilos Específicos del Conductor */
-.driver-info-panel {
-  top: 15px;
+.console-main-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.console-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px 12px;
+  border-radius: 25px;
+  color: white;
+  white-space: nowrap;
+}
+
+.console-pill i {
+  color: var(--color-primario);
   font-size: 0.9rem;
-  padding: 12px 15px;
 }
-.route-status .status-indicator {
-  color: var(--color-exito);
-  font-weight: 600;
-  margin-left: 8px;
-}
-.students-count {
-  color: var(--color-texto-gris);
-}
-.students-count span {
-  color: var(--color-texto-claro);
-  font-weight: 600;
+
+.console-pill.speed span {
+  font-weight: 800;
   font-size: 1.1rem;
+}
+
+.console-pill.speed small {
+  font-size: 0.6rem;
+  opacity: 0.6;
+}
+
+.console-pill.next-stop {
+  flex-grow: 1;
+  overflow: hidden;
+  min-width: 0; /* Permite truncado */
+  background: rgba(0, 123, 255, 0.1);
+  border: 1px solid rgba(0, 123, 255, 0.2);
+}
+
+.stop-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.stop-details span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.stop-details small {
+  font-size: 0.65rem;
+  color: var(--color-primario);
+}
+
+.console-pill.students span {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.btn-incident-circle {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  background: rgba(255, 71, 87, 0.2);
+  border: 1px solid rgba(255, 71, 87, 0.4);
+  color: #ff4757;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-incident-circle:hover {
+  background: rgba(255, 71, 87, 0.4);
+  transform: scale(1.1);
+}
+
+/* Responsividad para PC */
+@media screen and (min-width: 1024px) {
+  .driver-console-compact {
+    left: 20px;
+    bottom: 20px;
+    transform: none;
+    width: auto;
+    min-width: 400px;
+  }
+}
+
+/* 5. HUD ALERTS COMPACTAS */
+.hud-alerts-compact {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  max-width: 300px;
+  z-index: 1010;
+  pointer-events: none;
+}
+
+.hud-alert-item {
+  background: rgba(0, 123, 255, 0.9);
+  color: white;
+  padding: 8px 15px;
+  border-radius: 30px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  animation: hudSlideDown 0.4s ease-out;
+}
+
+.hud-alert-icon { font-size: 0.9rem; }
+.hud-alert-content b { font-size: 0.8rem; }
+.hud-alert-content small { display: none; } /* Ocultar detalles en HUD mini */
+
+@keyframes hudSlideDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 /* --- CORRECCIÓN 2/3 ---
