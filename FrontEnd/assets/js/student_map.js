@@ -80,26 +80,29 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentRouteId = "";
   let stopMarkers = [];
 
-  const map = L.map("map").setView([initialLat, initialLng], initialZoom);
-
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    attribution: "&copy; OpenStreetMap &copy; CARTO",
-  }).addTo(map);
-
-  const busIcon = L.divIcon({
-    className: "custom-bus-icon",
-    html: `<div style="background-color:var(--color-primario); border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; color: white; border: 2px solid white; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);"><i class="fas fa-bus"></i></div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    center: [initialLng, initialLat],
+    zoom: initialZoom,
+    attributionControl: false
   });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
-  const studentIcon = L.divIcon({
-    className: "student-icon",
-    html: `<div style="background-color: #ffc107; color: #000; width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 8px rgba(0,0,0,0.4); font-size: 16px;"><i class="fas fa-street-view"></i></div>`,
-    iconSize: [35, 35],
-    iconAnchor: [17, 35],
-    popupAnchor: [0, -35]
-  });
+  // Funciones creadoras de elementos para los marcadores
+  function createBusElement() {
+    const el = document.createElement('div');
+    el.className = "custom-bus-icon";
+    el.innerHTML = `<div style="background-color:var(--color-primario); border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; color: white; border: 2px solid white; font-size: 14px; box-shadow: 0 0 15px var(--color-primario); transition: all 0.3s ease;"><i class="fas fa-bus"></i></div>`;
+    return el;
+  }
+
+  function createStudentElement() {
+    const el = document.createElement('div');
+    el.className = "student-icon";
+    el.innerHTML = `<div style="background-color: #ffc107; color: #000; width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 8px rgba(0,0,0,0.4); font-size: 16px;"><i class="fas fa-street-view"></i></div>`;
+    return el;
+  }
 
   // ============================================================
   // 4. LÓGICA DE PERFIL (MODAL)
@@ -350,8 +353,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function dibujarRuta(rutaId) {
     try {
-      if (rutaPolyline) map.removeLayer(rutaPolyline);
-      stopMarkers.forEach(m => map.removeLayer(m));
+      if (map.getLayer("ruta-layer")) map.removeLayer("ruta-layer");
+      if (map.getSource("ruta-source")) map.removeSource("ruta-source");
+      stopMarkers.forEach(m => m.remove());
       stopMarkers = [];
       
       if (!rutaId) return;
@@ -362,25 +366,64 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const puntosTrazo = ruta.paradas.filter(p => p.tipo === 'trazo');
       const puntosParada = ruta.paradas.filter(p => p.tipo === 'parada_oficial' || !p.tipo);
-      const puntosParaLinea = puntosTrazo.length > 0 ? puntosTrazo : puntosParada;
       
-      const coordenadas = puntosParaLinea.map((p) => [p.ubicacion.coordinates[1], p.ubicacion.coordinates[0]]);
+      let coordsForBounds = [];
 
-      rutaPolyline = L.polyline(coordenadas, { color: "var(--color-primario)", weight: 6, opacity: 0.8, lineJoin: "round" }).addTo(map);
+      if (puntosTrazo.length > 0) {
+        const coords = puntosTrazo.map((p) => [p.ubicacion.coordinates[0], p.ubicacion.coordinates[1]]);
+        coordsForBounds = coords;
+        
+        map.addSource('ruta-source', {
+          'type': 'geojson',
+          'data': { 'type': 'Feature', 'properties': {}, 'geometry': { 'type': 'LineString', 'coordinates': coords } }
+        });
 
-      const paradaIcon = L.divIcon({
-          className: 'stop-marker-icon',
-          html: '<div style="background-color:#ffc107; border:2px solid white; width:12px; height:12px; border-radius:50%; box-shadow:0 0 4px black;"></div>',
-          iconSize: [12, 12]
-      });
+        map.addLayer({
+          'id': 'ruta-layer',
+          'type': 'line',
+          'source': 'ruta-source',
+          'layout': { 'line-join': 'round', 'line-cap': 'round' },
+          'paint': { 'line-color': 'var(--color-primario)', 'line-width': 6, 'line-opacity': 0.8 }
+        });
+      } else {
+        const coordsString = puntosParada.map(p => `${p.ubicacion.coordinates[0]},${p.ubicacion.coordinates[1]}`).join(';');
+        const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`);
+        const osrmData = await osrmRes.json();
+        if(osrmData.routes && osrmData.routes.length > 0) {
+            const routeGeometry = osrmData.routes[0].geometry;
+            coordsForBounds = routeGeometry.coordinates;
+            map.addSource('ruta-source', {
+              'type': 'geojson',
+              'data': { 'type': 'Feature', 'properties': {}, 'geometry': routeGeometry }
+            });
+            map.addLayer({
+              'id': 'ruta-layer',
+              'type': 'line',
+              'source': 'ruta-source',
+              'layout': { 'line-join': 'round', 'line-cap': 'round' },
+              'paint': { 'line-color': 'var(--color-primario)', 'line-width': 6, 'line-opacity': 0.8 }
+            });
+        }
+      }
 
       puntosParada.forEach(p => {
-          const marker = L.marker([p.ubicacion.coordinates[1], p.ubicacion.coordinates[0]], { icon: paradaIcon })
-              .bindPopup(`🚏 <strong>${p.nombre || "Parada"}</strong>`)
+          const stopEl = document.createElement('div');
+          stopEl.className = 'stop-marker-icon';
+          stopEl.style.cssText = 'background-color:#ffc107; border:2px solid white; width:12px; height:12px; border-radius:50%; box-shadow:0 0 4px black;';
+          const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`🚏 <strong>${p.nombre || "Parada"}</strong>`);
+          const marker = new maplibregl.Marker({ element: stopEl })
+              .setLngLat([p.ubicacion.coordinates[0], p.ubicacion.coordinates[1]])
+              .setPopup(popup)
               .addTo(map);
           stopMarkers.push(marker);
       });
-      map.fitBounds(rutaPolyline.getBounds(), { padding: [50, 50] });
+      
+      if (coordsForBounds.length > 0) {
+        const bounds = coordsForBounds.reduce(function(b, coord) {
+          return b.extend(coord);
+        }, new maplibregl.LngLatBounds(coordsForBounds[0], coordsForBounds[0]));
+        map.fitBounds(bounds, { padding: 50 });
+      }
     } catch (error) { console.error(error); }
   }
 
@@ -398,13 +441,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const rutaId = camion.rutaAsignada ? camion.rutaAsignada._id : null;
 
         if (busMarkers[camion._id]) {
-          busMarkers[camion._id].setLatLng([camion.ubicacionActual.coordinates[1], camion.ubicacionActual.coordinates[0]]);
+          busMarkers[camion._id].setLngLat([camion.ubicacionActual.coordinates[0], camion.ubicacionActual.coordinates[1]]);
           busMarkers[camion._id].rutaId = rutaId;
         } else {
-          const marker = L.marker(
-            [camion.ubicacionActual.coordinates[1], camion.ubicacionActual.coordinates[0]],
-            { icon: busIcon }
-          ).bindPopup(`🚍 **${camion.numeroUnidad}**<br>Ruta: ${camion.rutaAsignada ? camion.rutaAsignada.nombre : "Sin asignar"}`);
+          const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`🚍 **${camion.numeroUnidad}**<br>Ruta: ${camion.rutaAsignada ? camion.rutaAsignada.nombre : "Sin asignar"}`);
+          const marker = new maplibregl.Marker({ element: createBusElement() })
+            .setLngLat([camion.ubicacionActual.coordinates[0], camion.ubicacionActual.coordinates[1]])
+            .setPopup(popup);
+            
           marker.rutaId = rutaId;
           busMarkers[camion._id] = marker;
         }
@@ -415,11 +459,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function filtrarCamionesEnMapa() {
     Object.values(busMarkers).forEach((marker) => {
-      if (!currentRouteId) { map.removeLayer(marker); return; }
+      if (!currentRouteId) { marker.remove(); return; }
       if (marker.rutaId === currentRouteId) {
-        if (!map.hasLayer(marker)) marker.addTo(map);
+        marker.addTo(map);
       } else {
-        if (map.hasLayer(marker)) map.removeLayer(marker);
+        marker.remove();
       }
     });
   }
@@ -427,19 +471,25 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- SOCKETS ---
   socket.on("locationUpdate", (data) => {
     const marker = busMarkers[data.camionId];
-    if (marker) marker.setLatLng([data.location.lat, data.location.lng]);
+    if (marker) marker.setLngLat([data.location.lng, data.location.lat]);
     else fetchAndUpdateBuses();
   });
 
   socket.on("studentWaiting", (data) => {
       console.log("🙋‍♂️ Estudiante esperando:", data);
-      const marker = L.marker([data.location.lat, data.location.lng], { icon: studentIcon })
-          .addTo(map).bindPopup("<strong>¡Estudiante Aquí!</strong>").openPopup();
+      
+      const popup = new maplibregl.Popup({ offset: 15 }).setHTML("<strong>¡Estudiante Aquí!</strong>");
+      const marker = new maplibregl.Marker({ element: createStudentElement() })
+          .setLngLat([data.location.lng, data.location.lat])
+          .setPopup(popup)
+          .addTo(map);
+          
+      marker.togglePopup();
       
       if (data.userId === user.id || data.userId === user._id) {
-          map.setView([data.location.lat, data.location.lng], 16);
+          map.jumpTo({ center: [data.location.lng, data.location.lat], zoom: 16 });
       }
-      setTimeout(() => map.removeLayer(marker), 300000); 
+      setTimeout(() => marker.remove(), 300000); 
   });
 
   socket.on("smartAlert", (data) => alert(`🤖 ALERTA: ${data.mensaje}`));
