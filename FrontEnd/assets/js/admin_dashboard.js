@@ -270,6 +270,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- FUNCIÓN PRINCIPAL DASHBOARD (KPIs y Mapa) ---
   async function inicializarDashboard() {
     console.log("🔄 Cargando datos del dashboard...");
+    
+    // Forzar resize del mapa para evitar distorsión
+    if (window.adminMap) {
+        setTimeout(() => window.adminMap.resize(), 100);
+    }
 
     // 1. Camiones (Lo usaremos para el KPI de Total)
     try {
@@ -2494,8 +2499,9 @@ async function mostrarPreviewRuta(rutaId) {
     document.getElementById("preview-ruta-tiempo").textContent = "-- min";
     
     try {
+        const tkn = localStorage.getItem("tecbus_token");
         const res = await fetch(`${BACKEND_URL}/api/rutas/${rutaId}`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("tecbus_token") || (typeof token !== 'undefined' ? token : '')}` }
+            headers: { Authorization: `Bearer ${tkn}` }
         });
         const ruta = await res.json();
         
@@ -2504,10 +2510,13 @@ async function mostrarPreviewRuta(rutaId) {
         if (!ruta || ruta.error) throw new Error("No se pudo cargar la ruta");
 
         document.getElementById("preview-ruta-nombre").textContent = ruta.nombre || "Sin nombre";
-        document.getElementById("preview-ruta-distancia").textContent = (ruta.distancia || "0") + " km";
-        document.getElementById("preview-ruta-tiempo").textContent = (ruta.tiempoEstimado || "--") + " min";
+        // El API puede devolver distancia como 'distancia' o 'distanciaKm'
+        const distancia = ruta.distancia || ruta.distanciaKm || "N/D";
+        const tiempo = ruta.tiempoEstimado || ruta.duracionMin || "N/D";
+        document.getElementById("preview-ruta-distancia").textContent = distancia + " km";
+        document.getElementById("preview-ruta-tiempo").textContent = tiempo + " min";
 
-        // Inicializar mapa si no existe
+        // Inicializar mapa si no existe aún
         if (!previewMap) {
             previewMap = new maplibregl.Map({
                 container: "route-preview-map",
@@ -2518,18 +2527,31 @@ async function mostrarPreviewRuta(rutaId) {
         }
 
         const mapReady = () => {
-            // Limpiar todo lo anterior
+            // Limpiar capas y markers previos
             if (previewMap.getLayer('route')) previewMap.removeLayer('route');
             if (previewMap.getSource('route')) previewMap.removeSource('route');
-            
-            // Remover markers previos
             if (window.previewMarkers) {
                 window.previewMarkers.forEach(m => m.remove());
             }
             window.previewMarkers = [];
 
-            if (ruta.puntos && ruta.puntos.length > 0) {
-                const coords = ruta.puntos.map(p => [parseFloat(p.lng), parseFloat(p.lat)]);
+            // El API devuelve paradas con ubicacion.coordinates = [lng, lat]
+            const puntos = ruta.paradas || ruta.puntos || [];
+            
+            if (puntos.length > 0) {
+                // Construir coords en formato GeoJSON [lng, lat]
+                const coords = puntos.map(p => {
+                    if (p.ubicacion && p.ubicacion.coordinates) {
+                        return [p.ubicacion.coordinates[0], p.ubicacion.coordinates[1]];
+                    }
+                    // Fallback si viniera como {lng, lat}
+                    return [parseFloat(p.lng), parseFloat(p.lat)];
+                }).filter(c => !isNaN(c[0]) && !isNaN(c[1]));
+
+                if (coords.length < 2) {
+                    console.warn("No hay suficientes puntos para trazar la ruta");
+                    return;
+                }
                 
                 previewMap.addSource('route', {
                     'type': 'geojson',
@@ -2548,27 +2570,30 @@ async function mostrarPreviewRuta(rutaId) {
                     'type': 'line',
                     'source': 'route',
                     'layout': { 'line-join': 'round', 'line-cap': 'round' },
-                    'paint': { 'line-color': '#3498db', 'line-width': 6, 'line-opacity': 0.8 }
+                    'paint': { 'line-color': '#3498db', 'line-width': 6, 'line-opacity': 0.9 }
                 });
 
-                // Añadir Marker de Inicio y Fin
+                // Marcadores de inicio y fin
                 const startMarker = new maplibregl.Marker({ color: '#2ecc71' })
                     .setLngLat(coords[0])
-                    .setPopup(new maplibregl.Popup().setHTML("<b>Inicio</b>"))
+                    .setPopup(new maplibregl.Popup().setHTML("<b>🟢 Inicio</b>"))
                     .addTo(previewMap);
                 
                 const endMarker = new maplibregl.Marker({ color: '#e74c3c' })
                     .setLngLat(coords[coords.length - 1])
-                    .setPopup(new maplibregl.Popup().setHTML("<b>Fin</b>"))
+                    .setPopup(new maplibregl.Popup().setHTML("<b>🔴 Fin</b>"))
                     .addTo(previewMap);
 
                 window.previewMarkers.push(startMarker, endMarker);
 
-                // Ajustar mapa a la ruta
-                const bounds = coords.reduce((acc, coord) => acc.extend(coord), new maplibregl.LngLatBounds(coords[0], coords[0]));
-                previewMap.fitBounds(bounds, { padding: 80, animate: true });
+                // Ajustar vista al bounding box de la ruta
+                const bounds = coords.reduce(
+                    (acc, coord) => acc.extend(coord),
+                    new maplibregl.LngLatBounds(coords[0], coords[0])
+                );
+                previewMap.fitBounds(bounds, { padding: 60, animate: true });
             } else {
-                console.warn("La ruta no tiene puntos registrados");
+                console.warn("La ruta no tiene puntos/paradas registradas");
                 previewMap.setCenter([-108.4716, 25.5727]);
                 previewMap.setZoom(11);
             }
@@ -2580,9 +2605,9 @@ async function mostrarPreviewRuta(rutaId) {
             previewMap.once('load', mapReady);
         }
 
-        // Forzar resize inmediato y tras un pequeño delay
-        previewMap.resize();
-        setTimeout(() => previewMap.resize(), 500);
+        // Forzar resize para evitar franja negra
+        setTimeout(() => previewMap.resize(), 150);
+        setTimeout(() => previewMap.resize(), 400);
 
     } catch (err) {
         console.error("Error cargando preview de ruta:", err);
