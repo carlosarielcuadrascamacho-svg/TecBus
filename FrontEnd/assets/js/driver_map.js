@@ -1060,10 +1060,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // frontend/assets/js/driver_map.js
 
-  // 1. Definir el Icono del Estudiante (Amarillo para resaltar)
-  const studentIcon = L.divIcon({
-    className: "student-marker",
-    html: `<div style="
+  // 2. Escuchar el evento cuando un estudiante dice "Estoy Aquí"
+  socket.on("studentWaiting", (data) => {
+    // Opcional: Filtrar si solo quieres ver estudiantes de TU ruta actual
+    // if (currentRutaId && data.rutaId !== currentRutaId) return;
+
+    console.log("🔔 Estudiante solicitando parada:", data);
+
+    const studentEl = document.createElement('div');
+    studentEl.className = "student-marker";
+    studentEl.innerHTML = `<div style="
         background-color: #ffc107; 
         color: #000; 
         width: 30px; height: 30px; 
@@ -1073,40 +1079,25 @@ document.addEventListener("DOMContentLoaded", () => {
         box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         font-size: 14px;">
         <i class="fas fa-hand-paper"></i>
-    </div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-    popupAnchor: [0, -15],
-  });
-
-  // 2. Escuchar el evento cuando un estudiante dice "Estoy Aquí"
-  socket.on("studentWaiting", (data) => {
-    // Opcional: Filtrar si solo quieres ver estudiantes de TU ruta actual
-    // if (currentRutaId && data.rutaId !== currentRutaId) return;
-
-    console.log("🔔 Estudiante solicitando parada:", data);
-
-    // Reproducir sonido (opcional)
-    // const audio = new Audio('assets/sounds/notification.mp3');
-    // audio.play().catch(e => console.log("Audio bloqueado por navegador"));
+    </div>`;
 
     // Agregar marcador al mapa
-    const marker = L.marker([data.location.lat, data.location.lng], {
-      icon: studentIcon,
-    })
-      .addTo(map)
-      .bindPopup(
-        `
-            <strong>¡Parada Solicitada!</strong><br>
-            <small>Hace un momento</small>
-        `
-      )
-      .openPopup();
+    const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
+        <strong>¡Parada Solicitada!</strong><br>
+        <small>Hace un momento</small>
+    `);
+    
+    const marker = new maplibregl.Marker({ element: studentEl })
+      .setLngLat([data.location.lng, data.location.lat])
+      .setPopup(popup)
+      .addTo(map);
+
+    marker.togglePopup();
 
     // AUTO-ELIMINAR: Quitar el marcador después de 5 minutos (300,000 ms)
     // para no llenar el mapa de puntos viejos.
     setTimeout(() => {
-      map.removeLayer(marker);
+      marker.remove();
     }, 300000);
   });
 
