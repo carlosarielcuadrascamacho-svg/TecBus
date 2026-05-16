@@ -383,7 +383,7 @@ document.addEventListener("DOMContentLoaded", () => {
           'type': 'line',
           'source': 'ruta-source',
           'layout': { 'line-join': 'round', 'line-cap': 'round' },
-          'paint': { 'line-color': 'var(--color-primario)', 'line-width': 6, 'line-opacity': 0.8 }
+          'paint': { 'line-color': '#007bff', 'line-width': 6, 'line-opacity': 0.8 }
         });
       } else {
         const coordsString = puntosParada.map(p => `${p.ubicacion.coordinates[0]},${p.ubicacion.coordinates[1]}`).join(';');
@@ -401,7 +401,7 @@ document.addEventListener("DOMContentLoaded", () => {
               'type': 'line',
               'source': 'ruta-source',
               'layout': { 'line-join': 'round', 'line-cap': 'round' },
-              'paint': { 'line-color': 'var(--color-primario)', 'line-width': 6, 'line-opacity': 0.8 }
+              'paint': { 'line-color': '#007bff', 'line-width': 6, 'line-opacity': 0.8 }
             });
         }
       }

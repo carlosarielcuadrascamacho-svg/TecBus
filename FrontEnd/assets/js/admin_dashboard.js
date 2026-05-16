@@ -1365,6 +1365,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnModeTracing = document.getElementById("btn-mode-tracing");
   const btnModeStops = document.getElementById("btn-mode-stops");
 
+  if (closeModalBtnRutaMapa) {
+    closeModalBtnRutaMapa.addEventListener("click", () => {
+      modalRutaMapa.classList.remove("modal-visible");
+    });
+  }
+
   let editorMode = "tracing";
   let editorMap = null;
   let arrayPuntosTrazado = [];
@@ -1449,7 +1455,11 @@ document.addEventListener("DOMContentLoaded", () => {
     arrayPuntosTrazado.forEach((coords, index) => {
       const el = document.createElement('div');
       el.className = 'dot-marker';
-      el.style.cssText = 'background-color:#007bff; border:2px solid white; width:12px; height:12px; border-radius:50%;';
+      el.style.cssText = 'background-color:#007bff; border:2px solid white; width:12px; height:12px; border-radius:50%; cursor: pointer;';
+      
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
       
       const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`<div style="text-align:center;"><small>Punto #${index + 1}</small><br><button onclick="borrarPuntoTrazo(${index})" class="btn btn-danger btn-sm">Eliminar</button></div>`);
       
@@ -1475,7 +1485,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const [lng, lat] = parada.ubicacion.coordinates;
       const el = document.createElement('div');
       el.className = 'parada-marker';
-      el.innerHTML = '<div style="background-color:#ffc107; color:#000; width:30px; height:30px; border-radius:50%; display:flex; justify-content:center; align-items:center; border:2px solid white; font-size:14px; box-shadow: 0 2px 4px rgba(0,0,0,0.5);"><i class="fas fa-bus"></i></div>';
+      el.innerHTML = '<div style="background-color:#ffc107; color:#000; width:30px; height:30px; border-radius:50%; display:flex; justify-content:center; align-items:center; border:2px solid white; font-size:14px; box-shadow: 0 2px 4px rgba(0,0,0,0.5); cursor: pointer;"><i class="fas fa-bus"></i></div>';
+      
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
       
       const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`<div style="text-align:center;"><strong>${parada.nombre}</strong><br><button onclick="borrarParada(${index})" class="btn btn-danger btn-sm">Borrar</button></div>`);
       
