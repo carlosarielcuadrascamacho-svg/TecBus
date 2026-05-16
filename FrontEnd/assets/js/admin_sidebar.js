@@ -59,8 +59,11 @@ document.addEventListener("DOMContentLoaded", () => {
         targetSection.classList.add("active");
       }
 
-      // C. Actualizar el título de la página
-      if (pageTitle) pageTitle.textContent = link.textContent.trim();
+      // C. Actualizar el título de la página (Solo el texto principal, ignorando badges)
+      if (pageTitle) {
+          const spanText = link.querySelector("span");
+          pageTitle.textContent = spanText ? spanText.textContent.trim() : link.textContent.trim();
+      }
 
       // D. Cerrar menú automáticamente en móviles
       if (window.innerWidth <= 992 && sidebar.classList.contains("open")) {

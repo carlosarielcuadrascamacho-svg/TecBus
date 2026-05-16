@@ -22,10 +22,10 @@ document.addEventListener("DOMContentLoaded", () => {
         messageEl.textContent = "Todos los campos son obligatorios.";
       return;
     }
-    if (!correo.endsWith("@guasave.tecnm.mx") && !correo.endsWith("@tec.com")) {
+    if (!correo.includes("@") || !correo.includes(".")) {
       if (messageEl)
         messageEl.textContent =
-          "Por favor, usa un correo institucional válido.";
+          "Por favor, usa un correo válido.";
       return;
     }
 

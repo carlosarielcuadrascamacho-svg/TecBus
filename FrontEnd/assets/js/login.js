@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => {
         switch (data.user.tipo) {
           case "estudiante":
-            window.location.href = "estudiante.html";
+            window.location.href = "pasajero.html";
             break;
           case "conductor":
             window.location.href = "conductor.html";

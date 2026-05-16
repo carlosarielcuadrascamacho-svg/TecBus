@@ -87,7 +87,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // Cargar datos según la sección que el usuario eligió
-      if (targetId === "#mapa") inicializarDashboard();
+      if (targetId === "#mapa") {
+          inicializarDashboard();
+          if (window.adminMap) setTimeout(() => window.adminMap.resize(), 550);
+      }
       if (targetId === "#usuarios") cargarUsuarios();
       if (targetId === "#camiones") cargarCamiones();
       if (targetId === "#rutas") cargarRutas();
@@ -109,12 +112,12 @@ document.addEventListener("DOMContentLoaded", () => {
       btnToggleMini.addEventListener("click", () => {
           adminLayout.classList.toggle("sidebar-collapsed");
           
-          // Forzar resize del mapa después de la transición (400ms)
+          // Forzar resize del mapa después de la transición (550ms)
           setTimeout(() => {
               if (window.adminMap) {
                   window.adminMap.resize();
               }
-          }, 450);
+          }, 550);
       });
   }
 
@@ -206,7 +209,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupLiveSearch("live-search-alerta", () => alertasCargadas, renderTablaAlertas, ["titulo", "mensaje", "tipo"]);
 
   // Carga inicial por defecto (Mapa y KPIs)
-  inicializarDashboard();
+  // SE MOVIÓ ABAJO, DESPUÉS DE INICIALIZAR EL MAPA
+  // inicializarDashboard();
 
   // ============================================================
   //  3. LÓGICA DEL MAPA
@@ -223,7 +227,33 @@ document.addEventListener("DOMContentLoaded", () => {
     attributionControl: false
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  // Función para asegurar que el mapa siempre tenga el tamaño correcto
+  function observeMapResize(mapInstance, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container || !mapInstance) return;
+    const observer = new ResizeObserver(() => {
+      window.requestAnimationFrame(() => {
+        if (mapInstance) mapInstance.resize();
+      });
+    });
+    observer.observe(container);
+  }
+
   window.adminMap = map;
+  observeMapResize(map, 'admin-map');
+
+  // AHORA SÍ CARGAMOS LOS DATOS, YA QUE EL MAPA ESTÁ LISTO
+  inicializarDashboard();
+
+  // Auto-resize del mapa cuando termina la animación fadeIn al mostrar la sección
+  const mapaSection = document.getElementById("mapa");
+  if (mapaSection) {
+      mapaSection.addEventListener("animationend", () => {
+          if (window.adminMap) {
+              window.adminMap.resize();
+          }
+      });
+  }
 
   function createBusElement() {
     const el = document.createElement('div');
@@ -415,7 +445,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const studentEl = document.createElement('div');
       studentEl.style.cssText = 'width: 40px; height: 40px; background-color: rgba(46, 204, 113, 0.5); border: 2px solid var(--color-exito); border-radius: 50%; animation: pulse 2s infinite;';
       
-      const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`<b>Estudiante Esperando</b><br>Hora: ${new Date().toLocaleTimeString()}`);
+      const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`<b>Pasajero esperando</b><br>Enviado a las: ${new Date().toLocaleTimeString()}`);
       new maplibregl.Marker({ element: studentEl })
           .setLngLat([data.location.lng, data.location.lat])
           .setPopup(popup)
@@ -533,7 +563,7 @@ document.addEventListener("DOMContentLoaded", () => {
         badgeClass = "badge-conductor";
         icon = "fa-bus";
       } else if (u.tipo === "estudiante") {
-        tipoTexto = "Estudiante";
+        tipoTexto = "Pasajero";
         badgeClass = "badge-estudiante";
         icon = "fa-graduation-cap";
       }
@@ -1521,7 +1551,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.cerrarModalEditarHorario = () =>
     modalEditarHorario.classList.remove("modal-visible");
 
-  // 1. Icono de Estudiante (DOM Element para MapLibre)
+  // 1. Icono de Pasajero (DOM Element para MapLibre)
   function createStudentAdminElement() {
     const el = document.createElement('div');
     el.className = "student-marker-admin";
@@ -1531,15 +1561,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 2. Escuchar evento
   socket.on("studentWaiting", (data) => {
-    console.log("Admin: Estudiante esperando", data);
+    console.log("Admin: Pasajero esperando", data);
 
-    const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`<strong>Estudiante esperando</strong><br>Ruta: ${data.rutaId}`);
+    const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`<strong>Pasajero esperando</strong><br>Ruta: ${data.rutaId}`);
     const marker = new maplibregl.Marker({ element: createStudentAdminElement() })
       .setLngLat([data.location.lng, data.location.lat])
       .setPopup(popup)
       .addTo(map);
 
-    addActivityItem(`Estudiante esperando en ruta: ${data.rutaId}`, 'system');
+    addActivityItem(`Pasajero esperando en ruta: ${data.rutaId}`, 'system');
 
     // Limpiar después de 5 min
     setTimeout(() => {
@@ -1715,7 +1745,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btnModeStops.classList.add("active");
       btnModeTracing.classList.remove("active");
       if (editorMap) editorMap.getContainer().style.cursor = "default";
-      if (helpText) helpText.innerHTML = "<b>Modo Paradas:</b> Coloca los puntos donde suben estudiantes. La ruta se trazará <b>automáticamente</b> por las calles.";
+      if (helpText) helpText.innerHTML = "<b>Modo Paradas:</b> Coloca los puntos donde suben los pasajeros. La ruta se trazará <b>automáticamente</b> por las calles.";
     }
   }
 
@@ -1730,6 +1760,14 @@ document.addEventListener("DOMContentLoaded", () => {
       attributionControl: false
     });
     editorMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+    // Observar cambios de tamaño en el editor
+    const editorContainer = document.getElementById("ruta-map-editor");
+    if (editorContainer) {
+        new ResizeObserver(() => {
+            if (editorMap) editorMap.resize();
+        }).observe(editorContainer);
+    }
 
     editorMap.on('load', () => {
       editorMap.addSource('trace-source', {
@@ -1887,7 +1925,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dibujarParadas();
       actualizarListaUI();
       setEditorMode("tracing");
-    }, 100);
+    }, 400);
   };
 
   if (modalFormRutaMapa) {
@@ -2153,15 +2191,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Determinar clase de severidad
       let severityClass = "info";
-      if (alerta.titulo.toLowerCase().includes("sos") || alerta.titulo.toLowerCase().includes("emergencia")) {
+      let badgeClass = "badge-admin"; // Default blue
+      
+      const titulo = (alerta.titulo || "").toLowerCase();
+      if (titulo.includes("sos") || titulo.includes("emergencia") || titulo.includes("peligro")) {
           severityClass = "alert-row-danger";
-      } else if (alerta.titulo.toLowerCase().includes("retraso")) {
+          badgeClass = "badge-danger";
+          row.classList.add("alert-row-danger");
+      } else if (titulo.includes("retraso") || titulo.includes("mantenimiento")) {
           severityClass = "warning";
+          badgeClass = "badge-warning";
       }
 
       row.innerHTML = `
-        <td class="${severityClass}"><b>${alerta.camionUnidad || "N/A"}</b></td>
-        <td><span class="badge ${severityClass === 'alert-row-danger' ? 'badge-danger' : 'badge-warning'}">${alerta.titulo}</span></td>
+        <td><b>${alerta.camionUnidad || "N/A"}</b></td>
+        <td><span class="badge ${badgeClass}">${alerta.titulo}</span></td>
         <td>${alerta.mensaje}</td>
         <td class="text-muted">${fecha}</td>
       `;
@@ -2510,9 +2554,13 @@ async function mostrarPreviewRuta(rutaId) {
         if (!ruta || ruta.error) throw new Error("No se pudo cargar la ruta");
 
         document.getElementById("preview-ruta-nombre").textContent = ruta.nombre || "Sin nombre";
-        // El API puede devolver distancia como 'distancia' o 'distanciaKm'
-        const distancia = ruta.distancia || ruta.distanciaKm || "N/D";
-        const tiempo = ruta.tiempoEstimado || ruta.duracionMin || "N/D";
+        
+        // El API usa distanciaTotal (metros) y tiempoEstimadoTotal (min)
+        let distancia = ruta.distanciaTotal || ruta.distancia || ruta.distanciaKm || 0;
+        if (distancia > 1000) distancia = (distancia / 1000).toFixed(1); // Convertir a km si es muy grande (m -> km)
+        
+        const tiempo = ruta.tiempoEstimadoTotal || ruta.tiempoEstimado || ruta.duracionMin || "N/D";
+        
         document.getElementById("preview-ruta-distancia").textContent = distancia + " km";
         document.getElementById("preview-ruta-tiempo").textContent = tiempo + " min";
 
@@ -2524,9 +2572,17 @@ async function mostrarPreviewRuta(rutaId) {
                 center: [-108.4716, 25.5727],
                 zoom: 12
             });
+            // Observar cambios de tamaño en el modal
+            const observer = new ResizeObserver(() => {
+                window.requestAnimationFrame(() => {
+                    if (previewMap) previewMap.resize();
+                });
+            });
+            const mapContainer = document.getElementById("route-preview-map");
+            if (mapContainer) observer.observe(mapContainer);
         }
 
-        const mapReady = () => {
+        const mapReady = async () => {
             // Limpiar capas y markers previos
             if (previewMap.getLayer('route')) previewMap.removeLayer('route');
             if (previewMap.getSource('route')) previewMap.removeSource('route');
@@ -2552,7 +2608,23 @@ async function mostrarPreviewRuta(rutaId) {
                     console.warn("No hay suficientes puntos para trazar la ruta");
                     return;
                 }
-                
+
+                // --- NUEVO: Obtener trazado real por calles (OSRM) ---
+                let finalCoords = coords;
+                try {
+                    const waypoints = coords.map(c => `${c[0]},${c[1]}`).join(';');
+                    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${waypoints}?overview=full&geometries=geojson`;
+                    const osrmRes = await fetch(osrmUrl);
+                    const osrmData = await osrmRes.json();
+                    
+                    if (osrmData.code === 'Ok' && osrmData.routes && osrmData.routes[0]) {
+                        finalCoords = osrmData.routes[0].geometry.coordinates;
+                        console.log("🛣️ Trazado real obtenido de OSRM");
+                    }
+                } catch (err) {
+                    console.warn("No se pudo obtener trazado real, usando líneas rectas:", err);
+                }
+
                 previewMap.addSource('route', {
                     'type': 'geojson',
                     'data': {
@@ -2560,7 +2632,7 @@ async function mostrarPreviewRuta(rutaId) {
                         'properties': {},
                         'geometry': {
                             'type': 'LineString',
-                            'coordinates': coords
+                            'coordinates': finalCoords
                         }
                     }
                 });
@@ -2626,12 +2698,13 @@ function inicializarGraficos() {
     // 1. Gráfico de Demanda (Líneas)
     const ctxDemanda = document.getElementById('chart-demanda');
     if (ctxDemanda) {
+        if (chartDemanda) chartDemanda.destroy();
         chartDemanda = new Chart(ctxDemanda, {
             type: 'line',
             data: {
                 labels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
                 datasets: [{
-                    label: 'Estudiantes Esperando',
+                    label: 'Pasajeros Esperando',
                     data: [12, 45, 30, 65, 80, 40, 55, 20],
                     borderColor: '#007bff',
                     backgroundColor: 'rgba(0, 123, 255, 0.1)',
@@ -2654,6 +2727,7 @@ function inicializarGraficos() {
     // 2. Gráfico de Flota (Barras)
     const ctxFlota = document.getElementById('chart-flota');
     if (ctxFlota) {
+        if (chartFlota) chartFlota.destroy();
         chartFlota = new Chart(ctxFlota, {
             type: 'bar',
             data: {
@@ -2680,6 +2754,7 @@ function inicializarGraficos() {
     // 3. Gráfico de Alertas (Doughnut)
     const ctxAlertas = document.getElementById('chart-alertas');
     if (ctxAlertas) {
+        if (chartAlertas) chartAlertas.destroy();
         chartAlertas = new Chart(ctxAlertas, {
             type: 'doughnut',
             data: {
@@ -2705,23 +2780,20 @@ function inicializarGraficos() {
 // Escuchar cambios de pestaña para refrescar gráficos
 document.addEventListener("click", (e) => {
     const link = e.target.closest(".nav-item");
+    // Solo actualizar si hacemos clic en el link de estadísticas
     if (link && link.getAttribute("href") === "#estadisticas") {
         setTimeout(() => {
             if (!chartDemanda) {
                 inicializarGraficos();
-            } else {
-                actualizarDatosGraficos();
             }
-        }, 100);
+            // Eliminamos actualizarDatosGraficos() para que sea estático
+        }, 150);
     }
 });
 
 async function actualizarDatosGraficos() {
-    console.log("🔄 Actualizando datos de gráficos...");
-    if (chartDemanda) {
-        chartDemanda.data.datasets[0].data = chartDemanda.data.datasets[0].data.map(v => v + Math.floor(Math.random() * 10 - 5));
-        chartDemanda.update();
-    }
+    // Función desactivada para mantener datos estáticos
+    console.log("📊 Datos estáticos mantenidos.");
 }
 
 if (window.location.hash === "#estadisticas") {
