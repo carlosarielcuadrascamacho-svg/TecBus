@@ -1426,6 +1426,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     editorMap.on("click", (e) => {
+      // Ignorar clics si vienen de un popup o un marcador
+      if (e.originalEvent && e.originalEvent.target) {
+        if (e.originalEvent.target.closest('.maplibregl-popup') || e.originalEvent.target.closest('.maplibregl-marker')) {
+          return;
+        }
+      }
+
       const { lng, lat } = e.lngLat;
       if (editorMode === "tracing") {
         arrayPuntosTrazado.push([lat, lng]);
