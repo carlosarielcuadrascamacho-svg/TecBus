@@ -1858,3 +1858,73 @@
         display: none;
     }
 }
+
+/* --- NOTIFICACIONES Y ALERTAS PREMIUM --- */
+.badge-notify {
+    background: #ff4757;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: auto;
+    box-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.activity-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(5px);
+}
+
+.activity-item.danger { border-left-color: #ff4757; color: #ff4757; }
+.activity-item.warning { border-left-color: #ffa502; color: #ffa502; }
+.activity-item.info { border-left-color: #2f3542; color: #ced4da; }
+.activity-item.success { border-left-color: #2ed573; color: #2ed573; }
+
+.activity-item i { font-size: 1rem; width: 20px; text-align: center; }
+.activity-time { margin-left: auto; font-size: 0.7rem; opacity: 0.6; }
+
+/* MODAL DE PREVISUALIZACIÓN DE RUTA */
+#route-preview-map {
+    width: 100%;
+    height: 400px;
+    border-radius: 12px;
+    margin-top: 15px;
+    background: #000;
+}
+
+.modal-route-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.modal-route-info span {
+    font-size: 0.9rem;
+    color: var(--color-texto-gris);
+}
+
+.modal-route-info b {
+    color: var(--color-primario);
+}

@@ -954,19 +954,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     lista.forEach((r) => {
       const row = document.createElement("tr");
-      row.innerHTML = `<td>${r.nombre}</td><td>${
+      row.innerHTML = `<td><b>${r.nombre}</b></td><td><span class="text-muted">${
         r.descripcion || "N/A"
-      }</td><td><span class="badge ${
+      }</span></td><td><span class="badge ${
         r.activa ? "badge-admin" : "badge-conductor"
       }">${r.activa ? "Activa" : "Inactiva"}</span></td>
-      <td><button class="btn btn-secondary btn-sm btn-edit-ruta" data-id="${
-        r._id
-      }"><i class="fas fa-edit"></i></button><button class="btn btn-danger btn-sm btn-delete-ruta" data-id="${
-        r._id
-      }"><i class="fas fa-trash"></i></button></td>
-      <td><button class="btn btn-primary btn-sm btn-edit-mapa-ruta" data-id="${
-        r._id
-      }"><i class="fas fa-map-marked-alt"></i> Editar Trazado</button></td>`;
+      <td>
+        <div class="table-actions" style="display:flex; gap:5px;">
+            <button class="btn btn-secondary btn-sm btn-edit-ruta" title="Editar" data-id="${r._id}"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-danger btn-sm btn-delete-ruta" title="Eliminar" data-id="${r._id}"><i class="fas fa-trash"></i></button>
+            <button class="btn btn-primary btn-sm btn-edit-mapa-ruta" title="Editar Trazado" data-id="${r._id}"><i class="fas fa-pencil-alt"></i></button>
+        </div>
+      </td>
+      <td>
+        <button class="btn btn-info btn-sm btn-preview-ruta" data-id="${r._id}">
+            <i class="fas fa-eye"></i> Ver Mapa
+        </button>
+      </td>`;
       tablaBody.appendChild(row);
     });
   }
@@ -1608,28 +1612,53 @@ document.addEventListener("DOMContentLoaded", () => {
       if (activeCount) activeCount.textContent = count;
   }
 
-  function addActivityItem(message, type = 'system') {
-      const feed = document.getElementById("recent-activity-feed");
+  function addActivityItem(message, type = 'info') {
+      const feed = document.getElementById('recent-activity-feed');
       if (!feed) return;
 
-      const item = document.createElement("div");
+      const item = document.createElement('div');
       item.className = `activity-item ${type}`;
       
       let icon = 'fas fa-info-circle';
-      if (type === 'alert') icon = 'fas fa-exclamation-triangle';
+      if (type === 'danger' || type === 'alert') icon = 'fas fa-exclamation-circle';
+      if (type === 'warning') icon = 'fas fa-exclamation-triangle';
       if (type === 'success') icon = 'fas fa-check-circle';
       if (type === 'bus') icon = 'fas fa-bus';
 
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
       item.innerHTML = `
           <i class="${icon}"></i>
-          <span><b>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}:</b> ${message}</span>
+          <div class="activity-content">
+              <span>${message}</span>
+          </div>
+          <span class="activity-time">${time}</span>
       `;
 
       feed.prepend(item);
 
-      // Limitar a los últimos 15
-      if (feed.children.length > 15) {
+      // Si es una alerta, incrementar contador en sidebar
+      if (type === 'danger' || type === 'alert') {
+          updateAlertBadge(1);
+      }
+
+      if (feed.children.length > 20) {
           feed.removeChild(feed.lastChild);
+      }
+  }
+
+  function updateAlertBadge(delta) {
+      const badge = document.getElementById('alert-count-badge');
+      if (!badge) return;
+      
+      let current = parseInt(badge.textContent) || 0;
+      current += delta;
+      
+      if (current > 0) {
+          badge.textContent = current;
+          badge.style.display = 'inline-block';
+      } else {
+          badge.style.display = 'none';
       }
   }
 
@@ -2116,11 +2145,21 @@ document.addEventListener("DOMContentLoaded", () => {
         dateStyle: "short",
         timeStyle: "short",
       });
-      row.innerHTML = `<td class="alert-row-danger">${
-        alerta.camionUnidad || "N/A"
-      }</td><td>${alerta.titulo}</td><td>${
-        alerta.mensaje
-      }</td><td>${fecha}</td>`;
+
+      // Determinar clase de severidad
+      let severityClass = "info";
+      if (alerta.titulo.toLowerCase().includes("sos") || alerta.titulo.toLowerCase().includes("emergencia")) {
+          severityClass = "alert-row-danger";
+      } else if (alerta.titulo.toLowerCase().includes("retraso")) {
+          severityClass = "warning";
+      }
+
+      row.innerHTML = `
+        <td class="${severityClass}"><b>${alerta.camionUnidad || "N/A"}</b></td>
+        <td><span class="badge ${severityClass === 'alert-row-danger' ? 'badge-danger' : 'badge-warning'}">${alerta.titulo}</span></td>
+        <td>${alerta.mensaje}</td>
+        <td class="text-muted">${fecha}</td>
+      `;
       tablaBody.appendChild(row);
     });
   }
@@ -2421,3 +2460,95 @@ window.filtrarAlertasManual = function () {
   const modal = document.getElementById("search-alerta-modal");
   if (modal) modal.classList.remove("modal-visible");
 };
+
+// --- VISUALIZADOR DE RUTA (MODAL) ---
+let previewMap = null;
+
+document.addEventListener("click", (e) => {
+    // Abrir Preview
+    if (e.target.closest(".btn-preview-ruta")) {
+        const btn = e.target.closest(".btn-preview-ruta");
+        const rutaId = btn.getAttribute("data-id");
+        mostrarPreviewRuta(rutaId);
+    }
+    
+    // Cerrar Modales (Genérico)
+    if (e.target.classList.contains("close-button") || e.target.classList.contains("close-modal")) {
+        const modal = e.target.closest(".modal");
+        if (modal) modal.style.display = "none";
+    }
+});
+
+async function mostrarPreviewRuta(rutaId) {
+    const modal = document.getElementById("route-preview-modal");
+    if (!modal) return;
+    
+    modal.style.display = "flex";
+    
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/rutas/${rutaId}`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("tecbus_token")}` }
+        });
+        const ruta = await res.json();
+        
+        document.getElementById("preview-ruta-nombre").textContent = ruta.nombre;
+        document.getElementById("preview-ruta-distancia").textContent = (ruta.distancia || "N/A") + " km";
+        document.getElementById("preview-ruta-tiempo").textContent = (ruta.tiempoEstimado || "--") + " min";
+
+        // Inicializar mapa si no existe
+        if (!previewMap) {
+            previewMap = new maplibregl.Map({
+                container: "route-preview-map",
+                style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+                center: [-108.4716, 25.5727],
+                zoom: 12
+            });
+        }
+
+        // Esperar a que el mapa cargue para manipular capas
+        const mapReady = () => {
+            if (previewMap.getLayer('route')) previewMap.removeLayer('route');
+            if (previewMap.getSource('route')) previewMap.removeSource('route');
+
+            if (ruta.puntos && ruta.puntos.length > 0) {
+                const coords = ruta.puntos.map(p => [p.lng, p.lat]);
+                
+                previewMap.addSource('route', {
+                    'type': 'geojson',
+                    'data': {
+                        'type': 'Feature',
+                        'properties': {},
+                        'geometry': {
+                            'type': 'LineString',
+                            'coordinates': coords
+                        }
+                    }
+                });
+
+                previewMap.addLayer({
+                    'id': 'route',
+                    'type': 'line',
+                    'source': 'route',
+                    'layout': { 'line-join': 'round', 'line-cap': 'round' },
+                    'paint': { 'line-color': '#007bff', 'line-width': 5 }
+                });
+
+                // Ajustar mapa a la ruta
+                const bounds = coords.reduce((acc, coord) => acc.extend(coord), new maplibregl.LngLatBounds(coords[0], coords[0]));
+                previewMap.fitBounds(bounds, { padding: 50 });
+            }
+        };
+
+        if (previewMap.loaded()) {
+            mapReady();
+        } else {
+            previewMap.once('load', mapReady);
+        }
+
+        // Forzar resize porque el contenedor estaba oculto
+        setTimeout(() => previewMap.resize(), 300);
+
+    } catch (err) {
+        console.error("Error cargando preview de ruta:", err);
+    }
+}

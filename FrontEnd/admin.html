@@ -750,6 +750,22 @@
           </div>
       </div>
 
+      <div id="route-preview-modal" class="modal">
+        <div class="modal-content modal-lg">
+          <span class="close-button">&times;</span>
+          <h2>Visualizador de Ruta</h2>
+          <div class="modal-route-info">
+            <span id="preview-ruta-nombre">Cargando...</span>
+            <span>Distancia: <b id="preview-ruta-distancia">--</b></span>
+            <span>Tiempo: <b id="preview-ruta-tiempo">--</b></span>
+          </div>
+          <div id="route-preview-map"></div>
+          <div class="modal-actions">
+            <button class="btn btn-secondary btn-full close-modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="assets/js/admin_sidebar.js"></script>
