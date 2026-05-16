@@ -515,9 +515,23 @@ document.addEventListener("DOMContentLoaded", () => {
       const row = document.createElement("tr");
 
       // 1. Configurar badge de tipo
-      let tipoTexto = u.tipo === "conductor" ? "Conductor" : "Admin";
-      let badgeClass = u.tipo === "conductor" ? "badge-conductor" : "badge-admin";
-      let icon = u.tipo === "conductor" ? "fa-bus" : "fa-user-shield";
+      let tipoTexto = "Usuario";
+      let badgeClass = "badge-usuario";
+      let icon = "fa-user";
+
+      if (u.tipo === "administrador" || u.tipo === "admin") {
+        tipoTexto = "Admin";
+        badgeClass = "badge-admin";
+        icon = "fa-user-shield";
+      } else if (u.tipo === "conductor") {
+        tipoTexto = "Conductor";
+        badgeClass = "badge-conductor";
+        icon = "fa-bus";
+      } else if (u.tipo === "estudiante") {
+        tipoTexto = "Estudiante";
+        badgeClass = "badge-estudiante";
+        icon = "fa-graduation-cap";
+      }
 
       // 2. Generar HTML del estado con pulso
       const estaActivo = u.estado === "activo" || u.estado === "En Servicio" || u.estado === "En Ruta" || u.estado === "online";
