@@ -869,7 +869,7 @@
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  padding: 0; /* Sin margen para que el mapa llegue a las orillas */
+  padding: 0;
   overflow: hidden; 
   position: relative;
 }
@@ -903,11 +903,58 @@
   display: flex;
   gap: 10px;
   border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+/* --- Estilos internos del buscador --- */
+.input-group {
+  display: flex;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0 12px;
+  flex: 1; 
+  min-width: 250px;
+  transition: border-color 0.3s;
+}
+
+.input-group:focus-within {
+  border-color: var(--color-primario);
+}
+
+.input-group input {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 10px;
+  width: 100%;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.btn-clear {
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ccc;
+  font-weight: 600;
+  transition: 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-clear:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .editor-mode-switch {
   position: absolute;
-  top: 95px; /* Debajo del buscador */
+  top: 105px; 
   left: 50%;
   transform: translateX(-50%);
   z-index: 2000;
@@ -915,28 +962,63 @@
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  padding: 8px 15px;
-  border-radius: 30px; /* Estilo píldora */
+  padding: 6px;
+  border-radius: 50px;
   display: flex;
-  gap: 10px;
+  gap: 5px;
+}
+
+.btn-mode {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 40px;
+  background-color: transparent;
+  color: #888;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-mode:hover {
+  color: white;
+}
+
+.btn-mode.active#btn-mode-tracing {
+  background-color: var(--color-primario);
+  color: white;
+  box-shadow: 0 0 15px rgba(0, 123, 255, 0.4);
+}
+
+.btn-mode.active#btn-mode-stops {
+  background-color: #ffc107;
+  color: #000;
+  box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
 }
 
 .editor-help-box {
   position: absolute;
-  top: 150px; /* Debajo de los botones */
+  top: 165px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1500;
   width: auto;
-  max-width: 600px;
+  max-width: 650px;
   margin: 0;
-  background: rgba(0, 123, 255, 0.15);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(0, 123, 255, 0.3);
+  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-left: 4px solid var(--color-primario);
-  padding: 8px 15px;
-  border-radius: 8px;
-  pointer-events: none; /* Que no estorbe clics al mapa */
+  padding: 10px 20px;
+  border-radius: 12px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
 /* --- BOTÓN GUARDAR FLOTANTE --- */
@@ -946,123 +1028,30 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 2000;
-  width: auto;
 }
 
 .btn-save-floating {
-  padding: 15px 40px !important;
-  font-size: 1.1rem !important;
-  font-weight: 700 !important;
-  border-radius: 50px !important;
-  box-shadow: 0 10px 25px rgba(40, 167, 69, 0.4);
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  padding: 14px 40px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 50px;
+  box-shadow: 0 10px 30px rgba(46, 204, 113, 0.3);
+  cursor: pointer;
+  transition: 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-transform: uppercase;
   letter-spacing: 1px;
-
-.btn-mode {
-    padding: 8px 18px;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px; /* Estilo redondeado */
-    background-color: transparent;
-    color: #999;
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: center;
 }
 
-.btn-mode:hover {
-    background-color: #333;
-    color: white;
-    transform: translateY(-2px);
-}
-
-.btn-mode.active#btn-mode-tracing {
-    background-color: var(--color-primario);
-    color: white;
-    border-color: var(--color-primario);
-    box-shadow: 0 0 15px rgba(0, 123, 255, 0.4);
-}
-
-.btn-mode.active#btn-mode-stops {
-    background-color: #ffc107;
-    color: #000;
-    border-color: #ffc107;
-    box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
-}
-
-/* --- 2. EL MAPA (OCUPA EL ESPACIO CENTRAL RESTANTE) --- */
-#ruta-map-editor {
-  flex-grow: 1; /* CLAVE: Crece para llenar todo el hueco entre botones y footer */
-  width: 100%;
-  min-height: 0; /* Necesario para que flexbox calcule bien el scroll/tamaño */
-  
-  border: 2px solid #444;
-  border-radius: 8px;
-  position: relative;
-  z-index: 1; /* Nivel base */
-}
-
-/* --- 3. ÁREA DEL BOTÓN GUARDAR (ABAJO, FUERA DEL MAPA) --- */
-.footer-controls {
-  flex-shrink: 0; /* Altura fija según contenido */
-  
-  /* SU PROPIA ÁREA DE FOOTER */
-  background-color: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 15px;
-  
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  /* Posicionamiento estático (en el flujo normal) */
-  position: static;
-  transform: none;
-  width: auto;
-  height: auto;
-  margin: 0;
-  box-shadow: none;
-}
-
-.footer-actions {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.footer-controls .btn-save-floating {
-    width: 100%;           
-    max-width: 400px; /* Que no sea excesivamente ancho en monitores grandes */
-    height: 50px;
-    padding: 0 30px;
-    
-    font-size: 1.1rem;
-    font-weight: 700;
-    border-radius: 8px; /* Cuadrado redondeado para encajar con el footer */
-    
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    
-    background-color: #2ecc71; 
-    color: white;
-    border: none;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.footer-controls .btn-save-floating:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-    background-color: #27ae60;
+.btn-save-floating:hover {
+  transform: translateY(-3px);
+  background-color: #27ae60;
+  box-shadow: 0 15px 40px rgba(46, 204, 113, 0.4);
 }
 
 /* --- Autocompletado (Estilo Google Maps) --- */
