@@ -49,28 +49,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnMenuClose = document.getElementById("btn-menu-close");
 
   // 3. CONFIGURACIÓN DEL MAPA
-  const map = L.map("map", { zoomControl: false }).setView(
-    [initialLat, initialLng],
-    initialZoom
-  );
-  L.control.zoom({ position: "bottomright" }).addTo(map);
-
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    attribution: "&copy; OpenStreetMap &copy; CARTO",
-    maxZoom: 20,
-  }).addTo(map);
-
-  const driverIcon = L.divIcon({
-    className: "custom-driver-icon",
-    html: '<div style="background-color: var(--color-primario); border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; color: white; border: 3px solid white; font-size: 20px;">🚌</div>',
-    iconSize: [35, 35],
-    iconAnchor: [17, 17],
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    center: [initialLng, initialLat],
+    zoom: initialZoom,
+    attributionControl: false
   });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
-  const driverMarker = L.marker([initialLat, initialLng], { icon: driverIcon })
-    .addTo(map)
-    .bindPopup("Ubicación Guardada")
-    .openPopup();
+  const driverEl = document.createElement('div');
+  driverEl.className = 'custom-driver-icon';
+  driverEl.innerHTML = '<div style="background-color: var(--color-primario); border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; color: white; border: 3px solid white; font-size: 20px; box-shadow: 0 0 15px var(--color-primario); transition: all 0.3s ease;">🚌</div>';
+  
+  const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setText("Ubicación Guardada");
+  const driverMarker = new maplibregl.Marker({ element: driverEl })
+    .setLngLat([initialLng, initialLat])
+    .setPopup(popup)
+    .addTo(map);
+  
+  driverMarker.togglePopup();
 
   // ============================================================
   // CONEXIÓN SOCKET.IO Y LÓGICA DE ESCUCHA (ESP32)
@@ -125,17 +123,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             console.log(`✅ Ubicación sincronizada: [${latDB}, ${lngDB}]`);
 
-            const newLatLng = new L.LatLng(latDB, lngDB);
-
             // 4. Mover el marcador
-            driverMarker.setLatLng(newLatLng);
-            driverMarker
-              .bindPopup(
-                `📍 Ubicación Real (BD)<br>🚀 ${Math.round(velocidadDB)} km/h`
-              )
-              .openPopup();
+            driverMarker.setLngLat([lngDB, latDB]);
+            driverMarker.getPopup().setHTML(`📍 Ubicación Real (BD)<br>🚀 ${Math.round(velocidadDB)} km/h`);
+            if(!driverMarker.getPopup().isOpen()) driverMarker.togglePopup();
 
-            map.panTo(newLatLng);
+            map.panTo([lngDB, latDB]);
             verificarLlegadaDestino(latDB, lngDB);
           } else {
             console.warn(
@@ -218,7 +211,12 @@ document.addEventListener("DOMContentLoaded", () => {
     statusDisplay.className = "status-indicator status-off";
     statusDisplay.style.color = "var(--color-error)";
     DESTINO_ACTUAL = null;
-    if (rutaPolyline) map.removeLayer(rutaPolyline);
+    if (map.getLayer("ruta-layer")) map.removeLayer("ruta-layer");
+    if (map.getSource("ruta-source")) map.removeSource("ruta-source");
+    if (window.stopMarkersArray) {
+      window.stopMarkersArray.forEach(m => m.remove());
+      window.stopMarkersArray = [];
+    }
 
     alert(
       "🏁 Has llegado al destino final de hoy.\nTu estado ahora es: Fuera de Servicio."
@@ -240,11 +238,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       // 2. Limpiar mapa anterior
-      if (rutaPolyline) map.removeLayer(rutaPolyline);
-      if (routingControl) {
-        map.removeControl(routingControl);
-        routingControl = null;
+      if (map.getLayer("ruta-layer")) map.removeLayer("ruta-layer");
+      if (map.getSource("ruta-source")) map.removeSource("ruta-source");
+      if (window.stopMarkersArray) {
+        window.stopMarkersArray.forEach(m => m.remove());
       }
+      window.stopMarkersArray = [];
 
       // 3. Obtener datos de la ruta
       const response = await fetch(`${BACKEND_URL}/api/rutas/${viaje.rutaId}`, {
@@ -259,70 +258,91 @@ document.addEventListener("DOMContentLoaded", () => {
           (p) => p.tipo === "parada_oficial" || !p.tipo
         );
 
+        // Configurar arreglo para paradas
+        if (!window.stopMarkersArray) window.stopMarkersArray = [];
+
+        let coordsForBounds = [];
+
         // --- CASO A: RUTA CON DISEÑO MANUAL (TRAZO) ---
         if (puntosTrazo.length > 0) {
-          console.log("🎨 Cargando ruta con diseño manual...");
+          console.log("🎨 Cargando ruta con diseño manual vectorial...");
 
-          // Dibujamos la línea exactamente como la diseñaste
           const coords = puntosTrazo.map((p) => [
-            p.ubicacion.coordinates[1],
-            p.ubicacion.coordinates[0],
+            p.ubicacion.coordinates[0], // lng
+            p.ubicacion.coordinates[1], // lat
           ]);
+          coordsForBounds = coords;
 
-          rutaPolyline = L.polyline(coords, {
-            color: "#007bff", // Color azul conductor
-            weight: 6,
-            opacity: 0.8,
-          }).addTo(map);
+          map.addSource('ruta-source', {
+            'type': 'geojson',
+            'data': {
+              'type': 'Feature',
+              'properties': {},
+              'geometry': { 'type': 'LineString', 'coordinates': coords }
+            }
+          });
+
+          map.addLayer({
+            'id': 'ruta-layer',
+            'type': 'line',
+            'source': 'ruta-source',
+            'layout': { 'line-join': 'round', 'line-cap': 'round' },
+            'paint': { 'line-color': '#007bff', 'line-width': 6, 'line-opacity': 0.8 }
+          });
 
           // Marcar las paradas visualmente
           puntosParada.forEach((p) => {
-            L.circleMarker(
-              [p.ubicacion.coordinates[1], p.ubicacion.coordinates[0]],
-              {
-                radius: 6,
-                color: "white",
-                fillColor: "#ffc107",
-                fillOpacity: 1,
-                weight: 2,
-              }
-            )
-              .addTo(map)
-              .bindPopup(p.nombre);
+            const stopEl = document.createElement('div');
+            stopEl.style.cssText = 'background-color:#ffc107; border:2px solid white; width:12px; height:12px; border-radius:50%; box-shadow:0 0 4px black;';
+            const m = new maplibregl.Marker({ element: stopEl })
+              .setLngLat([p.ubicacion.coordinates[0], p.ubicacion.coordinates[1]])
+              .setPopup(new maplibregl.Popup({ offset: 10 }).setText(p.nombre))
+              .addTo(map);
+            window.stopMarkersArray.push(m);
           });
 
           // Establecer destino (último punto del trazo)
           const ultimo = coords[coords.length - 1];
-          DESTINO_ACTUAL = { lat: ultimo[0], lng: ultimo[1] };
-          map.fitBounds(rutaPolyline.getBounds());
+          DESTINO_ACTUAL = { lat: ultimo[1], lng: ultimo[0] };
         }
         // --- CASO B: RUTA ANTIGUA (SIN TRAZO, SOLO PARADAS) ---
         else {
-          console.log("🗺️ Cargando ruta automática (OSRM)...");
-          const waypoints = puntosParada.map((p) =>
-            L.latLng(p.ubicacion.coordinates[1], p.ubicacion.coordinates[0])
-          );
+          console.log("🗺️ Cargando ruta automática (OSRM) vía API Rest...");
+          const coordsString = puntosParada.map(p => `${p.ubicacion.coordinates[0]},${p.ubicacion.coordinates[1]}`).join(';');
+          
+          try {
+              const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`);
+              const osrmData = await osrmRes.json();
+              if(osrmData.routes && osrmData.routes.length > 0) {
+                  const routeGeometry = osrmData.routes[0].geometry;
+                  coordsForBounds = routeGeometry.coordinates;
+                  
+                  map.addSource('ruta-source', {
+                    'type': 'geojson',
+                    'data': { 'type': 'Feature', 'properties': {}, 'geometry': routeGeometry }
+                  });
 
-          routingControl = L.Routing.control({
-            waypoints: waypoints,
-            router: L.Routing.osrmv1({
-              serviceUrl: "https://router.project-osrm.org/route/v1",
-              profile: "driving",
-            }),
-            lineOptions: {
-              styles: [{ color: "#007bff", opacity: 0.8, weight: 6 }],
-            },
-            createMarker: function () {
-              return null;
-            },
-            addWaypoints: false,
-            draggableWaypoints: false,
-            fitSelectedRoutes: true,
-            show: false,
-          }).addTo(map);
+                  map.addLayer({
+                    'id': 'ruta-layer',
+                    'type': 'line',
+                    'source': 'ruta-source',
+                    'layout': { 'line-join': 'round', 'line-cap': 'round' },
+                    'paint': { 'line-color': '#007bff', 'line-width': 6, 'line-opacity': 0.8 }
+                  });
 
-          const ultimoPunto = waypoints[waypoints.length - 1];
-          DESTINO_ACTUAL = { lat: ultimoPunto.lat, lng: ultimoPunto.lng };
+                  const ultimoPunto = puntosParada[puntosParada.length - 1];
+                  DESTINO_ACTUAL = { lat: ultimoPunto.ubicacion.coordinates[1], lng: ultimoPunto.ubicacion.coordinates[0] };
+              }
+          } catch(err) {
+              console.error("Error obteniendo ruta OSRM", err);
+          }
+        }
+
+        if (coordsForBounds.length > 0) {
+          const bounds = coordsForBounds.reduce(function(b, coord) {
+            return b.extend(coord);
+          }, new maplibregl.LngLatBounds(coordsForBounds[0], coordsForBounds[0]));
+          map.fitBounds(bounds, { padding: 50 });
         }
 
         LLEGADA_DETECTADA = false;
@@ -383,9 +403,8 @@ document.addEventListener("DOMContentLoaded", () => {
           dataCamion.ubicacionActual.coordinates
         ) {
           const [lng, lat] = dataCamion.ubicacionActual.coordinates;
-          const posInicial = new L.LatLng(lat, lng);
-          driverMarker.setLatLng(posInicial);
-          map.setView(posInicial, 15);
+          driverMarker.setLngLat([lng, lat]);
+          map.jumpTo({ center: [lng, lat], zoom: 15 });
         }
       }
 
