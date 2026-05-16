@@ -28,54 +28,48 @@
     <div class="admin-layout">
       <aside class="sidebar" id="sidebar">
         <div class="logo-area">
+          <img src="assets/img/TecBus.png" alt="Logo TecBus" class="sidebar-logo">
+          <div class="logo-text">
+            <span class="brand-name">TecBus</span>
+            <span class="brand-subtitle">Control Center</span>
+          </div>
           <button class="sidebar-toggle-btn" id="sidebar-toggle-mini">
-              <i class="fas fa-chevron-left"></i>
+            <i class="fas fa-chevron-left"></i>
           </button>
-          <img 
-          src="assets/img/TecBus.png" 
-          alt="Logo TecBus"
-          style="
-            width: 80px;
-            height: auto; 
-            margin-bottom: 10px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-          "
-        >
-          <p>TECNM Admin</p>
-          <p class="subtitle">Transporte Guasave</p>
         </div>
 
         <nav class="main-nav">
           <a href="#mapa" class="nav-item active">
-            <i class="fas fa-map-marker-alt"></i> Mapa de Flotilla
+            <i class="fas fa-map-marker-alt"></i> <span>Mapa de Flotilla</span>
           </a>
           <a href="#camiones" class="nav-item">
-            <i class="fas fa-bus"></i> Gestión de Camiones
+            <i class="fas fa-bus"></i> <span>Gestión de Camiones</span>
           </a>
           <a href="#rutas" class="nav-item">
-            <i class="fas fa-route"></i> Gestión de Rutas
+            <i class="fas fa-route"></i> <span>Gestión de Rutas</span>
           </a>
           <a href="#horarios" class="nav-item">
-            <i class="fas fa-calendar-alt"></i> Gestión de Horarios
+            <i class="fas fa-calendar-alt"></i> <span>Gestión de Horarios</span>
           </a>
           <a href="#usuarios" class="nav-item">
-            <i class="fas fa-users-cog"></i> Gestión de Usuarios
+            <i class="fas fa-users-cog"></i> <span>Gestión de Usuarios</span>
           </a>
           <a href="#alertas" class="nav-item">
-            <i class="fas fa-exclamation-triangle"></i> Historial de Alertas
-          </a>
-          <a href="#configuracion" class="nav-item">
-            <i class="fas fa-cog"></i> Configuración
+            <i class="fas fa-exclamation-triangle"></i> <span>Historial de Alertas</span>
           </a>
         </nav>
 
         <div class="sidebar-footer">
-          <a href="?logout" class="nav-item" id="btn-cerrar-sesion">
-            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+          <div class="user-short-profile">
+            <div class="avatar">A</div>
+            <div class="user-info">
+              <span class="user-name">Admin</span>
+              <span class="user-status">Online</span>
+            </div>
+          </div>
+          <a href="?logout" class="nav-item logout-link" id="btn-cerrar-sesion">
+            <i class="fas fa-sign-out-alt"></i> <span>Cerrar Sesión</span>
           </a>
-          <p class="footer-copyright">© 2025 TecBus PCFL</p>
         </div>
       </aside>
 
