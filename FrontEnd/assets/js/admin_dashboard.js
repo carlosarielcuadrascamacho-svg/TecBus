@@ -2432,6 +2432,200 @@ window.filtrarAlertasManual = function () {
 
   const unidadEl = document.getElementById("search-alerta-unidad");
   const tipoEl = document.getElementById("search-alerta-tipo");
+  // --- CIERRE MODALES GENERAL ---
+  // window.onclick = (e) => {
+  //     if(e.target.classList.contains("modal") || e.target.classList.contains("fullscreen-overlay")) {
+  //         e.target.classList.remove("modal-visible");
+  //     }
+  // };
+  // document.querySelectorAll(".close-button").forEach(btn => {
+  //     btn.addEventListener("click", (e) => {
+  //         e.target.closest(".modal")?.classList.remove("modal-visible");
+  //         e.target.closest(".fullscreen-overlay")?.classList.remove("modal-visible");
+  //     });
+  // });
+
+  // Botones Limpiar Búsqueda
+  document.querySelectorAll(".btn-reset-search").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const form = e.target.closest("form");
+      form.reset();
+      e.target.closest(".modal").classList.remove("modal-visible");
+      if (form.id === "form-search-usuario")
+        renderTablaUsuarios(usuariosCargados);
+      if (form.id === "form-search-camion")
+        renderTablaCamiones(camionesCargados);
+      if (form.id === "form-search-ruta") renderTablaRutas(rutasCargadas);
+      if (form.id === "form-search-horario")
+        renderTablaHorarios(horariosCargados);
+      if (form.id === "form-search-alerta") renderTablaAlertas(alertasCargadas);
+    });
+  });
+
+  cargarDashboardStats();
+
+  // Actualizar cada 30 segundos automáticamente
+  setInterval(cargarDashboardStats, 30000);
+  // --- RENDERIZADO DE LÍNEA DE TIEMPO ---
+  function renderTimeline() {
+    const grid = document.getElementById("horarios-timeline-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+
+    // 1. Headers (Horas 00-23)
+    grid.appendChild(createTimelineCell("Recurso", "timeline-header-cell"));
+    for (let i = 0; i < 24; i++) {
+      grid.appendChild(
+        createTimelineCell(
+          `${i.toString().padStart(2, "0")}:00`,
+          "timeline-header-cell"
+        )
+      );
+    }
+
+    // 2. Agrupar por Camión (para las filas)
+    const camiones = [
+      ...new Set(horariosCargados.map((h) => h.camionUnidad || "Sin Camión")),
+    ];
+
+    if (camiones.length === 0) {
+        const emptyMsg = document.createElement("div");
+        emptyMsg.style.gridColumn = "1 / -1";
+        emptyMsg.style.padding = "40px";
+        emptyMsg.style.textAlign = "center";
+        emptyMsg.innerHTML = `<p style="color: #666;">No hay datos para mostrar en la línea de tiempo.</p>`;
+        grid.appendChild(emptyMsg);
+        return;
+    }
+
+    camiones.forEach((camion) => {
+      // Label de la fila (Camión)
+      grid.appendChild(
+        createTimelineCell(
+          `<i class="fas fa-bus"></i> ${camion}`,
+          "timeline-row-label"
+        )
+      );
+
+      // Celdas de la fila (una por hora)
+      for (let h = 0; h < 24; h++) {
+        const cell = document.createElement("div");
+        cell.className = "timeline-cell";
+
+        // Filtrar horarios que caen en este camión, este día y esta hora
+        const events = horariosCargados.filter((item) => {
+          const matchDay =
+            item.diaSemana === currentTimelineDay ||
+            (currentTimelineDay === "Lunes-Viernes" &&
+              ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"].includes(
+                item.diaSemana
+              )) ||
+            item.diaSemana === "Diario";
+          const itemHour = parseInt(item.hora.split(":")[0]);
+          return item.camionUnidad === camion && matchDay && itemHour === h;
+        });
+
+        events.forEach((event) => {
+          const eventEl = document.createElement("div");
+          eventEl.className = "timeline-event";
+          const minutes = parseInt(event.hora.split(":")[1]);
+          const offset = (minutes / 60) * 100;
+          eventEl.style.left = `${offset}%`;
+          eventEl.style.width = "55px"; // Duración aproximada de una salida
+          eventEl.innerHTML = `
+                    <span class="event-time">${event.hora}</span>
+                    <span class="event-route" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${event.rutaNombre}</span>
+                  `;
+          eventEl.title = `${event.rutaNombre} - ${event.conductorNombre} (${event.hora})`;
+          
+          // Tooltip con SweetAlert al hacer clic
+          eventEl.onclick = () => {
+              Swal.fire({
+                  title: `Salida: ${event.rutaNombre}`,
+                  html: `
+                    <div style="text-align: left;">
+                        <p><b>Día:</b> ${event.diaSemana}</p>
+                        <p><b>Hora:</b> ${event.hora}</p>
+                        <p><b>Camión:</b> ${event.camionUnidad}</p>
+                        <p><b>Conductor:</b> ${event.conductorNombre}</p>
+                    </div>
+                  `,
+                  icon: 'info',
+                  confirmButtonText: 'Cerrar'
+              });
+          };
+
+          cell.appendChild(eventEl);
+        });
+
+        grid.appendChild(cell);
+      }
+    });
+  }
+
+  function createTimelineCell(text, className) {
+    const el = document.createElement("div");
+    el.className = className;
+    el.innerHTML = text;
+    return el;
+  }
+});
+
+async function cargarDashboardStats() {
+  try {
+    const token = localStorage.getItem("tecbus_token");
+    const res = await fetch(`${BACKEND_URL}/api/camiones/estadisticas/hoy`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+
+      // 1. Actualizar Tarjetas (KPIs)
+      const kpiTotalKm = document.getElementById("kpi-total-km");
+      if (kpiTotalKm) kpiTotalKm.textContent = `${data.resumen.totalKm} km`;
+      
+      const kpiMaxSpeed = document.getElementById("kpi-max-speed");
+      if (kpiMaxSpeed) kpiMaxSpeed.textContent = data.resumen.topVelocidad;
+      
+      const kpiActiveUnits = document.getElementById("kpi-active-units");
+      if (kpiActiveUnits) {
+        kpiActiveUnits.textContent = data.resumen.totalUnidadesActivas;
+      }
+      // 2. Actualizar Tabla
+      const tbody = document.getElementById("stats-table-body");
+      if (tbody) tbody.innerHTML = ""; // Limpiar tabla
+
+      data.detalles.forEach((d) => {
+        const row = `
+                    <tr>
+                        <td><strong>${d.unidad}</strong></td>
+                        <td>${d.km} km</td>
+                        <td style="${d.velMax > 90 ? "color:red" : ""}">${
+          d.velMax
+        } km/h</td>
+                        <td>${d.actualizado}</td>
+                    </tr>
+                `;
+        if (tbody) tbody.innerHTML += row;
+      });
+    }
+  } catch (error) {
+    console.error("Error cargando stats:", error);
+  }
+}
+// Función manual asignada directamente al botón
+window.filtrarAlertasManual = function () {
+  console.log("🚀 Iniciando filtrado manual...");
+
+  // Validamos que existan los datos
+  if (typeof alertasCargadas === "undefined") {
+    console.error("Error: alertasCargadas no está definido");
+    return;
+  }
+
+  const unidadEl = document.getElementById("search-alerta-unidad");
+  const tipoEl = document.getElementById("search-alerta-tipo");
   const fechaEl = document.getElementById("search-alerta-fecha");
 
   // Evitamos errores si algún input no existe
@@ -2463,6 +2657,7 @@ window.filtrarAlertasManual = function () {
 
 // --- VISUALIZADOR DE RUTA (MODAL) ---
 let previewMap = null;
+window.previewMarkers = [];
 
 document.addEventListener("click", (e) => {
     // Abrir Preview
@@ -2485,14 +2680,23 @@ async function mostrarPreviewRuta(rutaId) {
     
     modal.style.display = "flex";
     
+    // Limpiar campos antes de cargar
+    document.getElementById("preview-ruta-nombre").textContent = "Cargando...";
+    document.getElementById("preview-ruta-distancia").textContent = "-- km";
+    document.getElementById("preview-ruta-tiempo").textContent = "-- min";
+    
     try {
         const res = await fetch(`${BACKEND_URL}/api/rutas/${rutaId}`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("tecbus_token")}` }
+            headers: { Authorization: `Bearer ${localStorage.getItem("tecbus_token") || (typeof token !== 'undefined' ? token : '')}` }
         });
         const ruta = await res.json();
         
-        document.getElementById("preview-ruta-nombre").textContent = ruta.nombre;
-        document.getElementById("preview-ruta-distancia").textContent = (ruta.distancia || "N/A") + " km";
+        console.log("Ruta cargada para preview:", ruta);
+
+        if (!ruta || ruta.error) throw new Error("No se pudo cargar la ruta");
+
+        document.getElementById("preview-ruta-nombre").textContent = ruta.nombre || "Sin nombre";
+        document.getElementById("preview-ruta-distancia").textContent = (ruta.distancia || "0") + " km";
         document.getElementById("preview-ruta-tiempo").textContent = (ruta.tiempoEstimado || "--") + " min";
 
         // Inicializar mapa si no existe
@@ -2505,13 +2709,19 @@ async function mostrarPreviewRuta(rutaId) {
             });
         }
 
-        // Esperar a que el mapa cargue para manipular capas
         const mapReady = () => {
+            // Limpiar todo lo anterior
             if (previewMap.getLayer('route')) previewMap.removeLayer('route');
             if (previewMap.getSource('route')) previewMap.removeSource('route');
+            
+            // Remover markers previos
+            if (window.previewMarkers) {
+                window.previewMarkers.forEach(m => m.remove());
+            }
+            window.previewMarkers = [];
 
             if (ruta.puntos && ruta.puntos.length > 0) {
-                const coords = ruta.puntos.map(p => [p.lng, p.lat]);
+                const coords = ruta.puntos.map(p => [parseFloat(p.lng), parseFloat(p.lat)]);
                 
                 previewMap.addSource('route', {
                     'type': 'geojson',
@@ -2530,12 +2740,29 @@ async function mostrarPreviewRuta(rutaId) {
                     'type': 'line',
                     'source': 'route',
                     'layout': { 'line-join': 'round', 'line-cap': 'round' },
-                    'paint': { 'line-color': '#007bff', 'line-width': 5 }
+                    'paint': { 'line-color': '#3498db', 'line-width': 6, 'line-opacity': 0.8 }
                 });
+
+                // Añadir Marker de Inicio y Fin
+                const startMarker = new maplibregl.Marker({ color: '#2ecc71' })
+                    .setLngLat(coords[0])
+                    .setPopup(new maplibregl.Popup().setHTML("<b>Inicio</b>"))
+                    .addTo(previewMap);
+                
+                const endMarker = new maplibregl.Marker({ color: '#e74c3c' })
+                    .setLngLat(coords[coords.length - 1])
+                    .setPopup(new maplibregl.Popup().setHTML("<b>Fin</b>"))
+                    .addTo(previewMap);
+
+                window.previewMarkers.push(startMarker, endMarker);
 
                 // Ajustar mapa a la ruta
                 const bounds = coords.reduce((acc, coord) => acc.extend(coord), new maplibregl.LngLatBounds(coords[0], coords[0]));
-                previewMap.fitBounds(bounds, { padding: 50 });
+                previewMap.fitBounds(bounds, { padding: 80, animate: true });
+            } else {
+                console.warn("La ruta no tiene puntos registrados");
+                previewMap.setCenter([-108.4716, 25.5727]);
+                previewMap.setZoom(11);
             }
         };
 
@@ -2545,13 +2772,16 @@ async function mostrarPreviewRuta(rutaId) {
             previewMap.once('load', mapReady);
         }
 
-        // Forzar resize porque el contenedor estaba oculto
-        setTimeout(() => previewMap.resize(), 300);
+        // Forzar resize inmediato y tras un pequeño delay
+        previewMap.resize();
+        setTimeout(() => previewMap.resize(), 500);
 
     } catch (err) {
         console.error("Error cargando preview de ruta:", err);
+        document.getElementById("preview-ruta-nombre").textContent = "Error al cargar";
     }
 }
+
 // --- ANALYTICS DASHBOARD (CHARTS) ---
 let chartDemanda = null;
 let chartFlota = null;
@@ -2655,15 +2885,12 @@ document.addEventListener("click", (e) => {
 
 async function actualizarDatosGraficos() {
     console.log("🔄 Actualizando datos de gráficos...");
-    // Aquí irían los fetch reales al backend
-    // Por ahora simulamos una actualización con datos ligeramente distintos
     if (chartDemanda) {
         chartDemanda.data.datasets[0].data = chartDemanda.data.datasets[0].data.map(v => v + Math.floor(Math.random() * 10 - 5));
         chartDemanda.update();
     }
 }
 
-// Inicializar si la página carga directamente en estadísticas
 if (window.location.hash === "#estadisticas") {
     setTimeout(inicializarGraficos, 500);
 }
