@@ -2552,3 +2552,118 @@ async function mostrarPreviewRuta(rutaId) {
         console.error("Error cargando preview de ruta:", err);
     }
 }
+// --- ANALYTICS DASHBOARD (CHARTS) ---
+let chartDemanda = null;
+let chartFlota = null;
+let chartAlertas = null;
+
+function inicializarGraficos() {
+    console.log("📊 Inicializando Gráficos...");
+    
+    // 1. Gráfico de Demanda (Líneas)
+    const ctxDemanda = document.getElementById('chart-demanda');
+    if (ctxDemanda) {
+        chartDemanda = new Chart(ctxDemanda, {
+            type: 'line',
+            data: {
+                labels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
+                datasets: [{
+                    label: 'Estudiantes Esperando',
+                    data: [12, 45, 30, 65, 80, 40, 55, 20],
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+                    x: { grid: { display: false }, ticks: { color: '#888' } }
+                }
+            }
+        });
+    }
+
+    // 2. Gráfico de Flota (Barras)
+    const ctxFlota = document.getElementById('chart-flota');
+    if (ctxFlota) {
+        chartFlota = new Chart(ctxFlota, {
+            type: 'bar',
+            data: {
+                labels: ['TEC-01', 'TEC-02', 'TEC-03', 'TEC-04', 'TEC-05'],
+                datasets: [{
+                    label: 'KM Recorridos',
+                    data: [120, 85, 150, 95, 110],
+                    backgroundColor: '#2ed573',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+                    x: { grid: { display: false }, ticks: { color: '#888' } }
+                }
+            }
+        });
+    }
+
+    // 3. Gráfico de Alertas (Doughnut)
+    const ctxAlertas = document.getElementById('chart-alertas');
+    if (ctxAlertas) {
+        chartAlertas = new Chart(ctxAlertas, {
+            type: 'doughnut',
+            data: {
+                labels: ['SOS', 'Retrasos', 'Mecánico', 'Otros'],
+                datasets: [{
+                    data: [5, 12, 3, 8],
+                    backgroundColor: ['#ff4757', '#ffa502', '#2f3542', '#ced4da'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#888', padding: 20 } }
+                },
+                cutout: '70%'
+            }
+        });
+    }
+}
+
+// Escuchar cambios de pestaña para refrescar gráficos
+document.addEventListener("click", (e) => {
+    const link = e.target.closest(".nav-item");
+    if (link && link.getAttribute("href") === "#estadisticas") {
+        setTimeout(() => {
+            if (!chartDemanda) {
+                inicializarGraficos();
+            } else {
+                actualizarDatosGraficos();
+            }
+        }, 100);
+    }
+});
+
+async function actualizarDatosGraficos() {
+    console.log("🔄 Actualizando datos de gráficos...");
+    // Aquí irían los fetch reales al backend
+    // Por ahora simulamos una actualización con datos ligeramente distintos
+    if (chartDemanda) {
+        chartDemanda.data.datasets[0].data = chartDemanda.data.datasets[0].data.map(v => v + Math.floor(Math.random() * 10 - 5));
+        chartDemanda.update();
+    }
+}
+
+// Inicializar si la página carga directamente en estadísticas
+if (window.location.hash === "#estadisticas") {
+    setTimeout(inicializarGraficos, 500);
+}
