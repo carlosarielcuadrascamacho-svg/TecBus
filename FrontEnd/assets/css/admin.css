@@ -827,13 +827,14 @@
 
 /* --- Header del Fullscreen --- */
 .fullscreen-header {
-  background-color: var(--color-superficie);
-  padding: 15px 25px;
+  background-color: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(10px);
+  padding: 10px 25px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--color-secundario);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   flex-shrink: 0; 
   position: relative;
   z-index: 6000; /* Encima de todo */
@@ -863,110 +864,114 @@
   border-color: var(--color-error);
 }
 
-/* --- CONTENIDO PRINCIPAL: Referencia para lo absoluto --- */
+/* --- CONTENIDO PRINCIPAL: Mapa como fondo total --- */
 .fullscreen-content {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 0; /* Sin margen para que el mapa llegue a las orillas */
   overflow: hidden; 
-  position: relative; /* IMPORTANTE para posicionar botones flotantes */
+  position: relative;
 }
 
-/* --- Buscador dentro del mapa --- */
+/* --- EL MAPA: Ocupa todo el fondo --- */
+#ruta-map-editor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  border: none;
+  border-radius: 0;
+}
+
+/* --- CONTROLES FLOTANTES --- */
 .reference-search-box {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  width: 95%;
+  max-width: 900px;
+  background: rgba(31, 31, 31, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  padding: 12px;
   display: flex;
   gap: 10px;
-  background-color: #2a2a2a;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  align-items: center;
-  border: 1px solid #444;
-  flex-wrap: wrap;
-  position: relative;
-  z-index: 2000; /* Encima del mapa */
-}
-.input-group {
-  display: flex;
-  align-items: center;
-  background-color: #111;
-  border: 1px solid #555;
-  border-radius: 6px;
-  padding: 0 10px;
-  flex: 1; 
-  min-width: 200px;
-}
-.input-group input {
-  background: transparent;
-  border: none;
-  color: white;
-  padding: 10px;
-  width: 100%;
-  outline: none;
-}
-.btn-search, .btn-clear {
-  padding: 10px 15px;
-  border-radius: 6px;
-  cursor: pointer;
-  border: none;
-}
-.btn-clear {
-  background-color: #444;
-  color: #aaa;
-}
-.btn-clear:hover {
-  color: #fff;
-  background-color: #666;
+  border-radius: 12px;
 }
 
-/* --- EL MAPA --- */
-#ruta-map-editor {
-  flex-grow: 1; /* Ocupa todo el espacio sobrante */
-  width: 100%;
-  min-height: 0; /* Permite encogerse si es necesario */
-  border-radius: 8px;
-  border: 2px solid #444;
-  z-index: 1; /* Nivel base */
-}
-
-/* --- 1. BOTONES DE MODO (Flotantes Arriba) --- */
 .editor-mode-switch {
-    flex-shrink: 0; /* Altura fija según contenido */
-    
-    display: flex;
-    flex-direction: row;
-    justify-content: center; /* Centrados horizontalmente */
-    gap: 20px;
-    
-    /* SU PROPIA ÁREA */
-    background-color: #2a2a2a; 
-    border: 1px solid #444;
-    border-radius: 8px;
-    padding: 15px;
-    
-    /* Posicionamiento estático (en el flujo normal) */
-    position: static; 
-    transform: none;
-    width: auto;
-    margin: 0;
+  position: absolute;
+  top: 95px; /* Debajo del buscador */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  background: rgba(31, 31, 31, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  padding: 8px 15px;
+  border-radius: 30px; /* Estilo píldora */
+  display: flex;
+  gap: 10px;
 }
+
+.editor-help-box {
+  position: absolute;
+  top: 150px; /* Debajo de los botones */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1500;
+  width: auto;
+  max-width: 600px;
+  margin: 0;
+  background: rgba(0, 123, 255, 0.15);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(0, 123, 255, 0.3);
+  border-left: 4px solid var(--color-primario);
+  padding: 8px 15px;
+  border-radius: 8px;
+  pointer-events: none; /* Que no estorbe clics al mapa */
+}
+
+/* --- BOTÓN GUARDAR FLOTANTE --- */
+.footer-controls {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  width: auto;
+}
+
+.btn-save-floating {
+  padding: 15px 40px !important;
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  border-radius: 50px !important;
+  box-shadow: 0 10px 25px rgba(40, 167, 69, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 
 .btn-mode {
-    padding: 10px 25px;
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 6px;
-    background-color: #1e1e1e;
-    color: #ccc;
+    padding: 8px 18px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px; /* Estilo redondeado */
+    background-color: transparent;
+    color: #999;
     font-weight: 600;
+    font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-width: 160px; /* Tamaño uniforme */
+    gap: 8px;
     justify-content: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .btn-mode:hover {
