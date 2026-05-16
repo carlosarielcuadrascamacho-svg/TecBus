@@ -514,52 +514,13 @@ document.addEventListener("DOMContentLoaded", () => {
     lista.forEach((u) => {
       const row = document.createElement("tr");
 
-      // 1. LÓGICA DE COLOR PARA LA COLUMNA "TIPO"
-      let badgeClass = "badge-secondary";
-      let tipoTexto = u.tipo.charAt(0).toUpperCase() + u.tipo.slice(1); // Capitalizar
-
-      if (u.tipo === "administrador") {
-        badgeClass = "badge-admin"; // Verde
-      } else if (u.tipo === "conductor") {
-        badgeClass = "badge-conductor"; // Naranja
-      } else if (u.tipo === "estudiante") {
-        badgeClass = "badge-estudiante"; // Azul
-      }
-
-      // 2. LÓGICA PARA LA COLUMNA "ESTADO" (Activo vs Inactivo)
-      let estaActivo = false;
-      let textoEstadoReal = "Inactivo";
-
-      if (u.tipo === "conductor") {
-        // Lógica Especial Conductor: Depende del horario/servicio
-        if (u.estado === "En Servicio") {
-          estaActivo = true;
-          textoEstadoReal = "Activo";
-        } else {
-          estaActivo = false;
-          textoEstadoReal = "Inactivo";
-        }
-      } else {
-        // Lógica Admin/Estudiante
-        if (u.estado === "activo" || u.estado === "online") {
-          estaActivo = true;
-          textoEstadoReal = "Activo";
-        } else {
-          estaActivo = false;
-          textoEstadoReal = "Inactivo";
-        }
-      }
-
-      // Generar HTML del estado (Bolita verde o roja)
-      const estadoHtml = estaActivo
-        ? `<span class="status-active">● Activo</span>`
-        : `<span class="status-inactive">● Inactivo</span>`;
-
-      // 3. RENDERIZADO
+      // 1. Configurar badge de tipo
       let tipoTexto = u.tipo === "conductor" ? "Conductor" : "Admin";
       let badgeClass = u.tipo === "conductor" ? "badge-conductor" : "badge-admin";
       let icon = u.tipo === "conductor" ? "fa-bus" : "fa-user-shield";
-      const estaActivo = u.estado === "activo" || u.estado === "En Servicio" || u.estado === "En Ruta";
+
+      // 2. Generar HTML del estado con pulso
+      const estaActivo = u.estado === "activo" || u.estado === "En Servicio" || u.estado === "En Ruta" || u.estado === "online";
       const estadoHtml = `
         <div class="status-pill">
           <span class="status-dot-pulse ${estaActivo ? 'active' : 'inactive'}"></span>
@@ -567,6 +528,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
+      // 3. RENDERIZADO
       row.innerHTML = `
         <td><b>${u.nombre}</b></td>
         <td><span class="text-muted">${u.email}</span></td>
@@ -763,16 +725,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     lista.forEach((c) => {
       const row = document.createElement("tr");
-
-      // Lógica de Estado del Camión
-      let estaActivo = false;
-      if (c.estado === "En Servicio") {
-        estaActivo = true;
-      }
-
-      const estadoHtml = estaActivo
-        ? `<span class="status-active">● Activo</span>`
-        : `<span class="status-inactive">● Inactivo</span>`;
 
       // Lógica de Estado del Camión
       const estaActivo = c.estado === "En Servicio" || c.estado === "activo";
