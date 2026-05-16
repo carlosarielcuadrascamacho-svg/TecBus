@@ -100,6 +100,25 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ============================================================
+  //  MANEJO DE SIDEBAR COLAPSABLE
+  // ============================================================
+  const btnToggleMini = document.getElementById("sidebar-toggle-mini");
+  const adminLayout = document.querySelector(".admin-layout");
+
+  if (btnToggleMini && adminLayout) {
+      btnToggleMini.addEventListener("click", () => {
+          adminLayout.classList.toggle("sidebar-collapsed");
+          
+          // Forzar resize del mapa después de la transición (400ms)
+          setTimeout(() => {
+              if (window.adminMap) {
+                  window.adminMap.resize();
+              }
+          }, 450);
+      });
+  }
+
+  // ============================================================
   //  4. SISTEMA DE PESTAÑAS (TABS)
   // ============================================================
   const tabButtons = document.querySelectorAll(".btn-tab");
@@ -204,6 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
     attributionControl: false
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  window.adminMap = map;
 
   function createBusElement() {
     const el = document.createElement('div');
@@ -279,6 +299,9 @@ document.addEventListener("DOMContentLoaded", () => {
             busMarkers[c._id] = m;
           }
         });
+
+        // ACTUALIZAR LISTA DE FLOTA
+        renderFleetList();
       }
     } catch (e) {
       console.error("Error camiones:", e);
@@ -343,9 +366,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const marker = busMarkers[data.camionId];
     if (marker) {
       marker.setLngLat([data.location.lng, data.location.lat]);
+      // Actualizar también en el objeto local para la lista
+      const cam = camionesCargados.find(c => c._id === data.camionId);
+      if (cam) {
+          cam.ubicacionActual = { coordinates: [data.location.lng, data.location.lat] };
+          cam.velocidad = data.velocidad || 0;
+          renderFleetList(); // Refrescar sidebar
+      }
     } else {
       // Si es un camión nuevo, recargamos todo el mapa para asegurarnos
       inicializarDashboard();
+      addActivityItem(`Nueva unidad conectada: ${data.camionId}`, 'success');
     }
   });
 
@@ -1104,6 +1135,16 @@ document.addEventListener("DOMContentLoaded", () => {
   let editingSalidaId = null;
   let editingHorarioId = null;
 
+  // Helper: Detectar si dos días de la semana chocan (considerando 'Diario' y 'Lunes-Viernes')
+  function checkDayOverlap(d1, d2) {
+    if (d1 === d2) return true;
+    if (d1 === "Diario" || d2 === "Diario") return true;
+    const semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+    if (d1 === "Lunes-Viernes" && semana.includes(d2)) return true;
+    if (d2 === "Lunes-Viernes" && semana.includes(d1)) return true;
+    return false;
+  }
+
   if (formRegistrarHorario) {
     formRegistrarHorario.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -1114,6 +1155,34 @@ document.addEventListener("DOMContentLoaded", () => {
         camionAsignado: document.getElementById("horario-camion").value,
         conductorAsignado: document.getElementById("horario-conductor").value,
       };
+
+      // --- DETECCIÓN DE CONFLICTOS ---
+      const conflicto = horariosCargados.find(h => {
+        const mismoDia = checkDayOverlap(h.diaSemana, datos.diaSemana);
+        const mismaHora = h.hora === datos.hora;
+        if (mismoDia && mismaHora) {
+          // Nota: Comparamos IDs o Nombres según lo que devuelva la API
+          // Usamos camionUnidad y conductorNombre como respaldo si el ID no está directo
+          const matchCamion = (h.camionId === datos.camionAsignado) || (h.camion && h.camion._id === datos.camionAsignado);
+          const matchConductor = (h.conductorId === datos.conductorAsignado) || (h.conductor && h.conductor._id === datos.conductorAsignado);
+          return matchCamion || matchConductor;
+        }
+        return false;
+      });
+
+      if (conflicto) {
+        const ent = conflicto.camionId === datos.camionAsignado || (conflicto.camion && conflicto.camion._id === datos.camionAsignado) ? "El Camión" : "El Conductor";
+        const nombreEnt = ent === "El Camión" ? conflicto.camionUnidad : conflicto.conductorNombre;
+        
+        Swal.fire({
+          title: '¡Conflicto de Horario!',
+          text: `${ent} (${nombreEnt}) ya tiene una salida programada el ${conflicto.diaSemana} a las ${conflicto.hora} en la ruta "${conflicto.rutaNombre}".`,
+          icon: 'warning',
+          confirmButtonColor: '#f39c12'
+        });
+        return;
+      }
+
       try {
         const res = await fetch(BACKEND_URL + "/api/horarios", {
           method: "POST",
@@ -1124,15 +1193,21 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify(datos),
         });
         if (res.ok) {
-          alert("✅ ¡Horario registrado!");
+          Swal.fire({
+              title: "✅ ¡Registrado!",
+              text: "La salida se ha guardado correctamente.",
+              icon: "success",
+              timer: 2000,
+              showConfirmButton: false
+          });
           formRegistrarHorario.reset();
           cargarHorarios();
         } else {
           const d = await res.json();
-          alert("Error: " + d.message);
+          Swal.fire("Error", d.message, "error");
         }
       } catch (error) {
-        alert("Error conexión");
+        Swal.fire("Error", "No se pudo conectar con el servidor", "error");
       }
     });
   }
@@ -1469,11 +1544,112 @@ document.addEventListener("DOMContentLoaded", () => {
       .setPopup(popup)
       .addTo(map);
 
+    addActivityItem(`Estudiante esperando en ruta: ${data.rutaId}`, 'system');
+
     // Limpiar después de 5 min
     setTimeout(() => {
       marker.remove();
     }, 300000);
   });
+
+  // ============================================================
+  //  LÓGICA DEL CENTRO DE CONTROL (SIDEBAR Y FEED)
+  // ============================================================
+  function renderFleetList() {
+      const container = document.getElementById("fleet-list-container");
+      const activeCount = document.getElementById("fleet-active-count");
+      if (!container) return;
+
+      container.innerHTML = "";
+      let count = 0;
+
+      // Ordenar por número de unidad
+      const listaOrdenada = [...camionesCargados].sort((a,b) => a.numeroUnidad.localeCompare(b.numeroUnidad));
+
+      listaOrdenada.forEach(c => {
+          const isOnline = c.ubicacionActual && c.ubicacionActual.coordinates;
+          if (isOnline) count++;
+
+          const item = document.createElement("div");
+          item.className = `fleet-item ${isOnline ? 'online' : ''}`;
+          item.innerHTML = `
+              <div class="bus-info">
+                  <span class="bus-id"><i class="fas fa-bus"></i> ${c.numeroUnidad}</span>
+                  <span class="bus-status">
+                      <span class="status-dot ${isOnline ? 'online' : ''}"></span>
+                      ${isOnline ? 'En Línea' : 'Offline'}
+                  </span>
+              </div>
+              <div class="bus-details">
+                  <div style="display:flex; justify-content: space-between">
+                    <span><i class="fas fa-tag"></i> ${c.placa}</span>
+                    <span><i class="fas fa-tachometer-alt"></i> ${c.velocidad || 0} km/h</span>
+                  </div>
+              </div>
+          `;
+
+          item.onclick = () => {
+              if (isOnline) {
+                  const [lng, lat] = c.ubicacionActual.coordinates;
+                  map.flyTo({ 
+                      center: [lng, lat], 
+                      zoom: 17, 
+                      pitch: 45,
+                      duration: 2000 
+                  });
+                  
+                  if (busMarkers[c._id]) {
+                      busMarkers[c._id].togglePopup();
+                  }
+                  
+                  // Resaltar item
+                  document.querySelectorAll('.fleet-item').forEach(i => i.classList.remove('active'));
+                  item.classList.add('active');
+              } else {
+                  Swal.fire({
+                      title: 'Unidad Offline',
+                      text: `El camión ${c.numeroUnidad} no está transmitiendo señal en este momento.`,
+                      icon: 'info',
+                      timer: 2000,
+                      showConfirmButton: false
+                  });
+              }
+          };
+
+          container.appendChild(item);
+      });
+
+      if (activeCount) activeCount.textContent = count;
+  }
+
+  function addActivityItem(message, type = 'system') {
+      const feed = document.getElementById("recent-activity-feed");
+      if (!feed) return;
+
+      const item = document.createElement("div");
+      item.className = `activity-item ${type}`;
+      
+      let icon = 'fas fa-info-circle';
+      if (type === 'alert') icon = 'fas fa-exclamation-triangle';
+      if (type === 'success') icon = 'fas fa-check-circle';
+      if (type === 'bus') icon = 'fas fa-bus';
+
+      item.innerHTML = `
+          <i class="${icon}"></i>
+          <span><b>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}:</b> ${message}</span>
+      `;
+
+      feed.prepend(item);
+
+      // Limitar a los últimos 15
+      if (feed.children.length > 15) {
+          feed.removeChild(feed.lastChild);
+      }
+  }
+
+  // Hacer disponible globalmente por si otras partes quieren loguear actividad
+  window.addActivityItem = addActivityItem;
+
 
   // ============================================================
   //  8. EDITOR DE RUTAS (MAPA)

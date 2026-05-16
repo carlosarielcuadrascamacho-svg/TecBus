@@ -93,31 +93,87 @@
 
         <section id="mapa" class="dashboard-section active">
           <div class="kpi-cards">
-            <div class="card">
-              <div class="card-icon"><i class="fas fa-bus"></i></div>
-              <div class="card-title">Total de Camiones</div>
-              <div class="card-value" id="kpi-total-buses">4</div>
+            <div class="kpi-card-premium bus">
+              <div class="kpi-content">
+                  <div class="kpi-icon-wrapper"><i class="fas fa-bus"></i></div>
+                  <div class="kpi-data">
+                      <span class="kpi-label">Total de Camiones</span>
+                      <span class="kpi-value" id="kpi-total-buses">4</span>
+                  </div>
+              </div>
+              <div class="kpi-footer">
+                  <span class="kpi-trend positive"><i class="fas fa-arrow-up"></i> Operativos</span>
+              </div>
             </div>
-            <div class="card">
-              <div class="card-icon"><i class="fas fa-user-graduate"></i></div>
-              <div class="card-title">Estudiantes en Espera</div>
-              <div class="card-value" id="kpi-students-waiting">3</div>
+
+            <div class="kpi-card-premium waiting">
+              <div class="kpi-content">
+                  <div class="kpi-icon-wrapper"><i class="fas fa-user-graduate"></i></div>
+                  <div class="kpi-data">
+                      <span class="kpi-label">Estudiantes en Espera</span>
+                      <span class="kpi-value" id="kpi-students-waiting">3</span>
+                  </div>
+              </div>
+              <div class="kpi-footer">
+                  <span class="kpi-trend info"><i class="fas fa-clock"></i> Tiempo real</span>
+              </div>
             </div>
-            <div class="card">
-              <div class="card-icon"><i class="fas fa-users-cog"></i></div>
-              <div class="card-title">Conductores Activos</div>
-              <div class="card-value" id="kpi-drivers-active">4</div>
+
+            <div class="kpi-card-premium drivers">
+              <div class="kpi-content">
+                  <div class="kpi-icon-wrapper"><i class="fas fa-users-cog"></i></div>
+                  <div class="kpi-data">
+                      <span class="kpi-label">Conductores Activos</span>
+                      <span class="kpi-value" id="kpi-drivers-active">4</span>
+                  </div>
+              </div>
+              <div class="kpi-footer">
+                  <span class="kpi-trend positive"><i class="fas fa-check"></i> En servicio</span>
+              </div>
             </div>
-            <div class="card alert-card">
-              <div class="card-icon"><i class="fas fa-bell"></i></div>
-              <div class="card-title">Alertas Activas</div>
-              <div class="card-value" id="kpi-active-alerts">1</div>
+
+            <div class="kpi-card-premium alerts">
+              <div class="kpi-content">
+                  <div class="kpi-icon-wrapper"><i class="fas fa-bell"></i></div>
+                  <div class="kpi-data">
+                      <span class="kpi-label">Alertas Activas</span>
+                      <span class="kpi-value" id="kpi-active-alerts">1</span>
+                  </div>
+              </div>
+              <div class="kpi-footer">
+                  <span class="kpi-trend negative"><i class="fas fa-exclamation-circle"></i> Requiere atención</span>
+              </div>
             </div>
           </div>
 
-          <div class="map-flotilla-container">
-            <h3>Mapa de Flotilla en Tiempo Real</h3>
-            <div id="admin-map" class="full-map"></div>
+          <div class="control-center-layout">
+            <div class="fleet-sidebar">
+                <div class="sidebar-header">
+                    <h4><i class="fas fa-satellite"></i> Flota en Vivo</h4>
+                    <span class="badge-count" id="fleet-active-count">0</span>
+                </div>
+                <div id="fleet-list-container" class="fleet-list">
+                    <!-- Dinámico -->
+                    <div class="loading-simple">Cargando flota...</div>
+                </div>
+            </div>
+
+            <div class="map-main-area">
+                <div id="admin-map" class="full-map"></div>
+                
+                <!-- Overlay de actividad rápida -->
+                <div class="activity-overlay">
+                    <div class="activity-header">
+                        <h5>Actividad Reciente</h5>
+                    </div>
+                    <div id="recent-activity-feed" class="activity-feed">
+                        <div class="activity-item system">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Sistema iniciado correctamente</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
           </div>
         </section>
 
