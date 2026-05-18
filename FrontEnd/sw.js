@@ -1,32 +1,155 @@
-// FrontEnd/sw.js
+// FrontEnd/sw.js - TecBus PWA Service Worker
 
-console.log("Service Worker Cargado...");
+const CACHE_NAME = 'tecbus-v1';
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/login.html',
+  '/registro.html',
+  '/pasajero.html',
+  '/conductor.html',
+  '/admin.html',
+  '/manifest.webmanifest',
+  '/assets/css/base.css',
+  '/assets/css/landing_style.css',
+  '/assets/css/passenger.css',
+  '/assets/css/driver.css',
+  '/assets/css/admin.css',
+  '/assets/js/login.js',
+  '/assets/js/registro.js',
+  '/assets/js/passenger_map.js',
+  '/assets/js/driver_map.js',
+  '/assets/js/admin_dashboard.js',
+  '/assets/js/admin_sidebar.js',
+  '/assets/js/pwa-install.js',
+  '/assets/img/SmartBusLogo.png',
+  '/assets/img/icons/icon-192x192.png',
+  '/assets/img/icons/icon-512x512.png',
+  '/assets/img/icons/icon-512x512-maskable.png',
+  '/assets/img/icons/apple-touch-icon.png',
+];
 
-// self.addEventListener("push", e => {
-//     const data = e.data.json();
-//     console.log("🔔 Notificación recibida:", data);
+const API_BASE = 'https://tecbus-api.onrender.com';
 
-//     self.registration.showNotification(data.title, {
-//         body: data.body,
-//         icon: data.icon || "https://cdn-icons-png.flaticon.com/512/3448/3448339.png", // Icono por defecto
-//         badge: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png", // Icono pequeño para Android
-//         vibrate: [100, 50, 100], // Patrón de vibración
-//         data: {
-//             url: data.url || "/" // URL a abrir si le dan click
-//         }
-//     });
-// });
+// ─── INSTALL: Precachear assets estáticos ───
+self.addEventListener('install', (event) => {
+  console.log('[SW] Instalando TecBus PWA...');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Precacheando assets estáticos');
+      return cache.addAll(STATIC_ASSETS);
+    }).catch((err) => {
+      console.warn('[SW] Error en precache (algunos assets pueden fallar):', err);
+    })
+  );
+  self.skipWaiting();
+});
 
-// FrontEnd/sw.js
+// ─── ACTIVATE: Limpiar cachés viejos ───
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activando nuevo Service Worker...');
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => {
+            console.log('[SW] Eliminando caché viejo:', key);
+            return caches.delete(key);
+          })
+      );
+    })
+  );
+  self.clients.claim();
+});
 
-self.addEventListener("push", (event) => {
-  let data = { title: "SmartBus", body: "Nueva notificación", url: "/" };
+// ─── FETCH: Estrategias de caché ───
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // API calls → Network-first (siempre intentar datos frescos del servidor)
+  if (url.href.startsWith(API_BASE)) {
+    event.respondWith(
+      networkFirst(request)
+    );
+    return;
+  }
+
+  // CDN resources (Google Fonts, Font Awesome, MapLibre, Socket.IO, Bootstrap, etc.)
+  // → Cache-first con fallback a red
+  if (url.href.includes('googleapis.com') ||
+      url.href.includes('gstatic.com') ||
+      url.href.includes('cloudflare.com') ||
+      url.href.includes('unpkg.com') ||
+      url.href.includes('cdn.jsdelivr.net') ||
+      url.href.includes('cdn.socket.io')) {
+    event.respondWith(
+      cacheFirst(request)
+    );
+    return;
+  }
+
+  // HTML pages → Network-first
+  if (request.destination === 'document' || url.pathname.endsWith('.html')) {
+    event.respondWith(
+      networkFirst(request)
+    );
+    return;
+  }
+
+  // Assets estáticos propios (CSS, JS, imágenes, manifest) → Cache-first
+  event.respondWith(
+    cacheFirst(request)
+  );
+});
+
+// ─── Estrategia: Cache-First (para assets estáticos y CDN) ───
+async function cacheFirst(request) {
+  const cachedResponse = await caches.match(request);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
+    console.warn('[SW] Cache-first falló para:', request.url);
+    return new Response('', { status: 408, statusText: 'Request Timeout' });
+  }
+}
+
+// ─── Estrategia: Network-First (para HTML y API) ───
+async function networkFirst(request) {
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    console.warn('[SW] Network-first falló para:', request.url);
+    return new Response('', { status: 408, statusText: 'Request Timeout' });
+  }
+}
+
+// ─── PUSH: Notificaciones push del servidor ───
+self.addEventListener('push', (event) => {
+  let data = { title: 'TecBus', body: 'Nueva notificación', url: '/' };
 
   if (event.data) {
     try {
       data = event.data.json();
-      
-      console.log("🔔 Notificación recibida:", data);
+      console.log('[SW] Notificación recibida:', data);
     } catch (e) {
       data.body = event.data.text();
     }
@@ -34,16 +157,12 @@ self.addEventListener("push", (event) => {
 
   const options = {
     body: data.body,
-    // Asegúrate de tener este icono en tu carpeta assets/img
-    icon: data.icon || "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",
-    badge: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",  // Icono pequeño monocromático para Android
+    icon: data.icon || '/assets/img/icons/icon-192x192.png',
+    badge: '/assets/img/icons/icon-192x192.png',
     vibrate: [100, 50, 100],
-    data: {
-      url: data.url || "/"
-    },
-    // Acciones interactivas (opcional, soportado en Chrome/Edge)
+    data: { url: data.url || '/' },
     actions: [
-      { action: "explore", title: "Ver Mapa" }
+      { action: 'explore', title: 'Ver Mapa' }
     ]
   };
 
@@ -52,45 +171,21 @@ self.addEventListener("push", (event) => {
   );
 });
 
-self.addEventListener("notificationclick", (event) => {
+// ─── NOTIFICATION CLICK: Abrir ventana al hacer click ───
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
+
   event.waitUntil(
-    clients.matchAll({ type: "window" }).then((clientList) => {
-      // Si ya hay una ventana abierta, enfocarla
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      const urlToOpen = event.notification.data.url;
       for (const client of clientList) {
-        if (client.url === event.notification.data.url && "focus" in client) {
+        if (client.url.includes(urlToOpen) && 'focus' in client) {
           return client.focus();
         }
       }
-      // Si no, abrir una nueva
       if (clients.openWindow) {
-        return clients.openWindow(event.notification.data.url);
+        return clients.openWindow(urlToOpen);
       }
     })
   );
 });
-
-// Evento cuando el usuario hace click en la notificación
-// self.addEventListener("notificationclick", e => {
-//     const notification = e.notification;
-//     const action = e.action;
-//     const urlToOpen = notification.data.url;
-
-//     notification.close(); // Cerrar la notificación
-
-//     e.waitUntil(
-//         clients.matchAll({ type: 'window' }).then(windowClients => {
-//             // Si ya hay una ventana abierta, enfócala
-//             for (let client of windowClients) {
-//                 if (client.url === urlToOpen && 'focus' in client) {
-//                     return client.focus();
-//                 }
-//             }
-//             // Si no, abre una nueva
-//             if (clients.openWindow) {
-//                 return clients.openWindow(urlToOpen);
-//             }
-//         })
-//     );
-// });
