@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Panel de Conductor - SmartBus</title>
 
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#007bff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TecBus">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#0a0a0a">
+    <meta name="msapplication-TileImage" content="/assets/img/icons/msapplication-icon-144x144.png">
+    <link rel="apple-touch-icon" href="/assets/img/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/img/icons/icon-512x512.png">
+
     <link
       rel="stylesheet"
       href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"
@@ -20,6 +33,17 @@
       // ☁️ SIEMPRE conectar a Render
       const BACKEND_URL = "https://tecbus-api.onrender.com";
       const SOCKET_URL = "https://tecbus-api.onrender.com";
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(reg => console.log('[PWA] Service Worker registrado:', reg.scope))
+            .catch(err => console.error('[PWA] Error registrando SW:', err));
+        });
+      }
     </script>
     <meta
       name="viewport"
@@ -199,5 +223,6 @@
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="assets/js/driver_map.js"></script>
+    <script src="assets/js/pwa-install.js"></script>
   </body>
 </html>
