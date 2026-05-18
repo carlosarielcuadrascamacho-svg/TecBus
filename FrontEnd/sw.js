@@ -144,7 +144,7 @@ async function networkFirst(request) {
 
 // ─── PUSH: Notificaciones push del servidor ───
 self.addEventListener('push', (event) => {
-  let data = { title: 'TecBus', body: 'Nueva notificación', url: '/' };
+  let data = { title: 'SmartBus', body: 'Nueva notificación', url: '/' };
 
   if (event.data) {
     try {
