@@ -777,6 +777,79 @@ header {
 .fullscreen-content::-webkit-scrollbar-track { background: #111; }
 .fullscreen-content::-webkit-scrollbar-thumb { background: #444; border-radius: 5px; }
 
+/* --- PANEL DE COBROS (FULLSCREEN) --- */
+.cobros-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.cobros-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.cobros-col .form-container {
+    background: #1e1e1e;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+#cobros-feed::-webkit-scrollbar { width: 6px; }
+#cobros-feed::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+.cobro-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+.cobro-item:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+.cobro-item .cobro-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cobro-item .cobro-info .cobro-nombre {
+    color: white;
+    font-weight: 500;
+}
+
+.cobro-item .cobro-info .cobro-detalle {
+    color: #888;
+    font-size: 0.75rem;
+}
+
+.cobro-item .cobro-monto {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.cobro-item .cobro-monto.general {
+    color: var(--color-primario);
+}
+
+.cobro-item .cobro-monto.estudiante {
+    color: var(--color-acento);
+}
+
+@media (max-width: 768px) {
+    .cobros-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Ocultar panel de instrucciones de Leaflet Routing Machine */
 .leaflet-routing-container {
     display: none !important;

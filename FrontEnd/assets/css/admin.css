@@ -2078,3 +2078,46 @@
         grid-column: auto;
     }
 }
+
+/* --- TAQUILLA SECTION --- */
+#taquilla .form-container {
+    margin-bottom: 20px;
+}
+
+#taquilla .form-container h3 i {
+    margin-right: 10px;
+    color: var(--color-primario);
+}
+
+#taquilla-user-result {
+    animation: fadeIn 0.4s ease;
+}
+
+#taquilla-user-result .form-container {
+    border-left: 4px solid var(--color-primario);
+}
+
+#tq-saldo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primario);
+}
+
+#tabla-tarifas-body td {
+    vertical-align: middle;
+}
+
+#taquilla select,
+#taquilla input {
+    background-color: #2a2a2a;
+    color: var(--color-texto-claro);
+    border: 1px solid var(--color-secundario);
+    border-radius: 8px;
+    padding: 12px;
+    width: 100%;
+}
+
+#taquilla .btn-eliminar-tarifa {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+}

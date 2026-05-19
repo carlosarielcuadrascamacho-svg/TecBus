@@ -21,6 +21,7 @@ const notificacionRoutes = require("./routes/notificaciones");
 const historialRoutes = require("./routes/historial");
 const taquillaRoutes = require("./routes/taquilla");
 const pagoRoutes = require("./routes/pagos");
+const transaccionRoutes = require("./routes/transacciones");
 const { startAnalyticsJobs } = require("./analytics/cronJobs");
 
 // 2. Inicializar la aplicación
@@ -66,6 +67,7 @@ app.use("/api/notificaciones", notificacionRoutes);
 app.use('/api/historial', historialRoutes);
 app.use("/api/taquilla", taquillaRoutes);
 app.use("/api/pagos", pagoRoutes);
+app.use("/api/transacciones", transaccionRoutes);
 
 // 6. LÓGICA DE SOCKET.IO (TIEMPO REAL)
 io.on("connection", (socket) => {
@@ -189,6 +191,40 @@ io.on("connection", (socket) => {
           location: data.location,
           timestamp: new Date()
       });
+  });
+
+  // --- C. Cobro Manual (Conductor) ---
+  socket.on("cobroManual", async (data) => {
+    try {
+      const Transaccion = require("./models/Transaccion");
+      const transaccion = await Transaccion.create({
+        usuarioId: data.conductorId,
+        camionId: data.camionId,
+        monto: data.monto,
+        tipo_tarifa: data.tipo_tarifa,
+        cantidad_boletos: 1,
+        timestamp: new Date(data.timestamp)
+      });
+
+      const transaccionCompleta = await Transaccion.findById(transaccion._id)
+        .populate("usuarioId", "nombre email")
+        .populate("rutaId", "nombre");
+
+      io.emit("nuevaTransaccion", {
+        _id: transaccionCompleta._id,
+        camionId: data.camionId,
+        monto: data.monto,
+        tipo_tarifa: data.tipo_tarifa,
+        cantidad_boletos: 1,
+        timestamp: transaccionCompleta.timestamp,
+        usuarioId: { nombre: "Manual" },
+        rutaId: null
+      });
+
+      console.log(`💰 Cobro manual registrado: $${data.monto} en camión ${data.camionId}`);
+    } catch (error) {
+      console.error("Error en cobro manual:", error.message);
+    }
   });
 
   socket.on("disconnect", () => {

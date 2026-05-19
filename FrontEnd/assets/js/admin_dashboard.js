@@ -99,6 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
         popularDropdownsHorarios();
       }
       if (targetId === "#alertas") cargarAlertas();
+      if (targetId === "#taquilla") { cargarTarifas(); inicializarTaquillaRutas(); }
     });
   });
 
@@ -2423,6 +2424,295 @@ document.addEventListener("DOMContentLoaded", () => {
     el.className = className;
     el.innerHTML = text;
     return el;
+  }
+
+  // ============================================================
+  //  TAQUILLA (BÚSQUEDA, VINCULAR RFID, RECARGAR, TARIFAS)
+  // ============================================================
+  let tarifasCargadas = [];
+  let taquillaUsuarioActual = null;
+
+  const formBuscarUsuario = document.getElementById("form-buscar-usuario-taquilla");
+  const formVincularRFID = document.getElementById("form-vincular-rfid");
+  const formToggleEstudiante = document.getElementById("form-toggle-estudiante");
+  const formTarifaGlobal = document.getElementById("form-tarifa-global");
+  const formTarifaRuta = document.getElementById("form-tarifa-ruta");
+  const btnRecargarSolo = document.getElementById("btn-recargar-solo");
+
+  if (formBuscarUsuario) {
+    formBuscarUsuario.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("taquilla-email").value.trim();
+      const resultDiv = document.getElementById("taquilla-user-result");
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/taquilla/user/${encodeURIComponent(email)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Usuario no encontrado");
+
+        const user = await res.json();
+        taquillaUsuarioActual = user;
+
+        document.getElementById("tq-nombre").textContent = user.nombre;
+        document.getElementById("tq-email").textContent = user.email;
+        document.getElementById("tq-tipo").textContent = user.tipo;
+        document.getElementById("tq-saldo").textContent = `$${parseFloat(user.saldo || 0).toFixed(2)}`;
+        document.getElementById("tq-rfid").textContent = user.rfid_uid || "Ninguno";
+        document.getElementById("tq-estudiante").textContent = user.es_estudiante ? "Sí" : "No";
+        document.getElementById("tq-user-id").value = user._id;
+        document.getElementById("tq-es-estudiante").value = user.es_estudiante ? "true" : "false";
+
+        resultDiv.style.display = "block";
+        cargarTransaccionesUsuario(user._id);
+      } catch (error) {
+        alert("Usuario no encontrado. Verifica el correo.");
+        resultDiv.style.display = "none";
+      }
+    });
+  }
+
+  if (formVincularRFID) {
+    formVincularRFID.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("taquilla-email").value.trim();
+      const rfid_uid = document.getElementById("tq-rfid-uid").value.trim();
+      const monto_inicial = parseFloat(document.getElementById("tq-monto-recarga").value) || 0;
+
+      if (!rfid_uid) {
+        alert("Ingresa el UID de la tarjeta RFID");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/taquilla/vincular`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ email, rfid_uid, monto_inicial }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        alert(data.message);
+        document.getElementById("tq-rfid").textContent = rfid_uid;
+        document.getElementById("tq-saldo").textContent = `$${parseFloat(data.saldo).toFixed(2)}`;
+        document.getElementById("tq-rfid-uid").value = "";
+        document.getElementById("tq-monto-recarga").value = "";
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  }
+
+  if (btnRecargarSolo) {
+    btnRecargarSolo.addEventListener("click", async () => {
+      const email = document.getElementById("taquilla-email").value.trim();
+      const monto = parseFloat(document.getElementById("tq-monto-recarga").value);
+      if (!monto || monto <= 0) {
+        alert("Ingresa un monto válido");
+        return;
+      }
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/taquilla/vincular`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ email, rfid_uid: taquillaUsuarioActual?.rfid_uid || "NO_CAMBIAR", monto_inicial: monto }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        alert(`Recarga exitosa. Saldo: $${parseFloat(data.saldo).toFixed(2)}`);
+        document.getElementById("tq-saldo").textContent = `$${parseFloat(data.saldo).toFixed(2)}`;
+        document.getElementById("tq-monto-recarga").value = "";
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  }
+
+  if (formToggleEstudiante) {
+    formToggleEstudiante.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("taquilla-email").value.trim();
+      const estado = document.getElementById("tq-es-estudiante").value === "true";
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/taquilla/estudiante`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ email, estado }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        alert(data.message);
+        document.getElementById("tq-estudiante").textContent = estado ? "Sí" : "No";
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  }
+
+  async function cargarTransaccionesUsuario(userId) {
+    const tbody = document.getElementById("tq-transacciones-body");
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/transacciones/admin/user/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Error");
+      const transacciones = await res.json();
+
+      if (transacciones.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Sin transacciones</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = "";
+      transacciones.forEach((t) => {
+        const fecha = new Date(t.timestamp).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${fecha}</td>
+          <td style="color:var(--color-error); font-weight:700;">-$${parseFloat(t.monto).toFixed(2)}</td>
+          <td><span class="badge ${t.tipo_tarifa === "Estudiante" ? "badge-estudiante" : "badge-admin"}">${t.tipo_tarifa}</span></td>
+          <td>${t.rutaId?.nombre || "N/A"}</td>
+          <td>${t.camionId}</td>
+          <td>${t.cantidad_boletos}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    } catch (error) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-danger">Error al cargar</td></tr>';
+    }
+  }
+
+  // --- GESTIÓN DE TARIFAS ---
+  async function cargarTarifas() {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/taquilla/tarifas`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      tarifasCargadas = await res.json();
+      renderTablaTarifas(tarifasCargadas);
+    } catch (e) {
+      console.error("Error cargando tarifas:", e);
+    }
+  }
+
+  function renderTablaTarifas(lista) {
+    const tbody = document.getElementById("tabla-tarifas-body");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    if (lista.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No hay tarifas configuradas</td></tr>';
+      return;
+    }
+
+    lista.forEach((t) => {
+      const row = document.createElement("tr");
+      const ambito = t.rutaId ? (t.rutaId.nombre || t.rutaId._id || "Ruta específica") : "🌐 Global";
+      row.innerHTML = `
+        <td><b>${ambito}</b></td>
+        <td>$${parseFloat(t.precioGeneral).toFixed(2)}</td>
+        <td>$${parseFloat(t.precioEstudiante).toFixed(2)}</td>
+        <td>
+          ${t.rutaId ? `<button class="btn btn-danger btn-sm btn-eliminar-tarifa" data-id="${t._id || t.rutaId._id}"><i class="fas fa-trash"></i></button>` : '<span class="text-muted">Global</span>'}
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  if (formTarifaGlobal) {
+    formTarifaGlobal.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const precioGeneral = parseFloat(document.getElementById("tg-general").value);
+      const precioEstudiante = parseFloat(document.getElementById("tg-estudiante").value);
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/taquilla/tarifas/global`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ precioGeneral, precioEstudiante }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        alert("Tarifa global actualizada");
+        cargarTarifas();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  }
+
+  async function inicializarTaquillaRutas() {
+    const select = document.getElementById("tr-ruta");
+    if (!select || select.options.length > 1) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/rutas`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const rutas = await res.json();
+      select.innerHTML = '<option value="">-- Seleccionar --</option>';
+      rutas.forEach((r) => {
+        select.innerHTML += `<option value="${r._id}">${r.nombre}</option>`;
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  if (formTarifaRuta) {
+    formTarifaRuta.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const rutaId = document.getElementById("tr-ruta").value;
+      const precioGeneral = parseFloat(document.getElementById("tr-general").value);
+      const precioEstudiante = parseFloat(document.getElementById("tr-estudiante").value);
+
+      if (!rutaId) {
+        alert("Selecciona una ruta");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/taquilla/tarifas/ruta/${rutaId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ precioGeneral, precioEstudiante }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        alert("Tarifa actualizada para la ruta");
+        cargarTarifas();
+        formTarifaRuta.reset();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    const btnEliminar = e.target.closest(".btn-eliminar-tarifa");
+    if (btnEliminar) {
+      const rutaId = btnEliminar.dataset.id;
+      eliminarTarifaRuta(rutaId);
+    }
+  });
+
+  async function eliminarTarifaRuta(rutaId) {
+    if (!(await confirmAsync("¿Eliminar tarifa? La ruta usará la tarifa global."))) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/taquilla/tarifas/ruta/${rutaId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Error");
+      alert("Tarifa eliminada");
+      cargarTarifas();
+    } catch (error) {
+      alert(error.message);
+    }
   }
 });
 

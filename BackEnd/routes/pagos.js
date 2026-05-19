@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require("../models/User");
 const Tarifa = require("../models/Tarifa");
 const Transaccion = require("../models/Transaccion");
+const Ruta = require("../models/Ruta");
 const { apiKeyAuth } = require("../middleware/apiKeyMiddleware");
 
 const PRECIO_GENERAL_DEFAULT = 12.00;
@@ -68,7 +69,7 @@ router.post("/procesar", async (req, res) => {
                 user.saldo = parseFloat(((user.saldo || 0) - total).toFixed(2));
                 await user.save();
 
-                await Transaccion.create({
+                const nuevaTrans = await Transaccion.create({
                     usuarioId: user._id,
                     camionId,
                     rutaId: rutaId || undefined,
@@ -77,6 +78,27 @@ router.post("/procesar", async (req, res) => {
                     cantidad_boletos: cantidad,
                     timestamp: timestamp ? new Date(timestamp * 1000) : new Date()
                 });
+
+                try {
+                    const io = req.app.get("io");
+                    if (io) {
+                        let rutaNombre = null;
+                        if (rutaId) {
+                            const rutaDoc = await Ruta.findById(rutaId).select("nombre");
+                            if (rutaDoc) rutaNombre = rutaDoc.nombre;
+                        }
+                        io.emit("nuevaTransaccion", {
+                            _id: nuevaTrans._id,
+                            camionId,
+                            monto: total,
+                            tipo_tarifa: tipo,
+                            cantidad_boletos: cantidad,
+                            timestamp: nuevaTrans.timestamp,
+                            usuarioId: { nombre: user.nombre || "Pasajero" },
+                            rutaId: rutaNombre ? { nombre: rutaNombre } : null
+                        });
+                    }
+                } catch (_) { /* emit no crítico */ }
 
                 resultados.push({
                     uid,

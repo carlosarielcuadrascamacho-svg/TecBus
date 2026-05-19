@@ -1108,7 +1108,166 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => marker.remove(), 300000);
   });
 
-  // 8. CERRAR SESIÓN
+  // 8. PANEL DE COBROS
+  const fullscreenCobros = document.getElementById("fullscreen-cobros");
+  const btnOpenCobrosSidebar = document.getElementById("btn-open-cobros-sidebar");
+  const btnCerrarCobros = document.getElementById("btn-cerrar-cobros");
+  const cobrosFeed = document.getElementById("cobros-feed");
+  const cobrosTotalHoy = document.getElementById("cobros-total-hoy");
+  const btnCobroManual = document.getElementById("btn-cobro-manual");
+  const cobroOrigen = document.getElementById("cobro-origen");
+  const cobroDestino = document.getElementById("cobro-destino");
+  const cobroTipoTarifa = document.getElementById("cobro-tipo-tarifa");
+  const cobroRuta = document.getElementById("cobro-ruta");
+  let todasLasTransacciones = [];
+
+  async function abrirCobros() {
+    if (sidebar) sidebar.classList.remove("active");
+    fullscreenCobros.classList.add("active");
+    if (cobroRuta) cobroRuta.textContent = MI_RUTA_NOMBRE || "Sin ruta activa";
+    cargarOrigenDestino();
+    cargarTransaccionesCamion();
+  }
+
+  function cargarOrigenDestino() {
+    if (!window.stopMarkersArray || window.stopMarkersArray.length === 0) {
+      if (cobroOrigen) cobroOrigen.innerHTML = '<option value="">-- Sin paradas --</option>';
+      if (cobroDestino) cobroDestino.innerHTML = '<option value="">-- Sin paradas --</option>';
+      return;
+    }
+    let html = '<option value="">-- Seleccionar --</option>';
+    window.stopMarkersArray.forEach((m, i) => {
+      const nombre = m.getPopup().getContent().replace(/<[^>]*>?/gm, '') || `Parada ${i+1}`;
+      html += `<option value="${i}">${nombre}</option>`;
+    });
+    if (cobroOrigen) cobroOrigen.innerHTML = html;
+    if (cobroDestino) cobroDestino.innerHTML = html;
+  }
+
+  async function cargarTransaccionesCamion() {
+    if (!MI_CAMION_ID) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/transacciones/camion/${MI_CAMION_ID}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Error");
+      todasLasTransacciones = await res.json();
+      renderCobrosFeed(todasLasTransacciones);
+    } catch (e) {
+      console.error("Error cargando transacciones:", e);
+    }
+  }
+
+  function renderCobrosFeed(transacciones) {
+    if (!cobrosFeed) return;
+    if (transacciones.length === 0) {
+      cobrosFeed.innerHTML = '<p class="placeholder-text" style="font-size:0.9rem; margin:20px 0;">Sin transacciones hoy</p>';
+      if (cobrosTotalHoy) cobrosTotalHoy.textContent = "$0.00";
+      return;
+    }
+
+    let totalHoy = 0;
+    const hoy = new Date().toDateString();
+
+    cobrosFeed.innerHTML = transacciones.map(t => {
+      const esHoy = new Date(t.timestamp).toDateString() === hoy;
+      if (esHoy) totalHoy += parseFloat(t.monto || 0);
+      const fecha = new Date(t.timestamp).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+      const tipoClase = t.tipo_tarifa === "Estudiante" ? "estudiante" : "general";
+      return `<div class="cobro-item">
+        <div class="cobro-info">
+          <span class="cobro-nombre">${t.usuarioId?.nombre || "Anónimo"}</span>
+          <span class="cobro-detalle">${fecha} · ${t.rutaId?.nombre || "N/A"} · ${t.cantidad_boletos} boleto(s)</span>
+        </div>
+        <span class="cobro-monto ${tipoClase}">-$${parseFloat(t.monto).toFixed(2)}</span>
+      </div>`;
+    }).join("");
+
+    if (cobrosTotalHoy) cobrosTotalHoy.textContent = `$${totalHoy.toFixed(2)}`;
+  }
+
+  // Escuchar nuevas transacciones en tiempo real
+  socket.on("nuevaTransaccion", (data) => {
+    if (String(data.camionId) === String(MI_CAMION_ID)) {
+      todasLasTransacciones.unshift(data);
+      renderCobrosFeed(todasLasTransacciones);
+      // Mostrar notificación HUD
+      const alertId = `cobro-${Date.now()}`;
+      const alertHtml = `
+        <div class="hud-alert-item" id="${alertId}" style="background:rgba(46,204,113,0.9);">
+          <div class="hud-alert-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="hud-alert-content">
+            <b>¡Cobro Registrado!</b>
+            <small>${data.usuarioId?.nombre || "Pasajero"} · $${parseFloat(data.monto).toFixed(2)}</small>
+          </div>
+        </div>
+      `;
+      if (hudContainer) {
+        hudContainer.insertAdjacentHTML('beforeend', alertHtml);
+        setTimeout(() => {
+          const el = document.getElementById(alertId);
+          if (el) { el.classList.add('removing'); setTimeout(() => el.remove(), 400); }
+        }, 5000);
+      }
+    }
+  });
+
+  // Cobro manual (simulación - emite evento de transacción)
+  if (btnCobroManual) {
+    btnCobroManual.addEventListener("click", async () => {
+      if (!MI_CAMION_ID) {
+        alert("No tienes un camión asignado");
+        return;
+      }
+      const tipo = cobroTipoTarifa?.value || "General";
+      const origenIdx = cobroOrigen?.value;
+      const destinoIdx = cobroDestino?.value;
+
+      try {
+        // Obtener precios de tarifa
+        const resTarifas = await fetch(`${BACKEND_URL}/api/taquilla/tarifas`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const tarifas = await resTarifas.json();
+        const global = tarifas.find(t => !t.rutaId);
+        const precio = tipo === "Estudiante"
+          ? (global?.precioEstudiante || 8)
+          : (global?.precioGeneral || 12);
+
+        // Emitir como si fuera un pago manual
+        socket.emit("cobroManual", {
+          camionId: MI_CAMION_ID,
+          conductorId: user._id || user.id,
+          monto: precio,
+          tipo_tarifa: tipo,
+          origen: origenIdx || null,
+          destino: destinoIdx || null,
+          rutaNombre: MI_RUTA_NOMBRE,
+          timestamp: new Date()
+        });
+
+        alert(`✅ Cobro manual registrado: $${precio.toFixed(2)} (${tipo})`);
+      } catch (e) {
+        console.error("Error en cobro manual:", e);
+        alert("Error al registrar cobro");
+      }
+    });
+  }
+
+  if (btnOpenCobrosSidebar) {
+    btnOpenCobrosSidebar.addEventListener("click", (e) => {
+      e.preventDefault();
+      abrirCobros();
+    });
+  }
+
+  if (btnCerrarCobros) {
+    btnCerrarCobros.addEventListener("click", () => {
+      fullscreenCobros.classList.remove("active");
+    });
+  }
+
+  // 9. CERRAR SESIÓN
   const btnLogout = document.getElementById("logout-button");
   const btnSidebarLogout = document.getElementById("sidebar-logout");
 

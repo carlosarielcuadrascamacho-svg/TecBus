@@ -102,6 +102,9 @@
         <a href="#" id="btn-open-perfil-sidebar" class="nav-item">
           <i class="fas fa-user-tie"></i> Mi Perfil
         </a>
+        <a href="#" id="btn-open-cobros-sidebar" class="nav-item">
+          <i class="fas fa-cash-register"></i> Cobros
+        </a>
         <a
           href="#"
           onclick="alert('Tampoco tiene nada por ahora oke?')"
@@ -221,6 +224,71 @@
       <div class="fullscreen-content">
         <div id="calendario-semanal" class="calendar-grid">
           <p class="placeholder-text">Cargando tus asignaciones...</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="fullscreen-cobros" class="fullscreen-overlay">
+      <div class="fullscreen-header">
+        <div class="header-controls">
+          <i class="fas fa-cash-register logo-icon"></i>
+          <h2>Panel de Cobros</h2>
+        </div>
+        <button class="close-fs-btn" id="btn-cerrar-cobros">
+          <i class="fas fa-times"></i> Cerrar
+        </button>
+      </div>
+
+      <div class="fullscreen-content">
+        <div class="cobros-grid">
+          <div class="cobros-col">
+            <div class="form-container" style="background:#1e1e1e; border-radius:12px; padding:20px; margin-bottom:20px;">
+              <h3 style="margin-top:0; color:var(--color-primario);"><i class="fas fa-route"></i> Configuración de Cobro</h3>
+              <div class="form-group">
+                <label>Ruta Actual</label>
+                <span id="cobro-ruta" style="color:white; font-weight:700;">--</span>
+              </div>
+              <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:15px;">
+                <div class="form-group">
+                  <label>Origen</label>
+                  <select id="cobro-origen" class="custom-select">
+                    <option value="">-- Seleccionar --</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Destino</label>
+                  <select id="cobro-destino" class="custom-select">
+                    <option value="">-- Seleccionar --</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top:10px;">
+                <label>Tipo de Tarifa</label>
+                <select id="cobro-tipo-tarifa" class="custom-select">
+                  <option value="General">General — $--</option>
+                  <option value="Estudiante">Estudiante — $--</option>
+                </select>
+              </div>
+              <button id="btn-cobro-manual" class="btn btn-primary" style="width:100%; margin-top:10px;">
+                <i class="fas fa-check-circle"></i> Registrar Cobro Manual
+              </button>
+            </div>
+          </div>
+
+          <div class="cobros-col">
+            <div class="form-container" style="background:#1e1e1e; border-radius:12px; padding:20px;">
+              <h3 style="margin-top:0; color:var(--color-primario);"><i class="fas fa-clock"></i> Transacciones Recientes</h3>
+              <div id="cobros-feed" style="max-height:400px; overflow-y:auto;">
+                <p class="placeholder-text" style="font-size:0.9rem; margin:20px 0;">Esperando transacciones...</p>
+              </div>
+              <div style="margin-top:15px; padding-top:15px; border-top:1px solid #333;">
+                <div style="display:flex; justify-content:space-between; color:white;">
+                  <span>Total Hoy:</span>
+                  <span id="cobros-total-hoy" style="font-weight:700; color:var(--color-acento);">$0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

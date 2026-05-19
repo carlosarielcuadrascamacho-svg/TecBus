@@ -253,23 +253,58 @@ document.addEventListener("DOMContentLoaded", () => {
     
     let idMostrar = "Sin Identificador";
     
-    // Función auxiliar para verificar si un dato es válido (no nulo, no vacío y no "PENDIENTE")
     const esValido = (texto) => texto && texto !== "PENDIENTE" && texto.trim() !== "";
 
-    // 1. Buscamos matrícula en el objeto anidado 'estudiante'
     if (user.estudiante && esValido(user.estudiante.matricula)) {
         idMostrar = user.estudiante.matricula;
     } 
-    // 2. Buscamos matrícula en la raíz del usuario
     else if (esValido(user.matricula)) {
         idMostrar = user.matricula; 
-    } 
-    // 3. Si no hay matrícula válida, usamos el ID interno de MongoDB (el código largo)
+    }
     else if (user._id || user.id) {
-        idMostrar = (user._id || user.id); // Lo cortamos para que se vea bien
+        idMostrar = (user._id || user.id);
     }
 
     document.getElementById("perfil-id").textContent = idMostrar;
+
+    // Fetch saldo y transacciones
+    fetch(`${BACKEND_URL}/api/transacciones/saldo`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("perfil-saldo").textContent = `$${parseFloat(data.saldo || 0).toFixed(2)}`;
+      document.getElementById("perfil-tipo-tarifa").textContent = data.es_estudiante ? "Estudiante" : "General";
+    })
+    .catch(() => {
+      document.getElementById("perfil-saldo").textContent = "$--";
+    });
+
+    fetch(`${BACKEND_URL}/api/transacciones/mias`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(transacciones => {
+      const container = document.getElementById("perfil-transacciones");
+      if (transacciones.length === 0) {
+        container.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.85rem; margin: 10px 0;">Sin transacciones</p>';
+        return;
+      }
+      container.innerHTML = transacciones.slice(0, 10).map(t => {
+        const fecha = new Date(t.timestamp).toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+        const hora = new Date(t.timestamp).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.8rem;">
+          <div>
+            <span style="color:#aaa;">${fecha} ${hora}</span>
+            <span style="color:#888; margin-left:6px;">${t.rutaId?.nombre || ""}</span>
+          </div>
+          <span style="color:var(--color-error); font-weight:700;">-$${parseFloat(t.monto).toFixed(2)}</span>
+        </div>`;
+      }).join("");
+    })
+    .catch(() => {
+      document.getElementById("perfil-transacciones").innerHTML = '<p style="color: #666; text-align: center; font-size: 0.85rem;">Error al cargar</p>';
+    });
 
     document.getElementById("sidebar").classList.remove("active");
     if (profileMenu) profileMenu.classList.remove("show");
