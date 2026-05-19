@@ -93,6 +93,9 @@
             <span>Historial de Alertas</span>
             <span class="badge-notify" id="alert-count-badge" style="display:none">0</span>
           </a>
+          <a href="#taquilla" class="nav-item">
+            <i class="fas fa-ticket-alt"></i> <span>Taquilla</span>
+          </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -593,6 +596,123 @@
             <button class="btn btn-primary">
               <i class="fas fa-save"></i> Guardar Cambios
             </button>
+          </div>
+        </section>
+
+        <section id="taquilla" class="dashboard-section">
+          <div class="form-container">
+            <h3><i class="fas fa-search"></i> Buscar Usuario</h3>
+            <form id="form-buscar-usuario-taquilla">
+              <div class="form-grid" style="grid-template-columns: 1fr auto;">
+                <div class="form-group">
+                  <label for="taquilla-email">Correo Electrónico</label>
+                  <input type="email" id="taquilla-email" placeholder="usuario@ejemplo.com" required />
+                </div>
+                <div class="form-group" style="display:flex; align-items:flex-end;">
+                  <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Buscar</button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div id="taquilla-user-result" style="display:none;">
+            <div class="form-container">
+              <h3><i class="fas fa-user"></i> Datos del Usuario</h3>
+              <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="form-group"><label>Nombre</label><span id="tq-nombre" class="text-muted">--</span></div>
+                <div class="form-group"><label>Email</label><span id="tq-email" class="text-muted">--</span></div>
+                <div class="form-group"><label>Tipo</label><span id="tq-tipo" class="text-muted">--</span></div>
+                <div class="form-group"><label>Saldo Actual</label><span id="tq-saldo" class="text-muted" style="font-size:1.3rem; font-weight:700; color:var(--color-primario);">$0.00</span></div>
+                <div class="form-group"><label>RFID Vinculado</label><span id="tq-rfid" class="text-muted">Ninguno</span></div>
+                <div class="form-group"><label>Estudiante</label><span id="tq-estudiante" class="text-muted">No</span></div>
+              </div>
+              <input type="hidden" id="tq-user-id" />
+            </div>
+
+            <div class="form-container">
+              <h3><i class="fas fa-credit-card"></i> Vincular RFID / Recargar</h3>
+              <form id="form-vincular-rfid">
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr auto;">
+                  <div class="form-group">
+                    <label for="tq-rfid-uid">UID de Tarjeta RFID</label>
+                    <input type="text" id="tq-rfid-uid" placeholder="Ej: A3B2C1D4" />
+                  </div>
+                  <div class="form-group">
+                    <label for="tq-monto-recarga">Monto a Recargar ($)</label>
+                    <input type="number" id="tq-monto-recarga" placeholder="50" min="0" step="10" />
+                  </div>
+                  <div class="form-group" style="display:flex; align-items:flex-end;">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-link"></i> Vincular y Recargar</button>
+                  </div>
+                  <div class="form-group" style="display:flex; align-items:flex-end;">
+                    <button type="button" id="btn-recargar-solo" class="btn btn-secondary"><i class="fas fa-coins"></i> Solo Recargar</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <div class="form-container">
+              <h3><i class="fas fa-graduation-cap"></i> Estado de Estudiante</h3>
+              <form id="form-toggle-estudiante">
+                <div class="form-grid" style="grid-template-columns: 1fr auto;">
+                  <div class="form-group">
+                    <label>¿Este usuario paga tarifa de estudiante?</label>
+                    <select id="tq-es-estudiante">
+                      <option value="false">No — Tarifa General</option>
+                      <option value="true">Sí — Tarifa Estudiante</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="display:flex; align-items:flex-end;">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <div class="table-container">
+              <div class="table-header-flex">
+                <h3><i class="fas fa-receipt"></i> Transacciones Recientes</h3>
+              </div>
+              <table class="data-table">
+                <thead><tr><th>Fecha</th><th>Monto</th><th>Tipo</th><th>Ruta</th><th>Camion</th><th>Boletos</th></tr></thead>
+                <tbody id="tq-transacciones-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="form-container">
+            <h3><i class="fas fa-dollar-sign"></i> Gestión de Tarifas</h3>
+            <div style="margin-bottom:20px; padding:15px; background:rgba(255,255,255,0.03); border-radius:8px;">
+              <h4 style="margin:0 0 10px 0; color:var(--color-primario);">Tarifa Global (todas las rutas)</h4>
+              <form id="form-tarifa-global">
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr auto;">
+                  <div class="form-group"><label>Precio General ($)</label><input type="number" id="tg-general" step="0.5" min="0" required /></div>
+                  <div class="form-group"><label>Precio Estudiante ($)</label><input type="number" id="tg-estudiante" step="0.5" min="0" required /></div>
+                  <div class="form-group" style="display:flex; align-items:flex-end;"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar Global</button></div>
+                </div>
+              </form>
+            </div>
+            <div>
+              <h4 style="margin:0 0 10px 0; color:var(--color-primario);">Tarifa por Ruta</h4>
+              <form id="form-tarifa-ruta">
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr auto;">
+                  <div class="form-group">
+                    <label>Ruta</label>
+                    <select id="tr-ruta" required><option value="">-- Seleccionar --</option></select>
+                  </div>
+                  <div class="form-group"><label>Precio General ($)</label><input type="number" id="tr-general" step="0.5" min="0" required /></div>
+                  <div class="form-group"><label>Precio Estudiante ($)</label><input type="number" id="tr-estudiante" step="0.5" min="0" required /></div>
+                  <div class="form-group" style="display:flex; align-items:flex-end;"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar por Ruta</button></div>
+                </div>
+              </form>
+            </div>
+            <div class="table-container" style="margin-top:20px;">
+              <h4>Tarifas Configuradas</h4>
+              <table class="data-table">
+                <thead><tr><th>Ámbito</th><th>Precio General</th><th>Precio Estudiante</th><th>Acción</th></tr></thead>
+                <tbody id="tabla-tarifas-body"></tbody>
+              </table>
+            </div>
           </div>
         </section>
       </main>
