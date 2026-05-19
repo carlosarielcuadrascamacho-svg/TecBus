@@ -47,6 +47,11 @@ const userSchema = new mongoose.Schema({
         default: 'estudiante'
     },
     telefono: { type: String },
+    // === SmartBus Pagos ===
+    rfid_uid: { type: String, unique: true, sparse: true },
+    saldo: { type: Number, default: 0 },
+    es_estudiante: { type: Boolean, default: false },
+    // =====================
     estado: {
       type: String,
       // 👇 AGREGAMOS AQUÍ LOS NUEVOS ESTADOS QUE USA EL CONDUCTOR
