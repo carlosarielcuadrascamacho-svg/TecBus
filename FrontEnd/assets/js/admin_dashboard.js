@@ -103,6 +103,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Cargar datos según el hash de la URL al iniciar
+  const initialHash = window.location.hash || "#mapa";
+  if (initialHash === "#usuarios") cargarUsuarios();
+  if (initialHash === "#camiones") cargarCamiones();
+  if (initialHash === "#rutas") cargarRutas();
+  if (initialHash === "#horarios") { cargarHorarios(); popularDropdownsHorarios(); }
+  if (initialHash === "#alertas") cargarAlertas();
+  if (initialHash === "#taquilla") { cargarTarifas(); inicializarTaquillaRutas(); }
+
   // ============================================================
   //  MANEJO DE SIDEBAR COLAPSABLE
   // ============================================================
@@ -465,10 +474,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Cerrar cualquier modal con la X o botón cerrar
   document.addEventListener("click", (e) => {
     // Cerrar con botón X o Cancelar
-    if (
-      e.target.matches(".close-button") ||
-      e.target.matches(".btn-secondary")
-    ) {
+    const closeBtn = e.target.closest(".close-button");
+    const secondaryBtn = e.target.closest(".btn-secondary") && e.target.closest(".modal");
+    if (closeBtn || secondaryBtn) {
       const modal = e.target.closest(".modal");
       const overlay = e.target.closest(".fullscreen-overlay");
       if (modal) modal.classList.remove("modal-visible");
@@ -586,7 +594,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${estadoHtml}</td>
         <td>
             <div class="table-actions" style="display:flex; gap:5px;">
-                <button class="btn btn-secondary btn-sm btn-edit-user" title="Editar" data-id="${u._id}"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-info btn-sm btn-edit-user" title="Editar" data-id="${u._id}"><i class="fas fa-edit"></i></button>
                 <button class="btn btn-danger btn-sm btn-delete-user" title="Eliminar" data-id="${u._id}"><i class="fas fa-trash"></i></button>
             </div>
         </td>`;
@@ -681,26 +689,52 @@ document.addEventListener("DOMContentLoaded", () => {
       const btnEdit = e.target.closest(".btn-edit-user");
       const btnDelete = e.target.closest(".btn-delete-user");
       if (btnEdit) {
+        console.log("[DEBUG] Edit button clicked, id:", btnEdit.dataset.id);
         const user = usuariosCargados.find((u) => u._id === btnEdit.dataset.id);
-        if (user) openEditUserModal(user);
+        console.log("[DEBUG] User found:", user?.nombre);
+        if (user) {
+          try {
+            openEditUserModal(user);
+            console.log("[DEBUG] Modal should now be visible");
+          } catch (err) {
+            console.error("[ERROR] openEditUserModal failed:", err);
+            alert("Error al abrir el modal de edición");
+          }
+        } else {
+          console.warn("[WARN] User not found in usuariosCargados for id:", btnEdit.dataset.id);
+        }
       }
       if (btnDelete) handleDeleteUser(btnDelete.dataset.id);
     });
   }
 
   function openEditUserModal(user) {
-    document.getElementById("edit-user-id").value = user._id;
-    document.getElementById("edit-user-nombre").value = user.nombre;
-    document.getElementById("edit-user-email").value = user.email;
-    document.getElementById("edit-user-tipo").value = user.tipo;
-    if (user.tipo === "conductor") {
-      camposConductorEdit.style.display = "block";
-      document.getElementById("edit-user-licencia").value =
-        user.conductor?.licencia || "No";
-    } else {
-      camposConductorEdit.style.display = "none";
+    try {
+      console.log("[DEBUG] openEditUserModal called for:", user.nombre, "tipo:", user.tipo);
+      document.getElementById("edit-user-id").value = user._id;
+      document.getElementById("edit-user-nombre").value = user.nombre;
+      document.getElementById("edit-user-email").value = user.email;
+      const tipoSelect = document.getElementById("edit-user-tipo");
+      // Si el valor del usuario no existe en las opciones del select, establecer "estudiante" por defecto
+      const options = Array.from(tipoSelect.options).map(o => o.value);
+      if (options.includes(user.tipo)) {
+        tipoSelect.value = user.tipo;
+      } else {
+        console.warn("[WARN] user.tipo '" + user.tipo + "' not in select options, defaulting to 'estudiante'");
+        tipoSelect.value = "estudiante";
+      }
+      if (user.tipo === "conductor") {
+        camposConductorEdit.style.display = "block";
+        document.getElementById("edit-user-licencia").value =
+          user.conductor?.licencia || "No";
+      } else {
+        camposConductorEdit.style.display = "none";
+      }
+      modalUser.classList.add("modal-visible");
+      console.log("[DEBUG] modal-visible class added to edit-user-modal");
+    } catch (err) {
+      console.error("[ERROR] openEditUserModal exception:", err);
     }
-    modalUser.classList.add("modal-visible");
   }
 
   if (closeModalBtnUser)
