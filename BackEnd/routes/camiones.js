@@ -389,8 +389,7 @@ function deg2rad(deg) {
 // GET /api/camiones/:id
 router.get("/:id", protect, async (req, res) => {
   try {
-    // 1. Buscamos el camión en MongoDB por su ID único
-    const camion = await Camion.findById(req.params.id);
+    const camion = await Camion.findById(req.params.id).populate("conductorActual", "nombre");
 
     if (!camion) {
       return res.status(404).json({ message: "Camión no encontrado en la BD" });

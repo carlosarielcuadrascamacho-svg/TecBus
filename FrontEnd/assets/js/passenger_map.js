@@ -219,8 +219,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const plateEl = document.getElementById("bus-plate");
       const driverEl = document.getElementById("bus-driver");
       
-      if (plateEl) plateEl.textContent = `${camion.numeroUnidad || 'N/A'} - ${camion.placas || '---'}`;
-      if (driverEl) driverEl.textContent = camion.chofer || "Conductor SmartBus";
+      if (plateEl) plateEl.textContent = `${camion.numeroUnidad || 'N/A'} - ${camion.placa || '---'}`;
+      if (driverEl) driverEl.textContent = camion.conductorActual?.nombre || "Conductor SmartBus";
       
       if (section) section.classList.remove("hidden");
     })
