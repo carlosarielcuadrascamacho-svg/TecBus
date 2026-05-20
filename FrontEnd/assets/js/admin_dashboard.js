@@ -2444,6 +2444,11 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       const email = document.getElementById("taquilla-email").value.trim();
       const resultDiv = document.getElementById("taquilla-user-result");
+      const btnSubmit = formBuscarUsuario.querySelector("button[type=submit]");
+
+      resultDiv.style.display = "none";
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
 
       try {
         const res = await fetch(`${BACKEND_URL}/api/taquilla/user/${encodeURIComponent(email)}`, {
@@ -2463,11 +2468,17 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("tq-user-id").value = user._id;
         document.getElementById("tq-es-estudiante").value = user.es_estudiante ? "true" : "false";
 
+        const btnDesvincular = document.getElementById("btn-desvincular-rfid");
+        if (btnDesvincular) btnDesvincular.style.display = user.rfid_uid ? "inline-block" : "none";
+
         resultDiv.style.display = "block";
         cargarTransaccionesUsuario(user._id);
       } catch (error) {
-        alert("Usuario no encontrado. Verifica el correo.");
+        Swal.fire({ icon: "error", title: "No encontrado", text: "Verifica el correo electrónico.", background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
         resultDiv.style.display = "none";
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<i class="fas fa-search"></i> Buscar';
       }
     });
   }
@@ -2480,8 +2491,22 @@ document.addEventListener("DOMContentLoaded", () => {
       const monto_inicial = parseFloat(document.getElementById("tq-monto-recarga").value) || 0;
 
       if (!rfid_uid) {
-        alert("Ingresa el UID de la tarjeta RFID");
+        Swal.fire({ icon: "warning", title: "Campo requerido", text: "Ingresa el UID de la tarjeta RFID", background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
         return;
+      }
+
+      // Si el usuario ya tiene RFID vinculado, pedir confirmación
+      if (taquillaUsuarioActual?.rfid_uid) {
+        const confirm = await Swal.fire({
+          icon: "warning",
+          title: "¿Reemplazar RFID?",
+          text: `El usuario ya tiene la tarjeta "${taquillaUsuarioActual.rfid_uid}" vinculada. ¿Reemplazarla con "${rfid_uid}"?`,
+          showCancelButton: true,
+          confirmButtonText: "Sí, reemplazar",
+          cancelButtonText: "Cancelar",
+          background: "#1e1e1e", color: "#fff", confirmButtonColor: "#f59e0b"
+        });
+        if (!confirm.isConfirmed) return;
       }
 
       try {
@@ -2492,13 +2517,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
-        alert(data.message);
+        Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000, background: "#1e1e1e", color: "#fff" }).fire({ icon: "success", title: `RFID ${rfid_uid} vinculado` });
         document.getElementById("tq-rfid").textContent = rfid_uid;
         document.getElementById("tq-saldo").textContent = `$${parseFloat(data.saldo).toFixed(2)}`;
         document.getElementById("tq-rfid-uid").value = "";
         document.getElementById("tq-monto-recarga").value = "";
+        taquillaUsuarioActual.rfid_uid = rfid_uid;
+        taquillaUsuarioActual.saldo = data.saldo;
+        const btnDesvincular = document.getElementById("btn-desvincular-rfid");
+        if (btnDesvincular) btnDesvincular.style.display = "inline-block";
+        cargarTransaccionesUsuario(taquillaUsuarioActual?._id);
       } catch (error) {
-        alert(error.message);
+        Swal.fire({ icon: "error", title: "Error", text: error.message, background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
       }
     });
   }
@@ -2508,22 +2538,28 @@ document.addEventListener("DOMContentLoaded", () => {
       const email = document.getElementById("taquilla-email").value.trim();
       const monto = parseFloat(document.getElementById("tq-monto-recarga").value);
       if (!monto || monto <= 0) {
-        alert("Ingresa un monto válido");
+        Swal.fire({ icon: "warning", title: "Monto inválido", text: "Ingresa un monto mayor a 0", background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
+        return;
+      }
+      if (!taquillaUsuarioActual) {
+        Swal.fire({ icon: "warning", title: "Sin usuario", text: "Busca un usuario primero", background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
         return;
       }
       try {
-        const res = await fetch(`${BACKEND_URL}/api/taquilla/vincular`, {
+        const res = await fetch(`${BACKEND_URL}/api/taquilla/recargar`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ email, rfid_uid: taquillaUsuarioActual?.rfid_uid || "NO_CAMBIAR", monto_inicial: monto }),
+          body: JSON.stringify({ email, monto }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
-        alert(`Recarga exitosa. Saldo: $${parseFloat(data.saldo).toFixed(2)}`);
+        Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000, background: "#1e1e1e", color: "#fff" }).fire({ icon: "success", title: `Recarga de $${monto.toFixed(2)} exitosa` });
         document.getElementById("tq-saldo").textContent = `$${parseFloat(data.saldo).toFixed(2)}`;
         document.getElementById("tq-monto-recarga").value = "";
+        if (taquillaUsuarioActual) taquillaUsuarioActual.saldo = data.saldo;
+        cargarTransaccionesUsuario(taquillaUsuarioActual?._id);
       } catch (error) {
-        alert(error.message);
+        Swal.fire({ icon: "error", title: "Error", text: error.message, background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
       }
     });
   }
@@ -2542,10 +2578,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
-        alert(data.message);
+        Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000, background: "#1e1e1e", color: "#fff" }).fire({ icon: "success", title: estado ? "Usuario ahora es Estudiante" : "Usuario ahora es General" });
         document.getElementById("tq-estudiante").textContent = estado ? "Sí" : "No";
       } catch (error) {
-        alert(error.message);
+        Swal.fire({ icon: "error", title: "Error", text: error.message, background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
       }
     });
   }
@@ -2553,7 +2589,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function cargarTransaccionesUsuario(userId) {
     const tbody = document.getElementById("tq-transacciones-body");
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Cargando...</td></tr>';
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/transacciones/admin/user/${userId}`, {
@@ -2563,27 +2599,82 @@ document.addEventListener("DOMContentLoaded", () => {
       const transacciones = await res.json();
 
       if (transacciones.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Sin transacciones</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Sin transacciones</td></tr>';
         return;
       }
 
+      // Calcular saldo después para cada transacción (reverse chronological)
+      let saldoCorriente = parseFloat(taquillaUsuarioActual?.saldo || 0);
+      // Las transacciones vienen ordenadas DESC por timestamp.
+      // Acumulamos desde la más reciente hacia atrás para obtener el saldo en cada punto.
+      const saldos = [];
+      for (let i = transacciones.length - 1; i >= 0; i--) {
+        const t = transacciones[i];
+        if (t.tipo_tarifa === "Recarga") {
+          saldos[i] = saldoCorriente;
+          saldoCorriente -= parseFloat(t.monto);
+        } else {
+          saldos[i] = saldoCorriente;
+          saldoCorriente += parseFloat(t.monto);
+        }
+      }
+
       tbody.innerHTML = "";
-      transacciones.forEach((t) => {
+      transacciones.forEach((t, i) => {
         const fecha = new Date(t.timestamp).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });
+        const esRecarga = t.tipo_tarifa === "Recarga";
+        const montoColor = esRecarga ? "var(--color-acento)" : "var(--color-error)";
+        const montoSigno = esRecarga ? "+" : "-";
+        const badgeClass = t.tipo_tarifa === "Estudiante" ? "badge-estudiante" : (esRecarga ? "badge-success" : "badge-admin");
+        const saldoStr = saldos[i] !== undefined ? `$${saldos[i].toFixed(2)}` : "--";
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>${fecha}</td>
-          <td style="color:var(--color-error); font-weight:700;">-$${parseFloat(t.monto).toFixed(2)}</td>
-          <td><span class="badge ${t.tipo_tarifa === "Estudiante" ? "badge-estudiante" : "badge-admin"}">${t.tipo_tarifa}</span></td>
+          <td style="color:${montoColor}; font-weight:700;">${montoSigno}$${parseFloat(t.monto).toFixed(2)}</td>
+          <td><span class="badge ${badgeClass}">${t.tipo_tarifa}</span></td>
           <td>${t.rutaId?.nombre || "N/A"}</td>
           <td>${t.camionId}</td>
           <td>${t.cantidad_boletos}</td>
+          <td style="color:var(--color-primario); font-weight:600;">${saldoStr}</td>
         `;
         tbody.appendChild(row);
       });
     } catch (error) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-danger">Error al cargar</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-danger">Error al cargar</td></tr>';
     }
+  }
+
+  // Desvincular RFID
+  const btnDesvincular = document.getElementById("btn-desvincular-rfid");
+  if (btnDesvincular) {
+    btnDesvincular.addEventListener("click", async () => {
+      const email = document.getElementById("taquilla-email").value.trim();
+      const confirm = await Swal.fire({
+        title: "¿Desvincular RFID?",
+        text: `Se eliminará la tarjeta "${taquillaUsuarioActual?.rfid_uid}" del usuario.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, desvincular",
+        cancelButtonText: "Cancelar",
+        background: "#1e1e1e", color: "#fff", confirmButtonColor: "#ef4444"
+      });
+      if (!confirm.isConfirmed) return;
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/taquilla/desvincular`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000, background: "#1e1e1e", color: "#fff" }).fire({ icon: "success", title: "RFID desvinculado" });
+        document.getElementById("tq-rfid").textContent = "Ninguno";
+        btnDesvincular.style.display = "none";
+        if (taquillaUsuarioActual) taquillaUsuarioActual.rfid_uid = null;
+      } catch (error) {
+        Swal.fire({ icon: "error", title: "Error", text: error.message, background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
+      }
+    });
   }
 
   // --- GESTIÓN DE TARIFAS ---
@@ -2594,6 +2685,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       tarifasCargadas = await res.json();
       renderTablaTarifas(tarifasCargadas);
+
+      // Precargar tarifa global en los inputs
+      const global = tarifasCargadas.find(t => !t.rutaId);
+      if (global) {
+        document.getElementById("tg-general").value = global.precioGeneral;
+        document.getElementById("tg-estudiante").value = global.precioEstudiante;
+      }
     } catch (e) {
       console.error("Error cargando tarifas:", e);
     }
@@ -2617,7 +2715,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>$${parseFloat(t.precioGeneral).toFixed(2)}</td>
         <td>$${parseFloat(t.precioEstudiante).toFixed(2)}</td>
         <td>
-          ${t.rutaId ? `<button class="btn btn-danger btn-sm btn-eliminar-tarifa" data-id="${t._id || t.rutaId._id}"><i class="fas fa-trash"></i></button>` : '<span class="text-muted">Global</span>'}
+          ${t.rutaId ? `<button class="btn btn-danger btn-sm btn-eliminar-tarifa" data-id="${t.rutaId._id || t.rutaId}"><i class="fas fa-trash"></i></button>` : '<span class="text-muted">Global</span>'}
         </td>
       `;
       tbody.appendChild(row);
@@ -2638,10 +2736,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
-        alert("Tarifa global actualizada");
+        Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000, background: "#1e1e1e", color: "#fff" }).fire({ icon: "success", title: "Tarifa global actualizada" });
         cargarTarifas();
       } catch (error) {
-        alert(error.message);
+        Swal.fire({ icon: "error", title: "Error", text: error.message, background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
       }
     });
   }
@@ -2671,7 +2769,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const precioEstudiante = parseFloat(document.getElementById("tr-estudiante").value);
 
       if (!rutaId) {
-        alert("Selecciona una ruta");
+        Swal.fire({ icon: "warning", title: "Selecciona una ruta", background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
         return;
       }
 
@@ -2683,11 +2781,11 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
-        alert("Tarifa actualizada para la ruta");
+        Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000, background: "#1e1e1e", color: "#fff" }).fire({ icon: "success", title: "Tarifa actualizada para la ruta" });
         cargarTarifas();
         formTarifaRuta.reset();
       } catch (error) {
-        alert(error.message);
+        Swal.fire({ icon: "error", title: "Error", text: error.message, background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
       }
     });
   }
@@ -2701,17 +2799,26 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   async function eliminarTarifaRuta(rutaId) {
-    if (!(await confirmAsync("¿Eliminar tarifa? La ruta usará la tarifa global."))) return;
+    const confirm = await Swal.fire({
+      title: "¿Eliminar tarifa?",
+      text: "La ruta usará la tarifa global.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      background: "#1e1e1e", color: "#fff", confirmButtonColor: "#ef4444"
+    });
+    if (!confirm.isConfirmed) return;
     try {
       const res = await fetch(`${BACKEND_URL}/api/taquilla/tarifas/ruta/${rutaId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Error");
-      alert("Tarifa eliminada");
+      Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000, background: "#1e1e1e", color: "#fff" }).fire({ icon: "success", title: "Tarifa eliminada" });
       cargarTarifas();
     } catch (error) {
-      alert(error.message);
+      Swal.fire({ icon: "error", title: "Error", text: error.message, background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
     }
   }
 });

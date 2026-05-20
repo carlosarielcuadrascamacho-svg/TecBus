@@ -973,6 +973,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   socket.on("smartAlert", (data) => alert(`🤖 ALERTA: ${data.mensaje}`));
 
+  // Actualizar saldo en tiempo real cuando ocurre un cobro
+  socket.on("nuevaTransaccion", (data) => {
+    if (!data.usuarioId?._id && !data.usuarioId?.nombre) {
+      const uid = user._id || user.id;
+      if (String(data.usuarioId) !== String(uid)) return;
+    }
+    // Recargar saldo automáticamente
+    fetch(`${BACKEND_URL}/api/transacciones/saldo`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(d => {
+      const el = document.getElementById("perfil-saldo");
+      if (el && el.closest(".modal.show")) {
+        el.textContent = `$${parseFloat(d.saldo || 0).toFixed(2)}`;
+      }
+    })
+    .catch(() => {});
+  });
+
   // --- BOTÓN ESTOY AQUÍ ---
   const btnEstoyAqui = document.getElementById("btn-estoy-aqui");
   

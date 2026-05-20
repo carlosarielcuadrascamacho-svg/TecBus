@@ -626,6 +626,9 @@
                 <div class="form-group"><label>RFID Vinculado</label><span id="tq-rfid" class="text-muted">Ninguno</span></div>
                 <div class="form-group"><label>Estudiante</label><span id="tq-estudiante" class="text-muted">No</span></div>
               </div>
+              <div style="margin-top:12px; text-align:right;">
+                <button type="button" id="btn-desvincular-rfid" class="btn btn-secondary btn-sm" style="display:none;"><i class="fas fa-unlink"></i> Desvincular RFID</button>
+              </div>
               <input type="hidden" id="tq-user-id" />
             </div>
 
@@ -674,7 +677,7 @@
                 <h3><i class="fas fa-receipt"></i> Transacciones Recientes</h3>
               </div>
               <table class="data-table">
-                <thead><tr><th>Fecha</th><th>Monto</th><th>Tipo</th><th>Ruta</th><th>Camion</th><th>Boletos</th></tr></thead>
+                <thead><tr><th>Fecha</th><th>Monto</th><th>Tipo</th><th>Ruta</th><th>Camion</th><th>Boletos</th><th>Saldo Después</th></tr></thead>
                 <tbody id="tq-transacciones-body"></tbody>
               </table>
             </div>

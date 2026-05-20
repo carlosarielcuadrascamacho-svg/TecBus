@@ -20,7 +20,7 @@ const transaccionSchema = new mongoose.Schema({
     },
     tipo_tarifa: {
         type: String,
-        enum: ['General', 'Estudiante'],
+        enum: ['General', 'Estudiante', 'Recarga'],
         default: 'General'
     },
     cantidad_boletos: {
