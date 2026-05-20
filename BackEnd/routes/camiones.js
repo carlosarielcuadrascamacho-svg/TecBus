@@ -395,7 +395,17 @@ router.get("/:id", protect, async (req, res) => {
       return res.status(404).json({ message: "Camión no encontrado en la BD" });
     }
 
-    // 2. Devolvemos el objeto completo (incluyendo coordenadas guardadas)
+    if (!camion.conductorActual) {
+      const Horario = require("../models/Horario");
+      const horario = await Horario.findOne({ "salidas.camionAsignado": camion._id }).populate("salidas.conductorAsignado", "nombre");
+      if (horario) {
+        const salida = horario.salidas.find(s => s.camionAsignado?.toString() === camion._id.toString());
+        if (salida?.conductorAsignado) {
+          camion.conductorActual = salida.conductorAsignado;
+        }
+      }
+    }
+
     res.json(camion);
     
   } catch (error) {
