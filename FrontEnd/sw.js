@@ -68,6 +68,12 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Ignorar peticiones que no sean GET (POST, PUT, DELETE, etc.) o que no sean HTTP/HTTPS
+  // ya que la API de Caché solo soporta peticiones GET de protocolo HTTP/HTTPS
+  if (request.method !== 'GET' || !request.url.startsWith('http')) {
+    return;
+  }
+
   // API calls → Network-first (siempre intentar datos frescos del servidor)
   if (url.href.startsWith(API_BASE)) {
     event.respondWith(
