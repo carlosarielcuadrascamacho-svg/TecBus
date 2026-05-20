@@ -100,15 +100,25 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-// --- HELPER: Sincronizar rutaAsignada del camión ---
+// --- HELPER: Sincronizar ruta y conductor del camión desde sus horarios ---
 async function syncCamionRuta(camionId) {
   if (!camionId) return;
   const horarios = await Horario.find({ "salidas.camionAsignado": camionId });
   if (horarios.length === 0) {
-    await Camion.findByIdAndUpdate(camionId, { $unset: { rutaAsignada: "" } });
+    await Camion.findByIdAndUpdate(camionId, { $unset: { rutaAsignada: "", conductorActual: "" } });
   } else {
     const rutaId = horarios[0].ruta;
-    await Camion.findByIdAndUpdate(camionId, { rutaAsignada: rutaId });
+    let conductorId = null;
+    for (const h of horarios) {
+      const salida = h.salidas.find(s => s.camionAsignado?.toString() === camionId.toString());
+      if (salida?.conductorAsignado) {
+        conductorId = salida.conductorAsignado;
+        break;
+      }
+    }
+    const update = { rutaAsignada: rutaId };
+    if (conductorId) update.conductorActual = conductorId;
+    await Camion.findByIdAndUpdate(camionId, update);
   }
 }
 
