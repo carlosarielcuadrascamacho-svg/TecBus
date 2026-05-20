@@ -3194,3 +3194,94 @@ async function actualizarDatosGraficos() {
 if (window.location.hash === "#estadisticas") {
     setTimeout(inicializarGraficos, 500);
 }
+
+// =========================================================
+//  MAPA DE CALOR (HEATMAP) MAPLIBRE GL JS
+// =========================================================
+
+let mapaCalorActivo = false;
+
+window.toggleHeatmap = function() {
+    const btn = document.getElementById("btn-toggle-heatmap");
+    if (!btn) return;
+    
+    mapaCalorActivo = !mapaCalorActivo;
+    btn.classList.toggle("activo", mapaCalorActivo);
+    
+    if (window.adminMap) {
+        if (mapaCalorActivo) {
+            cargarMapaCalorVacios(window.adminMap);
+        } else {
+            ocultarMapaCalorVacios(window.adminMap);
+        }
+    } else {
+        console.error("El mapa adminMap no está inicializado.");
+    }
+};
+
+async function cargarMapaCalorVacios(map) {
+    // Si la fuente ya existe, simplemente mostramos la capa
+    if (map.getSource('heatmap-vacios')) {
+        map.setLayoutProperty('heatmap-layer', 'visibility', 'visible');
+        return;
+    }
+
+    try {
+        const respuesta = await fetch(`${BACKEND_URL}/api/historial/mapa-calor-vacio`);
+        const resultado = await respuesta.json();
+
+        // Agregar la fuente GeoJSON
+        map.addSource('heatmap-vacios', {
+            type: 'geojson',
+            data: resultado
+        });
+
+        // Configurar capa heatmap
+        map.addLayer({
+            id: 'heatmap-layer',
+            type: 'heatmap',
+            source: 'heatmap-vacios',
+            maxzoom: 15,
+            paint: {
+                // Aumentar intensidad a medida que el zoom aumenta
+                'heatmap-intensity': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    0, 1,
+                    15, 3
+                ],
+                // Colores del heatmap (Transparente -> Amarillo -> Naranja -> Rojo)
+                'heatmap-color': [
+                    'interpolate',
+                    ['linear'],
+                    ['heatmap-density'],
+                    0, 'rgba(0, 0, 0, 0)',
+                    0.2, 'rgba(255, 255, 0, 0.8)',
+                    0.4, 'rgba(255, 165, 0, 0.9)',
+                    0.6, 'rgba(255, 69, 0, 1)',
+                    1, 'rgba(220, 20, 60, 1)'
+                ],
+                // Ajustar radio en función del zoom
+                'heatmap-radius': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    0, 15,
+                    15, 45
+                ],
+                // Opacidad general
+                'heatmap-opacity': 0.85
+            }
+        });
+
+    } catch (error) {
+        console.error("Fallo al cargar el mapa de calor:", error);
+    }
+}
+
+function ocultarMapaCalorVacios(map) {
+    if (map.getLayer('heatmap-layer')) {
+        map.setLayoutProperty('heatmap-layer', 'visibility', 'none');
+    }
+}
