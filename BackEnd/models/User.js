@@ -43,7 +43,7 @@ const userSchema = new mongoose.Schema({
     tipo: {
         type: String,
         required: true,
-        enum: ['estudiante', 'conductor', 'administrador'], // Tu diseño
+        enum: ['estudiante', 'conductor', 'administrador', 'usuario'],
         default: 'estudiante'
     },
     telefono: { type: String },
