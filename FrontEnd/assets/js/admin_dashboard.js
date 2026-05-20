@@ -737,9 +737,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  if (closeModalBtnUser)
-    closeModalBtnUser.onclick = () =>
+  if (closeModalBtnUser) {
+    closeModalBtnUser.addEventListener("click", (e) => {
+      e.stopPropagation();
       modalUser.classList.remove("modal-visible");
+      if (modalFormUser) modalFormUser.reset();
+      if (camposConductorEdit) camposConductorEdit.style.display = "none";
+    });
+  }
 
   if (modalFormUser) {
     modalFormUser.addEventListener("submit", async (e) => {
