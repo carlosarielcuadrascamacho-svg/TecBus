@@ -648,22 +648,17 @@
                 <p>Calcula el retorno de inversión según el tamaño de tu flota y gastos de combustible.</p>
               </div>
               <form id="roi-inputs-form" onsubmit="event.preventDefault();">
-                <div class="form-group-premium">
-                  <label for="roi-flotilla"><i class="fas fa-bus"></i> Tamaño de la Flotilla</label>
-                  <input type="number" id="roi-flotilla" value="10" min="1" step="1" required />
-                  <span class="input-help">Número total de camiones en operación</span>
+                <div class="form-group-premium" style="background: rgba(0, 230, 118, 0.05); border: 1px solid rgba(0, 230, 118, 0.2); padding: 15px; border-radius: 10px;">
+                  <label><i class="fas fa-bus"></i> Flotilla Activa Detectada</label>
+                  <div style="font-size: 1.5rem; font-weight: 700; color: #00e676; margin-top: 5px;">
+                    <span id="roi-flotilla-display">Calculando...</span> <small style="font-size: 0.8rem; color: #adb5bd; font-weight: 400;">unidades</small>
+                  </div>
                 </div>
                 
-                <div class="form-group-premium">
-                  <label for="roi-diesel-mensual"><i class="fas fa-dollar-sign"></i> Gasto Diésel Mensual por Camión (MXN)</label>
+                <div class="form-group-premium" style="margin-top: 20px;">
+                  <label for="roi-diesel-mensual"><i class="fas fa-dollar-sign"></i> Gasto Diésel Mensual Promedio por Camión (MXN)</label>
                   <input type="number" id="roi-diesel-mensual" value="25000" min="1000" step="500" required />
-                  <span class="input-help">Costo promedio de combustible por unidad al mes</span>
-                </div>
-
-                <div class="form-group-premium">
-                  <label for="roi-costo-instalacion"><i class="fas fa-wrench"></i> Costo de Instalación por Camión (MXN)</label>
-                  <input type="number" id="roi-costo-instalacion" value="8000" min="500" step="100" required />
-                  <span class="input-help">Inversión única estimada por dispositivo SmartBus IoT</span>
+                  <span class="input-help">Los cálculos de Retorno de Inversión (Hardware, Mantenimiento) se harán automáticamente para toda la flotilla.</span>
                 </div>
               </form>
             </div>
