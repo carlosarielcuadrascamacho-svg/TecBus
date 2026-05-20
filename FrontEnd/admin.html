@@ -898,6 +898,22 @@
               <label for="edit-camion-capacidad">Capacidad (Pasajeros)</label>
               <input type="number" id="edit-camion-capacidad" required min="1" />
             </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="edit-camion-estado">Estado</label>
+                <select id="edit-camion-estado">
+                  <option value="activo">Activo</option>
+                  <option value="mantenimiento">Mantenimiento</option>
+                  <option value="inactivo">Inactivo</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="edit-camion-ruta">Ruta Asignada</label>
+                <select id="edit-camion-ruta">
+                  <option value="">-- Sin ruta --</option>
+                </select>
+              </div>
+            </div>
 
             <div class="modal-actions">
                 <button type="submit" class="btn btn-primary btn-full">

@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const express = require("express");
 const router = express.Router();
 const Horario = require("../models/Horario");
+const Camion = require("../models/Camion");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
 
 
@@ -99,6 +100,18 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
+// --- HELPER: Sincronizar rutaAsignada del camión ---
+async function syncCamionRuta(camionId) {
+  if (!camionId) return;
+  const horarios = await Horario.find({ "salidas.camionAsignado": camionId });
+  if (horarios.length === 0) {
+    await Camion.findByIdAndUpdate(camionId, { $unset: { rutaAsignada: "" } });
+  } else {
+    const rutaId = horarios[0].ruta;
+    await Camion.findByIdAndUpdate(camionId, { rutaAsignada: rutaId });
+  }
+}
+
 // --- RUTA 2: Crear/Agregar Horarios (CORREGIDA Y BLINDADA) ---
 router.post("/", protect, adminOnly, async (req, res) => {
   const { ruta, diaSemana, hora, camionAsignado, conductorAsignado } = req.body;
@@ -169,6 +182,10 @@ router.post("/", protect, adminOnly, async (req, res) => {
 
     await Promise.all(promesas);
 
+    if (camionAsignado) {
+      await syncCamionRuta(camionAsignado);
+    }
+
     res.status(201).json({ message: "Horarios procesados correctamente" });
 
   } catch (error) {
@@ -182,10 +199,21 @@ router.post("/", protect, adminOnly, async (req, res) => {
 router.delete("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
   try {
     const { id, salidaId } = req.params;
+    const horario = await Horario.findById(id);
+    if (!horario) return res.status(404).json({ message: "Horario no encontrado" });
+
+    const salida = horario.salidas.id(salidaId);
+    const camionId = salida?.camionAsignado;
+
     await Horario.updateOne(
       { _id: id },
       { $pull: { salidas: { _id: salidaId } } }
     );
+
+    if (camionId) {
+      await syncCamionRuta(camionId);
+    }
+
     res.json({ message: "Salida eliminada" });
   } catch (error) {
     res.status(500).json({ message: "Error eliminando salida" });
@@ -220,6 +248,8 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
 
         if (!rutaCambio && !diaCambio) {
             // CASO A: Solo cambiaron datos de la salida (hora, camión, conductor)
+            const oldCamionId = salidaOriginal.camionAsignado;
+
             await Horario.updateOne(
                 { "_id": id, "salidas._id": salidaId },
                 { 
@@ -231,10 +261,20 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
                     } 
                 }
             );
+
+            if (oldCamionId && oldCamionId.toString() !== camionAsignado) {
+                await syncCamionRuta(oldCamionId);
+            }
+            if (camionAsignado) {
+                await syncCamionRuta(camionAsignado);
+            }
+
             return res.json({ message: "Salida actualizada correctamente" });
 
         } else {
             // CASO B: Cambió ruta o día (Mover salida)
+            const oldCamionId = salidaOriginal.camionAsignado;
+
             await Horario.updateOne(
                 { _id: id },
                 { $pull: { salidas: { _id: salidaId } } }
@@ -258,6 +298,13 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
             });
 
             await horarioDestino.save();
+
+            if (oldCamionId && oldCamionId.toString() !== camionAsignado) {
+                await syncCamionRuta(oldCamionId);
+            }
+            if (camionAsignado) {
+                await syncCamionRuta(camionAsignado);
+            }
 
             return res.json({ message: "Horario movido y actualizado correctamente" });
         }

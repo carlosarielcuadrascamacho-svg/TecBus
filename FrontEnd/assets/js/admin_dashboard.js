@@ -913,13 +913,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function openEditCamionModal(camion) {
+  async function openEditCamionModal(camion) {
     document.getElementById("edit-camion-id").value = camion._id;
     document.getElementById("edit-camion-placa").value = camion.placa;
     document.getElementById("edit-camion-unidad").value = camion.numeroUnidad;
     document.getElementById("edit-camion-modelo").value = camion.modelo || "";
     document.getElementById("edit-camion-capacidad").value =
       camion.capacidad || "";
+
+    const selEstado = document.getElementById("edit-camion-estado");
+    if (selEstado) selEstado.value = camion.estado || "activo";
+
+    const selRuta = document.getElementById("edit-camion-ruta");
+    if (selRuta) {
+      selRuta.innerHTML = '<option value="">-- Sin ruta --</option>';
+      try {
+        const res = await fetch(BACKEND_URL + "/api/rutas", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const rutas = await res.json();
+        rutas.forEach((r) => {
+          selRuta.innerHTML += `<option value="${r._id}">${r.nombre}</option>`;
+        });
+      } catch (_) {}
+      const rutaId = camion.rutaAsignada ? camion.rutaAsignada._id || camion.rutaAsignada : "";
+      selRuta.value = rutaId;
+    }
     modalCamion.classList.add("modal-visible");
   }
 
@@ -952,6 +971,8 @@ document.addEventListener("DOMContentLoaded", () => {
         numeroUnidad: document.getElementById("edit-camion-unidad").value,
         modelo: document.getElementById("edit-camion-modelo").value,
         capacidad: document.getElementById("edit-camion-capacidad").value,
+        estado: document.getElementById("edit-camion-estado")?.value || "activo",
+        rutaAsignada: document.getElementById("edit-camion-ruta")?.value || null,
       };
       try {
         const response = await fetch(`${BACKEND_URL}/api/camiones/${id}`, {
