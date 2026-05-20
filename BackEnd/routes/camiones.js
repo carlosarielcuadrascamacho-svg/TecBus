@@ -25,8 +25,23 @@ router.put("/update-location", async (req, res) => {
       return res.status(400).json({ message: "Datos GPS incompletos" });
     }
 
-    // 2. Obtener datos del camión (para ID real y ruta asignada)
-    const camion = await Camion.findOne({ numeroUnidad: busId }).populate("rutaAsignada");
+    // 2. Obtener y actualizar los datos en tiempo real del camión en la colección principal
+    const camion = await Camion.findOneAndUpdate(
+      { numeroUnidad: busId },
+      {
+        $set: {
+          ubicacionActual: {
+            type: "Point",
+            coordinates: [lng, lat],
+          },
+          velocidad: speed,
+          ultimaActualizacion: ahora,
+          estado: "activo"
+        }
+      },
+      { new: true }
+    ).populate("rutaAsignada");
+
     if (!camion) {
       return res.status(404).json({ message: "Camión no registrado en la flotilla" });
     }
