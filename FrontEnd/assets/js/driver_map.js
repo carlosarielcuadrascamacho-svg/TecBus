@@ -1192,7 +1192,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const tipoClase = t.tipo_tarifa === "Estudiante" ? "estudiante" : "general";
       return `<div class="cobro-item">
         <div class="cobro-info">
-          <span class="cobro-nombre">${t.usuarioId?.nombre || "Anónimo"}</span>
+          <span class="cobro-nombre">${t.usuarioId?._id === (user._id || user.id) ? "Efectivo (Manual)" : (t.usuarioId?.nombre || "Anónimo")}</span>
           <span class="cobro-detalle">${fecha} · ${t.rutaId?.nombre || "N/A"} · ${t.cantidad_boletos} boleto(s)</span>
         </div>
         <span class="cobro-monto ${tipoClase}">-$${parseFloat(t.monto).toFixed(2)}</span>
@@ -1259,8 +1259,10 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Error en cobro manual:", e);
         Swal.fire({ icon: "error", title: "Error", text: "Error al registrar cobro", background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
       } finally {
-        btnCobroManual.disabled = false;
-        btnCobroManual.innerHTML = '<i class="fas fa-check-circle"></i> Registrar Cobro Manual';
+        setTimeout(() => {
+          btnCobroManual.disabled = false;
+          btnCobroManual.innerHTML = '<i class="fas fa-check-circle"></i> Registrar Cobro Manual';
+        }, 1500); // Prevenir múltiples clicks accidentales (debounce)
       }
     });
   }
