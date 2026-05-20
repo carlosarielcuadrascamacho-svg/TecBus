@@ -30,10 +30,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const ctx = document.getElementById("roi-chart")?.getContext("2d");
   
-  // Inyectar el contenedor del mensaje dinámico si no existe
+  // Inyectar el contenedor del mensaje dinámico si no existe en el HTML
   const chartContainer = document.querySelector(".roi-chart-container");
+  const chartCard = document.querySelector(".roi-chart-card");
   let mensajeDinamico = document.getElementById("roi-mensaje-dinamico");
-  if (!mensajeDinamico && chartContainer) {
+  if (!mensajeDinamico && chartCard) {
       mensajeDinamico = document.createElement("div");
       mensajeDinamico.id = "roi-mensaje-dinamico";
       mensajeDinamico.style.textAlign = "center";
@@ -45,8 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
       mensajeDinamico.style.fontFamily = "'Poppins', sans-serif";
       mensajeDinamico.style.fontSize = "1.05rem";
       mensajeDinamico.style.transition = "all 0.3s ease";
-      // Insertarlo después del canvas
-      chartContainer.appendChild(mensajeDinamico);
+      chartCard.appendChild(mensajeDinamico);
   }
 
   let roiChartInstance = null;
