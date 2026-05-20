@@ -2121,3 +2121,37 @@
     padding: 5px 10px;
     font-size: 0.8rem;
 }
+
+/* --- TAQUILLA RESPONSIVE --- */
+@media (max-width: 900px) {
+    #taquilla .form-grid[style*="grid-template-columns: 1fr 1fr 1fr auto;"],
+    #taquilla .form-grid[style*="grid-template-columns: 1fr 1fr auto;"],
+    #taquilla .form-grid[style*="grid-template-columns: 1fr 1fr 1fr 1fr;"] {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+    #taquilla .form-grid[style*="grid-template-columns: 1fr 1fr;"] {
+        grid-template-columns: 1fr !important;
+    }
+    #taquilla .form-grid[style*="grid-template-columns: 1fr auto;"] {
+        grid-template-columns: 1fr !important;
+    }
+    .data-table {
+        font-size: 0.75rem;
+    }
+    .data-table th, .data-table td {
+        padding: 6px 4px;
+    }
+}
+
+@media (max-width: 600px) {
+    #taquilla .data-table {
+        font-size: 0.65rem;
+    }
+    #taquilla .data-table th:nth-child(5),
+    #taquilla .data-table td:nth-child(5),
+    #taquilla .data-table th:nth-child(6),
+    #taquilla .data-table td:nth-child(6) {
+        display: none;
+    }
+}

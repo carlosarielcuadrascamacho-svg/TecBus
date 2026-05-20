@@ -193,16 +193,38 @@ io.on("connection", (socket) => {
       });
   });
 
-  // --- C. Cobro Manual (Conductor) ---
+  // --- C. Cobro Manual (Conductor) — precio calculado del lado servidor ---
   socket.on("cobroManual", async (data) => {
     try {
       const Transaccion = require("./models/Transaccion");
+      const Tarifa = require("./models/Tarifa");
+      const Ruta = require("./models/Ruta");
+
+      const PRECIO_GENERAL_DEFAULT = 12.00;
+      const PRECIO_ESTUDIANTE_DEFAULT = 8.00;
+
+      // Resolver rutaId si se envió nombre
+      let rutaId = data.rutaId || null;
+      if (!rutaId && data.rutaNombre) {
+        const ruta = await Ruta.findOne({ nombre: data.rutaNombre }).select("_id");
+        if (ruta) rutaId = ruta._id;
+      }
+
+      // Calcular precio (lógica idéntica a pagos.js)
+      const esEstudiante = data.tipo_tarifa === "Estudiante";
+      let tarifa = await Tarifa.findOne({ rutaId, activa: true });
+      if (!tarifa) tarifa = await Tarifa.findOne({ rutaId: null, activa: true });
+      const precio = tarifa
+        ? (esEstudiante ? tarifa.precioEstudiante : tarifa.precioGeneral)
+        : (esEstudiante ? PRECIO_ESTUDIANTE_DEFAULT : PRECIO_GENERAL_DEFAULT);
+
       const transaccion = await Transaccion.create({
         usuarioId: data.conductorId,
         camionId: data.camionId,
-        monto: data.monto,
+        monto: precio,
         tipo_tarifa: data.tipo_tarifa,
         cantidad_boletos: 1,
+        rutaId: rutaId || undefined,
         timestamp: new Date(data.timestamp)
       });
 
@@ -213,15 +235,15 @@ io.on("connection", (socket) => {
       io.emit("nuevaTransaccion", {
         _id: transaccionCompleta._id,
         camionId: data.camionId,
-        monto: data.monto,
+        monto: precio,
         tipo_tarifa: data.tipo_tarifa,
         cantidad_boletos: 1,
         timestamp: transaccionCompleta.timestamp,
-        usuarioId: { nombre: "Manual" },
-        rutaId: null
+        usuarioId: { nombre: transaccionCompleta.usuarioId?.nombre || "Manual" },
+        rutaId: transaccionCompleta.rutaId ? { nombre: transaccionCompleta.rutaId.nombre } : null
       });
 
-      console.log(`💰 Cobro manual registrado: $${data.monto} en camión ${data.camionId}`);
+      console.log(`💰 Cobro manual registrado: $${precio.toFixed(2)} en camión ${data.camionId}`);
     } catch (error) {
       console.error("Error en cobro manual:", error.message);
     }

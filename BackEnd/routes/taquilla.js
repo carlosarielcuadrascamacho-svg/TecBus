@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const Tarifa = require("../models/Tarifa");
+const Transaccion = require("../models/Transaccion");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
 
 router.use(protect, adminOnly);
@@ -38,6 +39,10 @@ router.put("/vincular", async (req, res) => {
             return res.status(400).json({ message: "email, rfid_uid y monto_inicial son requeridos" });
         }
 
+        if (rfid_uid === "NO_CAMBIAR" || rfid_uid.trim() === "") {
+            return res.status(400).json({ message: "UID de tarjeta RFID inválido" });
+        }
+
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
@@ -46,15 +51,97 @@ router.put("/vincular", async (req, res) => {
             return res.status(409).json({ message: "Esta tarjeta RFID ya está vinculada a otro usuario" });
         }
 
+        const rfid_uid_previo = user.rfid_uid || null;
         user.rfid_uid = rfid_uid;
         user.saldo = (user.saldo || 0) + Number(monto_inicial);
         await user.save();
 
+        // Auditar recarga inicial como transacción
+        if (Number(monto_inicial) > 0) {
+            await Transaccion.create({
+                usuarioId: user._id,
+                camionId: "TAQUILLA",
+                monto: Number(monto_inicial),
+                tipo_tarifa: "Recarga",
+                cantidad_boletos: 1
+            });
+        }
+
         res.json({
             message: `Tarjeta ${rfid_uid} vinculada a ${email} con saldo de $${user.saldo}`,
             saldo: user.saldo,
-            rfid_uid: user.rfid_uid
+            rfid_uid: user.rfid_uid,
+            rfid_uid_previo
         });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error del servidor" });
+    }
+});
+
+// PUT /api/taquilla/recargar — Recargar saldo sin tocar RFID
+router.put("/recargar", async (req, res) => {
+    try {
+        const { email, monto } = req.body;
+        if (!email || !monto || monto <= 0) {
+            return res.status(400).json({ message: "email y monto (>0) son requeridos" });
+        }
+
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+
+        user.saldo = (user.saldo || 0) + Number(monto);
+        await user.save();
+
+        const transaccion = await Transaccion.create({
+            usuarioId: user._id,
+            camionId: "TAQUILLA",
+            monto: Number(monto),
+            tipo_tarifa: "Recarga",
+            cantidad_boletos: 1
+        });
+
+        // Emitir en tiempo real
+        try {
+            const io = req.app.get("io");
+            if (io) {
+                io.emit("nuevaTransaccion", {
+                    _id: transaccion._id,
+                    camionId: "TAQUILLA",
+                    monto: Number(monto),
+                    tipo_tarifa: "Recarga",
+                    cantidad_boletos: 1,
+                    timestamp: transaccion.timestamp,
+                    usuarioId: { nombre: user.nombre || "Usuario" },
+                    rutaId: null
+                });
+            }
+        } catch (_) {}
+
+        res.json({
+            message: `Recarga de $${Number(monto).toFixed(2)} aplicada. Saldo: $${user.saldo.toFixed(2)}`,
+            saldo: user.saldo
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error del servidor" });
+    }
+});
+
+// PUT /api/taquilla/desvincular — Desvincular RFID del usuario
+router.put("/desvincular", async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ message: "email es requerido" });
+
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+        if (!user.rfid_uid) return res.status(400).json({ message: "El usuario no tiene RFID vinculado" });
+
+        user.rfid_uid = undefined;
+        await user.save();
+
+        res.json({ message: "RFID desvinculado exitosamente" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error del servidor" });

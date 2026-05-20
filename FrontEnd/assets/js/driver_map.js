@@ -1125,8 +1125,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (sidebar) sidebar.classList.remove("active");
     fullscreenCobros.classList.add("active");
     if (cobroRuta) cobroRuta.textContent = MI_RUTA_NOMBRE || "Sin ruta activa";
-    cargarOrigenDestino();
-    cargarTransaccionesCamion();
+    await cargarOrigenDestino();
+    await cargarTransaccionesCamion();
+    // Precargar precios reales en el dropdown
+    if (cobroTipoTarifa) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/taquilla/tarifas`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const tarifas = await res.json();
+          const global = tarifas.find(t => !t.rutaId);
+          if (global) {
+            cobroTipoTarifa.options[0].text = `General — $${global.precioGeneral.toFixed(2)}`;
+            cobroTipoTarifa.options[1].text = `Estudiante — $${global.precioEstudiante.toFixed(2)}`;
+          }
+        }
+      } catch (_) { /* fallback silencioso a $-- */ }
+    }
   }
 
   function cargarOrigenDestino() {
@@ -1212,44 +1228,39 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Cobro manual (simulación - emite evento de transacción)
+  // Cobro manual — servidor calcula el precio
   if (btnCobroManual) {
     btnCobroManual.addEventListener("click", async () => {
       if (!MI_CAMION_ID) {
-        alert("No tienes un camión asignado");
+        Swal.fire({ icon: "warning", title: "Sin camión", text: "No tienes un camión asignado", background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
         return;
       }
       const tipo = cobroTipoTarifa?.value || "General";
-      const origenIdx = cobroOrigen?.value;
-      const destinoIdx = cobroDestino?.value;
+      const viajeActual = MIS_VIAJES_HOY[INDICE_VIAJE_ACTUAL];
+      const rutaId = viajeActual?.rutaId || viajeActual?.ruta?._id || null;
+
+      btnCobroManual.disabled = true;
+      btnCobroManual.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
 
       try {
-        // Obtener precios de tarifa
-        const resTarifas = await fetch(`${BACKEND_URL}/api/taquilla/tarifas`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const tarifas = await resTarifas.json();
-        const global = tarifas.find(t => !t.rutaId);
-        const precio = tipo === "Estudiante"
-          ? (global?.precioEstudiante || 8)
-          : (global?.precioGeneral || 12);
+        const precioDisplay = parseFloat(cobroTipoTarifa?.selectedOptions?.[0]?.text?.match(/\$([\d.]+)/)?.[1]) || 12;
 
-        // Emitir como si fuera un pago manual
         socket.emit("cobroManual", {
           camionId: MI_CAMION_ID,
           conductorId: user._id || user.id,
-          monto: precio,
           tipo_tarifa: tipo,
-          origen: origenIdx || null,
-          destino: destinoIdx || null,
+          rutaId,
           rutaNombre: MI_RUTA_NOMBRE,
           timestamp: new Date()
         });
 
-        alert(`✅ Cobro manual registrado: $${precio.toFixed(2)} (${tipo})`);
+        Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000, background: "#1e1e1e", color: "#fff" }).fire({ icon: "success", title: `Cobro registrado: $${precioDisplay.toFixed(2)} (${tipo})` });
       } catch (e) {
         console.error("Error en cobro manual:", e);
-        alert("Error al registrar cobro");
+        Swal.fire({ icon: "error", title: "Error", text: "Error al registrar cobro", background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
+      } finally {
+        btnCobroManual.disabled = false;
+        btnCobroManual.innerHTML = '<i class="fas fa-check-circle"></i> Registrar Cobro Manual';
       }
     });
   }
