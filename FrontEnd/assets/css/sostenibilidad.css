@@ -1,0 +1,376 @@
+/*
+ * =========================================================
+ * ECO-SOSTENIBILIDAD Y SIMULADOR GREEN ROI
+ * Diseño premium Dark Mode con efectos Neon Glow e interactividad.
+ * =========================================================
+ */
+
+/* Contenedor General */
+#sostenibilidad {
+  animation: ecoFadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes ecoFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 1. Eco-Dashboard Grid (3 Cards de Impacto) */
+.eco-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+/* Eco Cards Premium */
+.eco-card {
+  background: linear-gradient(135deg, rgba(30, 30, 45, 0.6) 0%, rgba(20, 20, 30, 0.8) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.eco-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.eco-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Cabeceras de Cards */
+.eco-card-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.eco-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-texto-gris);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+/* Iconos de Impacto con Resplandor (Glow) */
+.eco-icon-wrapper {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  transition: all 0.3s ease;
+}
+
+/* Icono Diésel (Ámbar) */
+.eco-icon-wrapper.diesel {
+  color: #ffb300;
+  background: rgba(255, 179, 0, 0.12);
+  box-shadow: 0 0 20px rgba(255, 179, 0, 0.15), inset 0 0 10px rgba(255, 179, 0, 0.05);
+}
+.eco-card-diesel:hover .eco-icon-wrapper.diesel {
+  background: rgba(255, 179, 0, 0.2);
+  box-shadow: 0 0 25px rgba(255, 179, 0, 0.35);
+  transform: rotate(-10deg);
+}
+
+/* Icono CO2 (Cian Eléctrico) */
+.eco-icon-wrapper.co2 {
+  color: #00d2ff;
+  background: rgba(0, 210, 255, 0.12);
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.15), inset 0 0 10px rgba(0, 210, 255, 0.05);
+}
+.eco-card-co2:hover .eco-icon-wrapper.co2 {
+  background: rgba(0, 210, 255, 0.2);
+  box-shadow: 0 0 25px rgba(0, 210, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+/* Icono Árboles (Verde Neón) */
+.eco-icon-wrapper.arboles {
+  color: #00e676;
+  background: rgba(0, 230, 118, 0.12);
+  box-shadow: 0 0 20px rgba(0, 230, 118, 0.15), inset 0 0 10px rgba(0, 230, 118, 0.05);
+}
+.eco-card-arboles:hover .eco-icon-wrapper.arboles {
+  background: rgba(0, 230, 118, 0.2);
+  box-shadow: 0 0 25px rgba(0, 230, 118, 0.35);
+  transform: scale(1.1);
+}
+
+/* Cuerpo de las Cards */
+.eco-card-body {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.eco-value {
+  font-size: 2.3rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.eco-unit {
+  font-size: 0.95rem;
+  color: var(--color-texto-gris);
+  margin-left: 8px;
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
+/* Pie de las Cards */
+.eco-card-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 12px;
+}
+
+.eco-subtext {
+  font-size: 0.8rem;
+  color: var(--color-texto-gris);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eco-subtext i {
+  font-size: 0.85rem;
+}
+
+.eco-card-diesel .eco-subtext i { color: #ffb300; }
+.eco-card-co2 .eco-subtext i { color: #00d2ff; }
+.eco-card-arboles .eco-subtext i { color: #00e676; }
+
+
+/* 2. Simulador Green ROI Layout (Grid 2 Columnas) */
+.roi-simulator-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+@media (min-width: 1200px) {
+  .roi-simulator-layout {
+    grid-template-columns: 1fr 1.4fr;
+  }
+}
+
+/* Tarjeta Formulario de Entrada */
+.roi-form-card {
+  background: linear-gradient(135deg, rgba(30, 30, 45, 0.5) 0%, rgba(20, 20, 30, 0.7) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.roi-card-header {
+  margin-bottom: 25px;
+}
+
+.roi-card-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.roi-card-header p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-texto-gris);
+  line-height: 1.4;
+}
+
+/* Premium Form Group */
+.form-group-premium {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 22px;
+  position: relative;
+}
+
+.form-group-premium:last-child {
+  margin-bottom: 0;
+}
+
+.form-group-premium label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.2px;
+}
+
+.form-group-premium label i {
+  color: var(--color-primario);
+  font-size: 0.95rem;
+}
+
+.form-group-premium input {
+  width: 100%;
+  padding: 14px 16px;
+  background-color: rgba(10, 10, 15, 0.6);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.form-group-premium input:focus {
+  outline: none;
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: rgba(10, 10, 15, 0.8);
+}
+
+.form-group-premium input:hover:not(:focus) {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.input-help {
+  font-size: 0.72rem;
+  color: var(--color-texto-gris);
+  margin-top: 6px;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+/* Tarjeta Gráfica y Resumen */
+.roi-chart-card {
+  background: linear-gradient(135deg, rgba(30, 30, 45, 0.5) 0%, rgba(20, 20, 30, 0.7) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Barra de Resumen Superior */
+.roi-summary-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+  padding: 15px;
+  background: rgba(10, 10, 15, 0.4);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.roi-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+}
+
+.summary-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-texto-gris);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.summary-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.summary-value.highlight-green {
+  color: #00e676;
+  text-shadow: 0 0 10px rgba(0, 230, 118, 0.2);
+}
+
+/* Destacado de Punto de Equilibrio con Micro-animación */
+.roi-summary-item.breakeven-highlight {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 10px;
+}
+
+.roi-summary-item.breakeven-highlight .summary-value {
+  color: #00d2ff;
+  font-size: 1.25rem;
+  text-shadow: 0 0 10px rgba(0, 210, 255, 0.25);
+  animation: breakevenPulse 2s infinite ease-in-out;
+}
+
+@keyframes breakevenPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.04);
+    filter: brightness(1.2);
+  }
+}
+
+/* Contenedor del Gráfico (Canvas de Chart.js) */
+.roi-chart-container {
+  flex-grow: 1;
+  position: relative;
+  min-height: 280px;
+  height: 100%;
+  width: 100%;
+}
+
+@media (max-width: 576px) {
+  .roi-summary-bar {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  .roi-summary-item.breakeven-highlight {
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-left: 0;
+    padding-top: 10px;
+  }
+}

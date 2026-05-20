@@ -35,6 +35,7 @@
     />
     <link rel="stylesheet" href="assets/css/base.css" />
     <link rel="stylesheet" href="assets/css/admin.css" />
+    <link rel="stylesheet" href="assets/css/sostenibilidad.css" />
     <script>
   // ☁️ SIEMPRE conectar a Render (incluso desde mi PC local)
   const BACKEND_URL = "https://tecbus-api.onrender.com";
@@ -75,6 +76,9 @@
           </a>
           <a href="#estadisticas" class="nav-item">
             <i class="fas fa-chart-line"></i> <span>Estadísticas</span>
+          </a>
+          <a href="#sostenibilidad" class="nav-item">
+            <i class="fas fa-leaf"></i> <span>Sostenibilidad</span>
           </a>
           <a href="#camiones" class="nav-item">
             <i class="fas fa-bus"></i> <span>Gestión de Camiones</span>
@@ -576,6 +580,111 @@
           </div>
         </section>
 
+        <section id="sostenibilidad" class="dashboard-section">
+          <!-- Eco-Dashboard Cards -->
+          <div class="eco-dashboard-grid">
+            <div class="eco-card eco-card-diesel">
+              <div class="eco-card-header">
+                <div class="eco-icon-wrapper diesel">
+                  <i class="fas fa-gas-pump"></i>
+                </div>
+                <span class="eco-label">Diésel Ahorrado</span>
+              </div>
+              <div class="eco-card-body">
+                <span class="eco-value" id="eco-val-diesel">--</span>
+                <span class="eco-unit">Litros</span>
+              </div>
+              <div class="eco-card-footer">
+                <span class="eco-subtext"><i class="fas fa-arrow-down"></i> Ralentí optimizado</span>
+              </div>
+            </div>
+
+            <div class="eco-card eco-card-co2">
+              <div class="eco-card-header">
+                <div class="eco-icon-wrapper co2">
+                  <i class="fas fa-leaf"></i>
+                </div>
+                <span class="eco-label">CO2 Evitado</span>
+              </div>
+              <div class="eco-card-body">
+                <span class="eco-value" id="eco-val-co2">--</span>
+                <span class="eco-unit">Toneladas</span>
+              </div>
+              <div class="eco-card-footer">
+                <span class="eco-subtext"><i class="fas fa-smog"></i> Menos emisiones</span>
+              </div>
+            </div>
+
+            <div class="eco-card eco-card-arboles">
+              <div class="eco-card-header">
+                <div class="eco-icon-wrapper arboles">
+                  <i class="fas fa-tree"></i>
+                </div>
+                <span class="eco-label">Árboles Equivalentes</span>
+              </div>
+              <div class="eco-card-body">
+                <span class="eco-value" id="eco-val-arboles">--</span>
+                <span class="eco-unit">Sembrados</span>
+              </div>
+              <div class="eco-card-footer">
+                <span class="eco-subtext"><i class="fas fa-globe"></i> Pulmón verde</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Simulador ROI Grid (2 Columnas) -->
+          <div class="roi-simulator-layout">
+            <!-- Formulario de Entrada -->
+            <div class="roi-form-card">
+              <div class="roi-card-header">
+                <h3><i class="fas fa-leaf" style="color: var(--color-exito);"></i> Simulador Green ROI</h3>
+                <p>Calcula el retorno de inversión según el tamaño de tu flota y gastos de combustible.</p>
+              </div>
+              <form id="roi-inputs-form" onsubmit="event.preventDefault();">
+                <div class="form-group-premium">
+                  <label for="roi-flotilla"><i class="fas fa-bus"></i> Tamaño de la Flotilla</label>
+                  <input type="number" id="roi-flotilla" value="10" min="1" step="1" required />
+                  <span class="input-help">Número total de camiones en operación</span>
+                </div>
+                
+                <div class="form-group-premium">
+                  <label for="roi-diesel-mensual"><i class="fas fa-dollar-sign"></i> Gasto Diésel Mensual por Camión (MXN)</label>
+                  <input type="number" id="roi-diesel-mensual" value="25000" min="1000" step="500" required />
+                  <span class="input-help">Costo promedio de combustible por unidad al mes</span>
+                </div>
+
+                <div class="form-group-premium">
+                  <label for="roi-costo-instalacion"><i class="fas fa-wrench"></i> Costo de Instalación por Camión (MXN)</label>
+                  <input type="number" id="roi-costo-instalacion" value="8000" min="500" step="100" required />
+                  <span class="input-help">Inversión única estimada por dispositivo SmartBus IoT</span>
+                </div>
+              </form>
+            </div>
+
+            <!-- Gráfico y Resumen -->
+            <div class="roi-chart-card">
+              <div class="roi-summary-bar">
+                <div class="roi-summary-item">
+                  <span class="summary-label">Inversión Total</span>
+                  <span class="summary-value" id="roi-val-inversion">$0.00</span>
+                </div>
+                <div class="roi-summary-item">
+                  <span class="summary-label">Ahorro Mensual (8%)</span>
+                  <span class="summary-value highlight-green" id="roi-val-ahorro-mensual">$0.00</span>
+                </div>
+                <div class="roi-summary-item breakeven-highlight">
+                  <span class="summary-label">Punto de Equilibrio</span>
+                  <span class="summary-value" id="roi-val-retorno">-- meses</span>
+                </div>
+              </div>
+              
+              <div class="roi-chart-container">
+                <canvas id="roi-chart"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="configuracion" class="dashboard-section">
           <div class="form-container">
             <h3>Configuración del Sistema</h3>
@@ -994,6 +1103,7 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="assets/js/admin_sidebar.js"></script>
     <script src="assets/js/admin_dashboard.js"></script>
+    <script src="assets/js/simulador_roi.js"></script>
     <script src="assets/js/pwa-install.js"></script>
   </body>
 </html>
