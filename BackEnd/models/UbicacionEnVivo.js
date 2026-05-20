@@ -13,6 +13,9 @@ const ubicacionEnVivoSchema = new mongoose.Schema({
     coordinates: { type: [Number], required: true } // [Longitud, Latitud]
   },
   velocidad: Number,
+  pasajeros_actuales: { type: Number, default: 0 },
+  luces_perifericos_encendidos: { type: Boolean, default: false },
+  minutos_ralenti: { type: Number, default: 0 },
   ultimaActualizacion: { type: Date, default: Date.now },
   estado: String // "En Ruta", "Detenido", etc.
 });

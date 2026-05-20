@@ -13,6 +13,8 @@ const historialSchema = new mongoose.Schema({
   },
   velocidad: Number,
   pasajeros_actuales: { type: Number, default: 0 },
+  luces_perifericos_encendidos: { type: Boolean, default: false },
+  minutos_ralenti: { type: Number, default: 0 },
   timestamp: { type: Date, default: Date.now } // Hora exacta del reporte
 });
 

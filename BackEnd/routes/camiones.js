@@ -17,7 +17,7 @@ const EstadisticaDiaria = require("../models/EstadisticaDiaria");
 // ==================================================================
 router.put("/update-location", async (req, res) => {
   try {
-    const { busId, lat, lng, speed } = req.body;
+    const { busId, lat, lng, speed, pasajeros_actuales, luces_perifericos_encendidos, minutos_ralenti } = req.body;
     const ahora = new Date();
 
     // 1. Validación básica
@@ -25,15 +25,19 @@ router.put("/update-location", async (req, res) => {
       return res.status(400).json({ message: "Datos GPS incompletos" });
     }
 
-    // 2. OBTENER UBICACIÓN ANTERIOR (Para calcular distancia recorrida)
-    // Antes de sobrescribir, necesitamos saber dónde estaba hace 10 segundos.
+    // 2. Obtener datos del camión (para ID real y ruta asignada)
+    const camion = await Camion.findOne({ numeroUnidad: busId }).populate("rutaAsignada");
+    if (!camion) {
+      return res.status(404).json({ message: "Camión no registrado en la flotilla" });
+    }
+
+    // 3. OBTENER UBICACIÓN ANTERIOR (Para calcular distancia recorrida)
     const ubicacionAnterior = await UbicacionEnVivo.findOne({ numeroUnidad: busId });
     
     let distanciaRecorrida = 0;
     
     if (ubicacionAnterior && ubicacionAnterior.ubicacion) {
         const coordsAnt = ubicacionAnterior.ubicacion.coordinates; // [lng, lat]
-        // OJO: Mongo guarda [lng, lat], mi función usa (lat1, lon1, lat2, lon2)
         distanciaRecorrida = getDistanceFromLatLonInM(
             coordsAnt[1], coordsAnt[0], // Lat, Lng anteriores
             lat, lng                    // Lat, Lng actuales
@@ -46,35 +50,39 @@ router.put("/update-location", async (req, res) => {
         }
     }
 
-    // 3. ACTUALIZAR "DATOS CALIENTES" (Live)
+    // 4. ACTUALIZAR "DATOS CALIENTES" (Live)
     // Esto es lo que ve el mapa en tiempo real
     const liveUpdate = await UbicacionEnVivo.findOneAndUpdate(
       { numeroUnidad: busId },
       {
         $set: {
+            camionId: camion._id,
             ubicacion: { type: "Point", coordinates: [lng, lat] },
             velocidad: speed,
+            pasajeros_actuales: pasajeros_actuales !== undefined ? pasajeros_actuales : 0,
+            luces_perifericos_encendidos: luces_perifericos_encendidos !== undefined ? luces_perifericos_encendidos : false,
+            minutos_ralenti: minutos_ralenti !== undefined ? minutos_ralenti : 0,
             ultimaActualizacion: ahora,
-            numeroUnidad: busId,
-            // Podrías agregar aquí el estado si lo tuvieras (ej. "En Ruta")
+            numeroUnidad: busId
         }
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // 4. GUARDAR HISTORIAL (Datos Fríos)
+    // 5. GUARDAR HISTORIAL (Datos Fríos)
     // Esto se guarda para siempre (o hasta que el TTL lo borre)
     HistorialUbicacion.create({
-        camionId: liveUpdate.camionId, // ID autogenerado si era nuevo
+        camionId: camion._id,
         numeroUnidad: busId,
         ubicacion: { type: "Point", coordinates: [lng, lat] },
         velocidad: speed,
+        pasajeros_actuales: pasajeros_actuales !== undefined ? pasajeros_actuales : 0,
+        luces_perifericos_encendidos: luces_perifericos_encendidos !== undefined ? luces_perifericos_encendidos : false,
+        minutos_ralenti: minutos_ralenti !== undefined ? minutos_ralenti : 0,
         timestamp: ahora
     }).catch(err => console.error("⚠️ Error guardando historial:", err.message));
 
-    // 5. ACTUALIZAR ESTADÍSTICAS DIARIAS (Optimizado)
-    // Generamos la clave del día: "102_2023-10-27" (Zona Horaria Local aprox)
-    // Ajusta el offset de horas si tu servidor está en UTC y tú en México (-6h o -7h)
+    // 6. ACTUALIZAR ESTADÍSTICAS DIARIAS (Optimizado)
     const fechaLocal = new Date(ahora.getTime() - (7 * 60 * 60 * 1000)); 
     const fechaString = fechaLocal.toISOString().split('T')[0]; // "YYYY-MM-DD"
     const claveStats = `${busId}_${fechaString}`;
@@ -87,31 +95,32 @@ router.put("/update-location", async (req, res) => {
                 fecha: new Date(fechaString) 
             },
             $inc: { 
-                distanciaTotal: distanciaRecorrida, // Sumamos lo que recorrió desde el último punto
+                distanciaTotal: distanciaRecorrida, 
                 totalPuntosReportados: 1 
             },
             $max: { 
-                velocidadMaxima: speed // Solo actualiza si la nueva velocidad es mayor a la guardada
+                velocidadMaxima: speed 
             },
             $set: { ultimaActualizacion: ahora }
         },
         { upsert: true }
     ).catch(err => console.error("⚠️ Error guardando stats:", err.message));
 
-    // 6. ENVIAR SOCKET (Para el Frontend)
+    // 7. ENVIAR SOCKET (Para el Frontend)
     const io = req.app.get("io");
     if (io) {
       io.emit("locationUpdate", {
-        camionId: liveUpdate.camionId, // Útil para tu frontend
+        camionId: camion._id,
         numeroUnidad: busId,
         location: { lat, lng },
         velocidad: speed,
+        pasajeros_actuales: pasajeros_actuales !== undefined ? pasajeros_actuales : 0,
+        luces_perifericos_encendidos: luces_perifericos_encendidos !== undefined ? luces_perifericos_encendidos : false,
+        minutos_ralenti: minutos_ralenti !== undefined ? minutos_ralenti : 0
       });
     }
 
-    // ============================================================
-    // 3. ANÁLISIS PREDICTIVO — TODA LA FUNCIÓN ORIGINAL CONSERVADA
-    // ============================================================
+    // 8. ANÁLISIS PREDICTIVO
     if (camion.rutaAsignada) {
       const fecha = new Date();
       const horaActual = fecha.getHours();
