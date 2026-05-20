@@ -66,6 +66,12 @@ router.post("/procesar", async (req, res) => {
                 const cantidad = Number(cantidad_boletos) || 1;
                 const total = parseFloat((precio * cantidad).toFixed(2));
 
+                if ((user.saldo || 0) < total) {
+                    resultados.push({ uid, estado: "error", motivo: "Saldo insuficiente" });
+                    fallidas++;
+                    continue;
+                }
+
                 user.saldo = parseFloat(((user.saldo || 0) - total).toFixed(2));
                 await user.save();
 

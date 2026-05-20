@@ -2603,18 +2603,16 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // Calcular saldo después para cada transacción (reverse chronological)
+      // Calcular saldo después para cada transacción (desde la más reciente hacia atrás)
       let saldoCorriente = parseFloat(taquillaUsuarioActual?.saldo || 0);
-      // Las transacciones vienen ordenadas DESC por timestamp.
-      // Acumulamos desde la más reciente hacia atrás para obtener el saldo en cada punto.
+      // Las transacciones vienen ordenadas DESC por timestamp (la [0] es la más reciente).
       const saldos = [];
-      for (let i = transacciones.length - 1; i >= 0; i--) {
+      for (let i = 0; i < transacciones.length; i++) {
         const t = transacciones[i];
+        saldos[i] = saldoCorriente;
         if (t.tipo_tarifa === "Recarga") {
-          saldos[i] = saldoCorriente;
           saldoCorriente -= parseFloat(t.monto);
         } else {
-          saldos[i] = saldoCorriente;
           saldoCorriente += parseFloat(t.monto);
         }
       }
