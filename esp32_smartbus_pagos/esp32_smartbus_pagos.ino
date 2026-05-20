@@ -91,6 +91,13 @@ unsigned long ultimoParpadeo  = 0;
 bool ledEstado = false;
 
 // =========================================================================
+//  VARIABLES DE TELEMETRÍA DE EFICIENCIA (Eco-Dashboard & Heatmap)
+// =========================================================================
+int pasajeros_actuales = 0;
+bool luces_perifericos_encendidos = false;
+int minutos_ralenti = 0;
+
+// =========================================================================
 //  BUFFER STORE & FORWARD
 // =========================================================================
 
@@ -227,21 +234,30 @@ void conectarWiFi() {
 }
 
 // =========================================================================
-//  ENVIO DE UBICACION GPS (mismo codigo existente)
+//  ENVIO DE TELEMETRÍA COMPLETA (GPS + EFICIENCIA)
 // =========================================================================
 
 void enviarUbicacion() {
+  // 1. Refrescar los valores antes de construir el JSON (No bloqueante)
+  leerSensoresEficiencia();
   HTTPClient http;
   String url = String(SERVER_URL) + "/api/camiones/update-location";
 
   http.begin(url);
   http.addHeader("Content-Type", "application/json");
 
-  StaticJsonDocument<200> doc;
+  // 2. Aumentamos a 256 bytes la memoria estática para el nuevo tamaño del JSON
+  StaticJsonDocument<256> doc;
+
+  // Variables existentes (Mantengo los nombres originales de tu código)
   doc["busId"] = BUS_ID;
   doc["lat"]   = gps.location.lat();
   doc["lng"]   = gps.location.lng();
   doc["speed"] = (int)gps.speed.kmph();
+  // 3. NUEVAS VARIABLES DE TELEMETRÍA IoT
+  doc["pasajeros_actuales"] = pasajeros_actuales;
+  doc["luces_perifericos_encendidos"] = luces_perifericos_encendidos;
+  doc["minutos_ralenti"] = minutos_ralenti;
 
   String jsonData;
   serializeJson(doc, jsonData);
@@ -252,6 +268,7 @@ void enviarUbicacion() {
     estadoLED = ENVIANDO_DATOS;
   } else {
     estadoLED = ERROR_CONEXION;
+    Serial.printf("[HTTP] Error enviando telemetría. Código: %d\n", httpCode);
   }
 
   http.end();
@@ -388,6 +405,31 @@ void actualizarLED() {
     ultimoParpadeo = ahora;
     ledEstado = !ledEstado;
     digitalWrite(LED_BUILTIN, ledEstado);
+  }
+}
+
+// =========================================================================
+//  LECTURA DE SENSORES DE EFICIENCIA (MOCK TEMPORAL)
+// =========================================================================
+void leerSensoresEficiencia() {
+  /*
+   * TODO (Implementación de Hardware Real):
+   * 1. pasajeros_actuales: Conectar sensores infrarrojos (ej. TCRT5000) o de barrera láser
+   *    en la puerta y usar interrupciones (FALLING) en los GPIOs 34 o 35.
+   * 2. luces_perifericos: Usar un módulo optoacoplador (ej. PC817) conectado al relé
+   *    de las luces principales y leer el estado digital con un GPIO (INPUT_PULLDOWN).
+   * 3. minutos_ralenti: Iniciar un contador no-bloqueante (usando millis()) cuando
+   *    gps.speed.kmph() < 3.0 km/h y el estado de ignición del motor esté en HIGH.
+   */
+  // Simulación dinámica de datos
+  pasajeros_actuales = random(0, 45); // Fluctúa entre vacío y lleno (0 a 44 pasajeros)
+  luces_perifericos_encendidos = (random(0, 100) > 50); // 50% probabilidad
+
+  // Solo genera ralentí falso si el camión parece estar detenido
+  if (gps.speed.isValid() && gps.speed.kmph() < 5.0) {
+    minutos_ralenti = random(1, 15);
+  } else {
+    minutos_ralenti = 0;
   }
 }
 
