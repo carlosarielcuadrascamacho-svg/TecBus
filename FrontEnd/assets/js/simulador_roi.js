@@ -9,8 +9,11 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("🌱 Inicializando Simulador de Retorno Verde (Green ROI)...");
 
   // --- 1. REFERENCIAS DEL DOM ---
-  const inputFlotilla = document.getElementById("roi-flotilla");
+  const flotillaDisplay = document.getElementById("roi-flotilla-display");
   const inputDiesel = document.getElementById("roi-diesel-mensual");
+  
+  // Variable global para la flotilla (obtenida del servidor)
+  let flotillaGlobal = 0;
   
   // Variables Financijas según requerimientos
   const CAPEX_POR_CAMION = 3818.50; // Inversión inicial (Hardware)
@@ -55,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- 3. CÁLCULO FINANCIERO Y PROYECCIÓN ---
   const calcularYActualizar = () => {
-    const flotilla = Math.max(0, parseInt(inputFlotilla?.value) || 0);
+    const flotilla = Math.max(0, flotillaGlobal || 0);
     const dieselMensualPorCamion = Math.max(0, parseFloat(inputDiesel?.value) || 0);
 
     const labels = [];
@@ -259,15 +262,12 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // --- 6. EVENTOS REACTIVOS ---
-  const inputs = [inputFlotilla, inputDiesel];
-  inputs.forEach(input => {
-    if (input) {
-      input.addEventListener("input", () => {
-        if (input.value !== "" && parseFloat(input.value) < 0) input.value = 0;
-        calcularYActualizar();
-      });
-    }
-  });
+  if (inputDiesel) {
+    inputDiesel.addEventListener("input", () => {
+      if (inputDiesel.value !== "" && parseFloat(inputDiesel.value) < 0) inputDiesel.value = 0;
+      calcularYActualizar();
+    });
+  }
 
   // --- 7. AJUSTE DE GRÁFICA AL CAMBIAR PESTAÑA ---
   const redibujarSiVisible = () => {
@@ -285,5 +285,35 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("hashchange", redibujarSiVisible);
 
   // --- 8. INIT ---
-  calcularYActualizar();
+  const inicializarSimulador = async () => {
+      try {
+          const token = localStorage.getItem("tecbus_token");
+          // Si por alguna razón BACKEND_URL no está globalmente definido aún, hacemos un fallback seguro
+          const baseUrl = typeof BACKEND_URL !== 'undefined' ? BACKEND_URL : "https://tecbus-api.onrender.com";
+          
+          if (!token) throw new Error("No hay token");
+
+          const response = await fetch(`${baseUrl}/api/camiones`, {
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+              const camiones = await response.json();
+              flotillaGlobal = camiones.length;
+          } else {
+              flotillaGlobal = 0; // Fallback
+          }
+      } catch (error) {
+          console.warn("⚠️ Error al obtener la flotilla real para el ROI:", error);
+          flotillaGlobal = 0;
+      }
+
+      if (flotillaDisplay) {
+          flotillaDisplay.textContent = flotillaGlobal;
+      }
+      
+      calcularYActualizar();
+  };
+
+  inicializarSimulador();
 });
