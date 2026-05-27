@@ -314,10 +314,8 @@
 }
 
 .header-title-admin {
-  width: 100%;
-  order: 2;
-  text-align: center;
-  margin-top: 10px;
+  flex: 1;
+  text-align: left;
 }
 .header-title-admin h2 {
   font-size: 1.5rem; 
@@ -330,9 +328,6 @@
 }
 
 .header-info {
-  order: 1;
-  width: 100%;
-  justify-content: space-between;
   display: flex;
   align-items: center;
   gap: 20px;
@@ -368,9 +363,16 @@
 
 .kpi-cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); 
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
   gap: 15px; 
   margin-bottom: 20px;
+}
+
+@media (max-width: 480px) {
+  .kpi-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 .card {
   background-color: var(--color-superficie);
@@ -429,6 +431,12 @@
   width: 100%;
   border-radius: 8px;
   background-color: #333;
+}
+
+@media (max-width: 575px) {
+  .full-map {
+    height: 300px;
+  }
 }
 
 /* ----------------------------------------------------- */
@@ -632,19 +640,8 @@
   .admin-header {
     flex-wrap: nowrap; 
   }
-  .header-title-admin {
-    width: auto;
-    order: 0;
-    text-align: left;
-    margin-top: 0;
-  }
   .header-title-admin h2 {
     font-size: 1.7rem;
-  }
-  .header-info {
-    order: 0;
-    width: auto;
-    justify-content: flex-start;
   }
   .kpi-cards {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -959,10 +956,28 @@
     border-radius: 16px;
     overflow: hidden;
     border: 1px solid var(--color-secundario);
-    height: calc(100vh - 180px); /* Ajuste responsivo */
+    height: calc(100vh - 180px);
     min-height: 600px;
     box-shadow: 0 15px 35px rgba(0,0,0,0.4);
     margin-top: 20px;
+}
+
+@media (max-width: 991px) {
+    .control-center-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: auto;
+    }
+    .fleet-sidebar {
+        max-height: 250px;
+        overflow-y: auto;
+        border-right: none;
+        border-bottom: 1px solid #333;
+    }
+    .map-main-area {
+        min-height: 400px;
+        height: 60vh;
+    }
 }
 
 /* Sidebar de Flota */
@@ -2202,4 +2217,396 @@
   color: #ffffff;
   border-color: #ff4757;
   box-shadow: 0 6px 20px rgba(255, 71, 87, 0.5);
+}
+
+/* =========================================================
+   10. MEJORAS RESPONSIVE GLOBALES (Mobile-First)
+   ========================================================= */
+
+/* --- Tablet landscape / small desktop --- */
+@media (max-width: 991px) {
+    .content-area {
+        padding: 15px;
+    }
+    .admin-header {
+        gap: 10px;
+    }
+    .sidebar.open {
+        box-shadow: 20px 0 60px rgba(0, 0, 0, 0.8);
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    /* Forzar grids inline de formularios a una columna */
+    .form-grid[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+    /* Fleetsidebar + map stacking */
+    .fleet-sidebar {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    .map-main-area {
+        min-height: 400px;
+    }
+    .heatmap-control-panel {
+        top: 10px;
+        right: 10px;
+    }
+    .btn-heatmap {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+    }
+    .activity-overlay {
+        display: none;
+    }
+    /* Sección de sostenibilidad - eco cards */
+    .eco-dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .roi-simulator-layout {
+        grid-template-columns: 1fr;
+    }
+    .table-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .live-search-wrapper {
+        max-width: 100%;
+    }
+}
+
+/* --- Mobile (<576px) --- */
+@media (max-width: 575px) {
+    .content-area {
+        padding: 12px;
+    }
+    .admin-header {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-bottom: 12px;
+    }
+    .menu-toggle {
+        font-size: 1.3rem;
+    }
+    .header-title-admin h2 {
+        font-size: 1.2rem;
+    }
+    .header-title-admin p {
+        font-size: 0.75rem;
+    }
+    .header-info {
+        font-size: 0.75rem;
+        gap: 10px;
+        width: 100%;
+        justify-content: flex-start;
+        order: 3;
+        margin-top: 5px;
+    }
+    .sidebar {
+        width: 85vw;
+        max-width: 320px;
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    .logo-area {
+        height: 70px;
+        padding: 0 15px;
+    }
+    .sidebar-logo {
+        width: 35px;
+        height: 35px;
+    }
+    .brand-name {
+        font-size: 1.1rem;
+    }
+    .main-nav {
+        padding: 10px 0;
+        gap: 2px;
+    }
+    .nav-item {
+        padding: 10px 18px;
+        gap: 15px;
+    }
+    .nav-item i {
+        font-size: 1rem;
+        width: 20px;
+    }
+    .nav-item span {
+        font-size: 0.85rem;
+    }
+    .sidebar-footer {
+        padding: 15px;
+    }
+    .user-short-profile {
+        margin-bottom: 12px;
+    }
+    .avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+    .user-name {
+        font-size: 0.8rem;
+    }
+    .logout-link {
+        padding: 8px 5px;
+    }
+
+    /* KPI Cards mobile */
+    .kpi-cards {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .kpi-card-premium {
+        padding: 15px;
+    }
+    .kpi-icon-wrapper {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+    .kpi-value {
+        font-size: 1.4rem;
+    }
+
+    /* Formularios */
+    .form-container,
+    .table-container {
+        padding: 15px 12px;
+        margin-bottom: 20px;
+    }
+    .form-container h3,
+    .table-container h3 {
+        font-size: 1rem;
+    }
+    .form-group input,
+    .form-group select {
+        height: 42px;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+    .btn {
+        padding: 10px 16px;
+        font-size: 0.85rem;
+    }
+
+    /* Tablas → horizontal scroll en móvil */
+    .data-table {
+        min-width: 500px;
+        font-size: 0.8rem;
+    }
+    .data-table th,
+    .data-table td {
+        padding: 10px 8px;
+    }
+    .data-table td:last-child {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .table-container::-webkit-scrollbar {
+        height: 4px;
+    }
+    .table-container::-webkit-scrollbar-thumb {
+        background: #444;
+        border-radius: 4px;
+    }
+
+    /* Mapa */
+    .full-map {
+        height: 300px;
+    }
+    .control-center-layout {
+        height: auto;
+        min-height: auto;
+    }
+    .fleet-sidebar {
+        max-height: 180px;
+    }
+    .map-main-area {
+        min-height: 350px;
+        height: 50vh;
+    }
+
+    /* Sostenibilidad */
+    .eco-dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .eco-card {
+        padding: 15px;
+    }
+    .eco-value {
+        font-size: 1.8rem;
+    }
+
+    /* ROI */
+    .roi-simulator-layout {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    .roi-form-card,
+    .roi-chart-card {
+        padding: 15px;
+    }
+    .roi-summary-bar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .roi-card-header h3 {
+        font-size: 1rem;
+    }
+
+    /* Analytics cards */
+    .analytics-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 0;
+    }
+    .analytics-card {
+        padding: 15px;
+    }
+    .card-header h4 {
+        font-size: 0.95rem;
+    }
+    .analytics-card canvas {
+        max-height: 200px;
+    }
+
+    /* Modales */
+    .modal-content {
+        padding: 15px 18px;
+        margin: 10px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .modal-content h2 {
+        font-size: 1.2rem;
+    }
+    .modal-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .modal-actions .btn {
+        width: 100%;
+    }
+
+    /* Fullscreen overlays */
+    .fullscreen-header {
+        padding: 8px 15px;
+    }
+    .fullscreen-header h2 {
+        font-size: 1rem;
+    }
+    .btn-close-fs {
+        padding: 6px 14px;
+        font-size: 0.85rem;
+    }
+    .header-left h2 {
+        font-size: 1.1rem;
+    }
+    .header-left p {
+        display: none;
+    }
+    .reference-search-box {
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+        top: 10px;
+        width: 90%;
+    }
+    .input-group {
+        min-width: auto;
+    }
+    .editor-mode-switch {
+        top: 160px;
+        padding: 4px;
+    }
+    .btn-mode {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+    }
+    .editor-help-box {
+        top: 220px;
+        width: 90%;
+        padding: 8px 12px;
+        font-size: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .btn-save-floating {
+        padding: 10px 24px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+
+    /* Taquilla */
+    #taquilla .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+    #taquilla .data-table {
+        font-size: 0.7rem;
+    }
+
+    /* Timeline */
+    .timeline-controls {
+        gap: 15px;
+    }
+    .timeline-controls h4 {
+        font-size: 1rem;
+        min-width: 80px;
+    }
+    .timeline-wrapper {
+        margin: 0 -12px;
+    }
+
+    /* Section tabs */
+    .section-header-tabs {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .tab-controls {
+        justify-content: stretch;
+    }
+    .btn-tab {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+    .btn-tab i {
+        display: none;
+    }
+
+    /* Heatmap button */
+    .heatmap-control-panel {
+        top: 8px;
+        right: 8px;
+    }
+    .btn-heatmap {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+    }
+    .btn-heatmap i {
+        font-size: 0.85rem;
+    }
+
+    /* Modal de previsualización de ruta */
+    #route-preview-map {
+        height: 250px;
+    }
+    .modal-route-info {
+        flex-direction: column;
+        gap: 5px;
+    }
+    .modal-lg {
+        max-width: 100%;
+        margin: 10px;
+    }
 }
