@@ -1846,13 +1846,16 @@
     box-shadow: inset 4px 0 0 var(--color-primario);
 }
 
-@media screen and (max-width: 900px) {
+@media screen and (max-width: 992px) {
     .admin-layout {
         grid-template-columns: 1fr;
         display: block;
     }
     .sidebar {
-        display: none;
+        display: flex;
+    }
+    .sidebar.open {
+        transform: translateX(0);
     }
 }
 
