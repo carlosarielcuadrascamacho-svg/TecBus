@@ -194,7 +194,7 @@ io.on("connection", (socket) => {
   });
 
   // --- C. Cobro Manual (Conductor) — precio calculado del lado servidor ---
-  socket.on("cobroManual", async (data) => {
+  socket.on("cobroManual", async (data, callback) => {
     try {
       const Transaccion = require("./models/Transaccion");
       const Tarifa = require("./models/Tarifa");
@@ -243,9 +243,18 @@ io.on("connection", (socket) => {
         rutaId: transaccionCompleta.rutaId ? { nombre: transaccionCompleta.rutaId.nombre } : null
       });
 
+      // Confirmar al conductor que el cobro fue exitoso
+      if (typeof callback === "function") {
+        callback({ ok: true, monto: precio, tipo_tarifa: data.tipo_tarifa });
+      }
+
       console.log(`💰 Cobro manual registrado: $${precio.toFixed(2)} en camión ${data.camionId}`);
     } catch (error) {
       console.error("Error en cobro manual:", error.message);
+      // Notificar al conductor que falló el cobro
+      if (typeof callback === "function") {
+        callback({ ok: false, error: error.message });
+      }
     }
   });
 
