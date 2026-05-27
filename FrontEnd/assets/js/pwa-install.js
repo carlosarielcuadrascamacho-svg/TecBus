@@ -34,7 +34,7 @@
           <i class="fas fa-download"></i>
         </div>
         <div class="pwa-banner-text">
-          <strong>Instala SmartBus</strong>
+          <strong>Instala BusMate</strong>
           <span>Accede más rápido desde tu pantalla de inicio</span>
         </div>
         <div class="pwa-banner-actions">

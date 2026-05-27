@@ -220,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const driverEl = document.getElementById("bus-driver");
       
       if (plateEl) plateEl.textContent = `${camion.numeroUnidad || 'N/A'} - ${camion.placa || '---'}`;
-      if (driverEl) driverEl.textContent = camion.conductorActual?.nombre || "Conductor SmartBus";
+      if (driverEl) driverEl.textContent = camion.conductorActual?.nombre || "Conductor BusMate";
       
       if (section) section.classList.remove("hidden");
     })
@@ -746,7 +746,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let notificadoHoy = false; // Simple flag para evitar spam
   async function enviarNotificacionProximidad(dist) {
     if (Notification.permission === "granted") {
-        new Notification("🚍 SmartBus está cerca!", {
+        new Notification("🚍 BusMate está cerca!", {
             body: `Tu autobús está a unos ${(dist*1000).toFixed(0)} metros. ¡Prepárate!`,
             icon: '/assets/img/SmartBusLogo.png'
         });
