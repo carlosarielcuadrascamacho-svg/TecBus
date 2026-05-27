@@ -1127,7 +1127,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (cobroRuta) cobroRuta.textContent = MI_RUTA_NOMBRE || "Sin ruta activa";
     await cargarOrigenDestino();
     await cargarTransaccionesCamion();
-    // Precargar precios reales en el dropdown
+    // Precargar precios reales en el dropdown (prioridad: tarifa de ruta > global)
     if (cobroTipoTarifa) {
       try {
         const res = await fetch(`${BACKEND_URL}/api/taquilla/tarifas`, {
@@ -1135,10 +1135,15 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         if (res.ok) {
           const tarifas = await res.json();
-          const global = tarifas.find(t => !t.rutaId);
-          if (global) {
-            cobroTipoTarifa.options[0].text = `General — $${global.precioGeneral.toFixed(2)}`;
-            cobroTipoTarifa.options[1].text = `Estudiante — $${global.precioEstudiante.toFixed(2)}`;
+          // Buscar primero tarifa específica de la ruta del conductor
+          const viajeActual = MIS_VIAJES_HOY[INDICE_VIAJE_ACTUAL];
+          const rutaIdActual = viajeActual?.rutaId || viajeActual?.ruta?._id || null;
+          let tarifaActiva = rutaIdActual ? tarifas.find(t => t.rutaId === rutaIdActual) : null;
+          // Si no hay tarifa de ruta, usar la global
+          if (!tarifaActiva) tarifaActiva = tarifas.find(t => !t.rutaId);
+          if (tarifaActiva) {
+            cobroTipoTarifa.options[0].text = `General — $${tarifaActiva.precioGeneral.toFixed(2)}`;
+            cobroTipoTarifa.options[1].text = `Estudiante — $${tarifaActiva.precioEstudiante.toFixed(2)}`;
           }
         }
       } catch (_) { /* fallback silencioso a $-- */ }
@@ -1153,7 +1158,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     let html = '<option value="">-- Seleccionar --</option>';
     window.stopMarkersArray.forEach((m, i) => {
-      const nombre = m.getPopup().getContent().replace(/<[^>]*>?/gm, '') || `Parada ${i+1}`;
+      const raw = m.getPopup()?.getContent();
+      const nombre = (typeof raw === 'string' ? raw.replace(/<[^>]*>?/gm, '') : '') || `Parada ${i+1}`;
       html += `<option value="${i}">${nombre}</option>`;
     });
     if (cobroOrigen) cobroOrigen.innerHTML = html;
@@ -1228,7 +1234,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Cobro manual — servidor calcula el precio
+  // Cobro manual — servidor calcula el precio, frontend espera confirmación
   if (btnCobroManual) {
     btnCobroManual.addEventListener("click", async () => {
       if (!MI_CAMION_ID) {
@@ -1242,22 +1248,58 @@ document.addEventListener("DOMContentLoaded", () => {
       btnCobroManual.disabled = true;
       btnCobroManual.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
 
-      try {
-        const precioDisplay = parseFloat(cobroTipoTarifa?.selectedOptions?.[0]?.text?.match(/\$([\d.]+)/)?.[1]) || 12;
+      const payload = {
+        camionId: MI_CAMION_ID,
+        conductorId: user._id || user.id,
+        tipo_tarifa: tipo,
+        rutaId,
+        rutaNombre: MI_RUTA_NOMBRE,
+        timestamp: new Date()
+      };
 
-        socket.emit("cobroManual", {
-          camionId: MI_CAMION_ID,
-          conductorId: user._id || user.id,
-          tipo_tarifa: tipo,
-          rutaId,
-          rutaNombre: MI_RUTA_NOMBRE,
-          timestamp: new Date()
+      // Emitir con callback + timeout de seguridad (10 segundos)
+      const TIMEOUT_MS = 10000;
+      let timeoutId = null;
+      let respondido = false;
+
+      const promesaCobro = new Promise((resolve) => {
+        timeoutId = setTimeout(() => {
+          if (!respondido) {
+            respondido = true;
+            resolve({ ok: false, error: "El servidor no respondió en 10 segundos. Verifica tu conexión." });
+          }
+        }, TIMEOUT_MS);
+
+        socket.emit("cobroManual", payload, (respuesta) => {
+          if (!respondido) {
+            respondido = true;
+            clearTimeout(timeoutId);
+            resolve(respuesta);
+          }
         });
+      });
 
-        Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000, background: "#1e1e1e", color: "#fff" }).fire({ icon: "success", title: `Cobro registrado: $${precioDisplay.toFixed(2)} (${tipo})` });
+      try {
+        const resultado = await promesaCobro;
+
+        if (resultado && resultado.ok) {
+          // Éxito: mostrar precio REAL del servidor
+          Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000, background: "#1e1e1e", color: "#fff" })
+            .fire({ icon: "success", title: `Cobro registrado: $${parseFloat(resultado.monto).toFixed(2)} (${resultado.tipo_tarifa || tipo})` });
+        } else {
+          // Error: mostrar mensaje del servidor o timeout
+          Swal.fire({
+            icon: "error",
+            title: "Error al cobrar",
+            text: resultado?.error || "Error desconocido al registrar el cobro",
+            background: "#1e1e1e",
+            color: "#fff",
+            confirmButtonColor: "#0ea5e9"
+          });
+        }
       } catch (e) {
         console.error("Error en cobro manual:", e);
-        Swal.fire({ icon: "error", title: "Error", text: "Error al registrar cobro", background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
+        Swal.fire({ icon: "error", title: "Error", text: "Error inesperado al registrar cobro", background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
       } finally {
         setTimeout(() => {
           btnCobroManual.disabled = false;
