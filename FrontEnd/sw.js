@@ -1,4 +1,4 @@
-// FrontEnd/sw.js - BusMate PWA Service Worker
+// FrontEnd/sw.js - SmartBus PWA Service Worker
 
 const CACHE_NAME = 'tecbus-v1';
 const STATIC_ASSETS = [
@@ -33,7 +33,7 @@ const API_BASE = 'https://tecbus-api.onrender.com';
 
 // ─── INSTALL: Precachear assets estáticos ───
 self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando BusMate PWA...');
+  console.log('[SW] Instalando SmartBus PWA...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Precacheando assets estáticos');
@@ -150,7 +150,7 @@ async function networkFirst(request) {
 
 // ─── PUSH: Notificaciones push del servidor ───
 self.addEventListener('push', (event) => {
-  let data = { title: 'BusMate', body: 'Nueva notificación', url: '/' };
+  let data = { title: 'SmartBus', body: 'Nueva notificación', url: '/' };
 
   if (event.data) {
     try {

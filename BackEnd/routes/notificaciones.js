@@ -47,7 +47,7 @@ router.get("/mi-prediccion", protect, async (req, res) => {
     
     // Creamos el mensaje (Payload)
     const payload = JSON.stringify({
-      title: "🚍 Predicción BusMate",
+      title: "🚍 Predicción SmartBus",
       body: "Hola " + user.nombre.split(" ")[0] + ", tu camión habitual llegará en 5 mins (Prueba).",
       icon: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png" // Icono de bus
     });
@@ -74,7 +74,7 @@ router.get("/mi-prediccion-prueba", protect, async (req, res) => {
     
     // Creamos el mensaje (Payload)
     const payload = JSON.stringify({
-      title: "🚍 Notificaciones BusMate",
+      title: "🚍 Notificaciones SmartBus",
       body: "Hola " + user.nombre.split(" ")[0] + ", las notificaciones han sido activadas correctamente.",
       icon: "assets/img/Tecbus.png" // Icono de bus
     });

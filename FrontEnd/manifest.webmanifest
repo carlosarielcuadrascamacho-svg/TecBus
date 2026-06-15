@@ -1,6 +1,6 @@
 {
-  "name": "BusMate - Sistema de Transporte Inteligente",
-  "short_name": "BusMate",
+  "name": "SmartBus - Sistema de Transporte Inteligente",
+  "short_name": "SmartBus",
   "description": "Plataforma de gestión y optimización de transporte público con rastreo GPS en tiempo real.",
   "start_url": "/?source=pwa",
   "scope": "/",
