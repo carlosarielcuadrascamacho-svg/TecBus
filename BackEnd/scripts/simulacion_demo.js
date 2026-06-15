@@ -21,7 +21,7 @@ const TEXTO_FINAL = "Jornada Finalizada";
 const socket = io(SOCKET_URL);
 
 async function iniciarSimulacion() {
-  console.log("🎬 --- INICIANDO DEMOSTRACIÓN BusMate ---");
+  console.log("🎬 --- INICIANDO DEMOSTRACIÓN SmartBus ---");
   await mongoose.connect(process.env.MONGO_URI);
   console.log("✅ BD Conectada.");
 
