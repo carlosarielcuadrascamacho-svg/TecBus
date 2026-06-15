@@ -22,7 +22,7 @@ const STATIC_ASSETS = [
   '/assets/js/admin_dashboard.js',
   '/assets/js/admin_sidebar.js',
   '/assets/js/pwa-install.js',
-  '/assets/img/SmartBusLogo.png',
+  '/assets/img/SmartBusLogo.jpeg',
   '/assets/img/icons/icon-192x192.png',
   '/assets/img/icons/icon-512x512.png',
   '/assets/img/icons/icon-512x512-maskable.png',
