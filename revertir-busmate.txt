@@ -1,0 +1,53 @@
+PROMPT PARA OPENCODE: Revertir BusMate -> SmartBus
+
+Necesito cambiar todas las referencias visuales de "BusMate" de vuelta a
+"SmartBus" (y algunas "TecBus") en el proyecto.
+
+INSTRUCCIONES IMPORTANTES:
+- Cambiar SOLO texto visual (NO rutas de archivos, NO URLs, NO localStorage keys)
+- Mantener las mejoras responsive del admin.css
+- Usar replaceAll donde sea seguro
+
+CAMBIOS:
+
+1. FrontEnd/*.html (index, login, registro, pasajero, conductor, admin):
+   - replaceAll "BusMate" -> "SmartBus" (seguro: URLs usan lowercase)
+   - tambien cambiar content="BusMate" -> content="SmartBus" en
+     apple-mobile-web-app-title (login, registro, pasajero, conductor, admin)
+
+2. FrontEnd/manifest.webmanifest:
+   - replaceAll "BusMate" -> "SmartBus"
+
+3. FrontEnd/sw.js:
+   - replaceAll "BusMate" -> "SmartBus" (solo en textos/notificaciones,
+     NO afecta CACHE_NAME 'tecbus-v1' ni API_BASE lowercase)
+
+4. FrontEnd/assets/js/pwa-install.js:
+   - replaceAll "BusMate" -> "SmartBus"
+
+5. FrontEnd/assets/js/passenger_map.js:
+   - replaceAll "BusMate" -> "SmartBus"
+
+6. FrontEnd/assets/css/landing_style.css:
+   - replaceAll "BusMate" -> "SmartBus"
+
+7. BackEnd/routes/notificaciones.js:
+   - "Predicción BusMate" -> "Predicción TecBus"
+   - "Notificaciones BusMate" -> "Notificaciones TecBus"
+
+8. BackEnd/scripts/simulacion_demo.js:
+   - "DEMOSTRACIÓN BusMate" -> "DEMOSTRACIÓN TECBUS"
+
+9. admin.html:
+   - "soporte@busmate.mx" -> "soporte@smartbus.mx"
+
+10. Verificar que NO se cambiaron:
+    - SmartBusLogo.png (rutas de archivos)
+    - smartbus-mx.onrender.com (URLs)
+    - tecbus_token, tecbus_user (localStorage)
+    - tecbus-api.onrender.com (API URLs)
+    - CACHE_NAME = 'tecbus-v1' (cache)
+    - Soporte@smartbus.mx (correo - debe quedar lowercase)
+
+Luego de todos los cambios: git add -A && git commit -m "Revert: BusMate -> SmartBus"
+y git push origin main.
