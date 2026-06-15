@@ -66,6 +66,11 @@ ul { list-style: none; }
     border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem;
     box-shadow: var(--shadow-glow);
 }
+.logo-symbol-img {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    object-fit: contain;
+}
 .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
 .brand-name { font-weight: 700; font-size: 1.2rem; color: var(--text-main); }
 .brand-subtitle { font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; }
