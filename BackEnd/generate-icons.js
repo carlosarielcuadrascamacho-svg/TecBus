@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const ICONS_DIR = path.join(__dirname, '..', 'FrontEnd', 'assets', 'img', 'icons');
-const SOURCE = path.join(__dirname, '..', 'FrontEnd', 'assets', 'img', 'SmartBusLogo.jpeg');
+const SOURCE = path.join(__dirname, '..', 'FrontEnd', 'assets', 'img', 'icons', 'icon-192x192.png');
 
 if (!fs.existsSync(SOURCE)) {
     console.error('❌ No se encontró el logo:', SOURCE);

@@ -748,7 +748,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (Notification.permission === "granted") {
         new Notification("🚍 SmartBus está cerca!", {
             body: `Tu autobús está a unos ${(dist*1000).toFixed(0)} metros. ¡Prepárate!`,
-            icon: '/assets/img/SmartBusLogo.jpeg'
+            icon: '/assets/img/icons/icon-192x192.png'
         });
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         notificadoHoy = true;
