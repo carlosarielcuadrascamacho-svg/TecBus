@@ -356,6 +356,8 @@
                   <th>Placa</th>
                   <th>No. Unidad</th>
                   <th>Modelo</th>
+                  <th>Ruta Asignada</th>
+                  <th>Conductor</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
@@ -914,6 +916,17 @@
                 </select>
               </div>
             </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="edit-camion-conductor">Conductor Asignado</label>
+                <select id="edit-camion-conductor">
+                  <option value="">-- Sin conductor --</option>
+                </select>
+              </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted, #666); margin-top: 4px;">
+              La ruta y el conductor se asignan aquí de forma permanente; los horarios solo son informativos.
+            </p>
 
             <div class="modal-actions">
                 <button type="submit" class="btn btn-primary btn-full">

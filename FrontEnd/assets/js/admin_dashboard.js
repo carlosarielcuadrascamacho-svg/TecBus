@@ -808,7 +808,7 @@ document.addEventListener("DOMContentLoaded", () => {
     tbody.innerHTML = "";
 
     if (lista.length === 0) {
-      tbody.innerHTML = renderEmptyState(5, "No se encontraron camiones.");
+      tbody.innerHTML = renderEmptyState(7, "No se encontraron camiones.");
       return;
     }
 
@@ -824,10 +824,22 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
+      // La ruta y el conductor vienen de la asignación directa del camión,
+      // no de los horarios.
+      const rutaHtml = c.rutaAsignada
+        ? `<b>${c.rutaAsignada.nombre}</b>`
+        : '<span class="text-muted">Sin ruta</span>';
+
+      const conductorHtml = c.conductorActual
+        ? `<span class="badge-conductor">${c.conductorActual.nombre}</span>`
+        : '<span class="text-muted">Sin conductor</span>';
+
       row.innerHTML = `
           <td><code class="text-primary" style="font-weight:700">${c.placa}</code></td>
           <td><b>${c.numeroUnidad}</b></td>
           <td><span class="text-muted">${c.modelo || "N/A"}</span></td>
+          <td>${rutaHtml}</td>
+          <td>${conductorHtml}</td>
           <td>${estadoHtml}</td>
           <td>
               <div class="table-actions" style="display:flex; gap:5px;">
@@ -842,7 +854,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function cargarCamiones() {
     const tablaBody = document.getElementById("tabla-camiones-body");
     if (tablaBody)
-      tablaBody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
+      tablaBody.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
     try {
       const response = await fetch(BACKEND_URL + "/api/camiones", {
         headers: { Authorization: `Bearer ${token}` },
@@ -852,7 +864,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderTablaCamiones(camionesCargados);
     } catch (e) {
       if (tablaBody)
-        tablaBody.innerHTML = `<tr><td colspan="5" class="text-danger">${e.message}</td></tr>`;
+        tablaBody.innerHTML = `<tr><td colspan="7" class="text-danger">${e.message}</td></tr>`;
     }
   }
 
@@ -978,6 +990,27 @@ document.addEventListener("DOMContentLoaded", () => {
       const rutaId = camion.rutaAsignada ? camion.rutaAsignada._id || camion.rutaAsignada : "";
       selRuta.value = rutaId;
     }
+
+    const selConductor = document.getElementById("edit-camion-conductor");
+    if (selConductor) {
+      selConductor.innerHTML = '<option value="">-- Sin conductor --</option>';
+      try {
+        const res = await fetch(BACKEND_URL + "/api/users", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const users = await res.json();
+        const lista = Array.isArray(users) ? users : users.usuarios || users.users || [];
+        lista
+          .filter((u) => u.tipo === "conductor")
+          .forEach((u) => {
+            selConductor.innerHTML += `<option value="${u._id}">${u.nombre}</option>`;
+          });
+      } catch (_) {}
+      const conductorId = camion.conductorActual
+        ? camion.conductorActual._id || camion.conductorActual
+        : "";
+      selConductor.value = conductorId;
+    }
     modalCamion.classList.add("modal-visible");
   }
 
@@ -1012,6 +1045,7 @@ document.addEventListener("DOMContentLoaded", () => {
         capacidad: document.getElementById("edit-camion-capacidad").value,
         estado: document.getElementById("edit-camion-estado")?.value || "activo",
         rutaAsignada: document.getElementById("edit-camion-ruta")?.value || null,
+        conductorActual: document.getElementById("edit-camion-conductor")?.value || null,
       };
       try {
         const response = await fetch(`${BACKEND_URL}/api/camiones/${id}`, {
