@@ -153,10 +153,19 @@ ul { list-style: none; }
     height: 60px; background: var(--color-primario); display: flex; justify-content: space-between;
     align-items: center; padding: 25px 20px 0 20px; color: white; font-weight: 600; font-size: 0.9rem;
 }
+/* Fondo del mapa simulado, dibujado con CSS: no depende de ningun proveedor
+   de teselas ni de API key, y funciona sin conexion. Rejilla de calles
+   (finas cada 34px) con avenidas marcadas cada 136px. */
 .map-view {
-    flex: 1; position: relative;
-    background-image: url('https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/13/1334/3385.png'); 
-    background-size: cover; background-position: center;
+    flex: 1; position: relative; overflow: hidden;
+    background-color: #0b1120;
+    background-image:
+        radial-gradient(circle at 22% 28%, rgba(14, 165, 233, 0.10), transparent 45%),
+        radial-gradient(circle at 78% 72%, rgba(16, 185, 129, 0.08), transparent 45%),
+        repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.16) 0 2px, transparent 2px 136px),
+        repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.16) 0 2px, transparent 2px 136px),
+        repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.07) 0 1px, transparent 1px 34px),
+        repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.07) 0 1px, transparent 1px 34px);
 }
 .map-pin {
     position: absolute; width: 30px; height: 30px; background: var(--color-primario);
