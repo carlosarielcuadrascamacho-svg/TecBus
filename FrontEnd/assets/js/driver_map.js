@@ -47,53 +47,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const headerDisplay = document.getElementById("header-bus-display");
   const busDisplay = document.getElementById("driver-bus-display"); // Podría ser null ahora
 
-  // Consola inferior: ruta asignada y duración del recorrido
-  const consoleRuta = document.getElementById("console-ruta");
-  const consoleDuracion = document.getElementById("console-duracion");
-
-  // 40 -> "40 min" | 90 -> "1 h 30 min" | 0 -> "-- min"
-  function formatearDuracion(minutos) {
-    const m = Number(minutos);
-    if (!m || m <= 0 || isNaN(m)) return null;
-    if (m < 60) return `${Math.round(m)} min`;
-    const h = Math.floor(m / 60);
-    const resto = Math.round(m % 60);
-    return resto === 0 ? `${h} h` : `${h} h ${resto} min`;
-  }
-
-  // Pinta la fila de ruta + duración de la consola inferior
-  function pintarRutaEnConsola(ruta) {
-    if (consoleRuta) {
-      const nombre = ruta?.nombre;
-      consoleRuta.textContent = nombre || "Sin ruta asignada";
-      consoleRuta.classList.toggle("sin-dato", !nombre);
-    }
-    if (consoleDuracion) {
-      const duracion = formatearDuracion(ruta?.tiempoEstimadoTotal);
-      consoleDuracion.textContent = duracion || "-- min";
-      consoleDuracion.classList.toggle("sin-dato", !duracion);
-    }
-  }
-
-  // /mi-unidad ya trae la ruta incrustada; si no viene con detalle
-  // (por ejemplo si solo llega el id), se pide completa para conocer
-  // el tiempo estimado del recorrido.
-  async function obtenerRutaCompleta(dataCamion) {
-    if (!dataCamion?.rutaId) return null;
-    if (dataCamion.ruta && dataCamion.ruta.tiempoEstimadoTotal !== undefined) {
-      return dataCamion.ruta;
-    }
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/rutas/${dataCamion.rutaId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return dataCamion.ruta || null;
-      return await res.json();
-    } catch (_) {
-      return dataCamion.ruta || null;
-    }
-  }
-
   // Elementos del Menú Lateral
   const sidebar = document.getElementById("sidebar");
   const btnMenuToggle = document.getElementById("btn-menu-toggle");
@@ -455,7 +408,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (headerDisplay) headerDisplay.textContent = "Sin Unidad Asignada";
         if (busDisplay) busDisplay.textContent = "Sin Unidad Asignada";
         if (routeDisplay) routeDisplay.textContent = "Sin ruta asignada";
-        pintarRutaEnConsola(null);
         return;
       }
 
@@ -481,21 +433,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // 3. RUTA: se dibuja siempre que el camión tenga una ruta asignada,
       //    sin importar el día ni la hora.
-      const ruta = await obtenerRutaCompleta(dataCamion);
-      if (ruta && ruta.paradas?.length > 0) {
+      if (dataCamion.ruta && dataCamion.ruta.paradas?.length > 0) {
         INDICE_VIAJE_ACTUAL = 0;
         await cargarRutaActiva({
           rutaId: dataCamion.rutaId,
           rutaNombre: dataCamion.rutaNombre,
-          ruta,
+          ruta: dataCamion.ruta,
         });
       } else {
         if (routeDisplay) routeDisplay.textContent = "Sin ruta asignada";
         console.log("ℹ️ Camión sin ruta asignada. Pide al admin que la asigne.");
       }
-
-      // Consola inferior: ruta asignada y duración del recorrido
-      pintarRutaEnConsola(ruta);
 
       // 4. Horarios: SOLO información de apoyo (próximo recorrido).
       MIS_VIAJES_HOY = dataCamion.viaje ? [dataCamion.viaje] : [];
@@ -768,8 +716,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // La ruta se mantiene siempre visible mientras el camión la tenga asignada.
-      const rutaActual = await obtenerRutaCompleta(dataCamion);
-
       if (dataCamion.rutaNombre && routeDisplay) {
         routeDisplay.textContent = dataCamion.rutaNombre;
 
@@ -778,15 +724,12 @@ document.addEventListener("DOMContentLoaded", () => {
           cargarRutaActiva({
             rutaId: dataCamion.rutaId,
             rutaNombre: dataCamion.rutaNombre,
-            ruta: rutaActual,
+            ruta: dataCamion.ruta,
           });
         }
       } else if (routeDisplay) {
         routeDisplay.textContent = "Sin ruta asignada";
       }
-
-      // Consola inferior: ruta asignada y duración del recorrido
-      pintarRutaEnConsola(rutaActual);
 
       // --- Estado operativo a partir del horario (solo informativo) ---
       const ahora = new Date();
@@ -798,7 +741,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (dataCamion.viaje) {
         const [h, m] = String(dataCamion.viaje.hora).split(":");
         const inicio = parseInt(h) * 60 + parseInt(m);
-        const duracion = rutaActual?.tiempoEstimadoTotal || 45;
+        const duracion = dataCamion.ruta?.tiempoEstimadoTotal || 45;
         const fin = inicio + duracion;
 
         if (minutosActuales >= inicio - 15 && minutosActuales < inicio) {
