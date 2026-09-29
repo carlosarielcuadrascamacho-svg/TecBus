@@ -149,6 +149,73 @@ header {
   font-size: 0.9rem;
 }
 
+/* 5. FILA DE RUTA ASIGNADA + DURACIÓN (parte de abajo de la consola) */
+.console-route-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.route-chip {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 123, 255, 0.1);
+  border: 1px solid rgba(0, 123, 255, 0.2);
+  border-radius: 14px;
+  padding: 6px 10px;
+  color: white;
+}
+
+.route-chip.duration {
+  flex: 0 0 auto;
+  background: rgba(255, 193, 7, 0.1);
+  border-color: rgba(255, 193, 7, 0.25);
+}
+
+.route-chip.duration i {
+  color: #ffc107;
+}
+
+.route-chip-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.route-chip-body small {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+}
+
+.route-chip-body span {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-chip-body span.sin-dato {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 600;
+}
+
+@media screen and (max-width: 380px) {
+  .route-chip-body small {
+    display: none;
+  }
+}
+
 .btn-incident-circle {
   width: 40px;
   height: 40px;
