@@ -137,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
             
             map.panTo([lngDB, latDB]);
             verificarLlegadaDestino(latDB, lngDB);
-            actualizarProximaParada(latDB, lngDB);
           } else {
             console.warn(
               "⚠️ Mi camión fue encontrado pero no tiene coordenadas en BD."
@@ -229,28 +228,39 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  // --- NUEVA LÓGICA: ACTUALIZAR PRÓXIMA PARADA ---
-  function actualizarProximaParada(latBus, lngBus) {
-    if (!window.stopMarkersArray || window.stopMarkersArray.length === 0) return;
-    
-    // Buscar la parada más cercana que esté ADELANTE (simplificado)
-    // Por ahora solo mostramos la más cercana de todas
-    let paradaMasCercana = null;
-    let distMin = Infinity;
-    
-    window.stopMarkersArray.forEach(marker => {
-        const coords = marker.getLngLat();
-        const dist = calcularDistanciaMetros(latBus, lngBus, coords.lat, coords.lng);
-        if (dist < distMin) {
-            distMin = dist;
-            paradaMasCercana = marker;
-        }
-    });
+  // --- El dato central de la consola muestra la RUTA y su DURACIÓN ---
+  // 40 -> "40 min" | 90 -> "1 h 30 min" | 0 -> "-- min"
+  function formatearDuracion(minutos) {
+    const m = Number(minutos);
+    if (!m || m <= 0 || isNaN(m)) return null;
+    if (m < 60) return `${Math.round(m)} min`;
+    const h = Math.floor(m / 60);
+    const resto = Math.round(m % 60);
+    return resto === 0 ? `${h} h` : `${h} h ${resto} min`;
+  }
 
-    if (paradaMasCercana) {
-        const nombre = paradaMasCercana.getPopup().getContent().replace(/<[^>]*>?/gm, '');
-        if (consoleNextStop) consoleNextStop.textContent = nombre;
-        if (consoleDistStop) consoleDistStop.textContent = Math.round(distMin);
+  function pintarRutaEnConsola(ruta) {
+    if (consoleNextStop) consoleNextStop.textContent = ruta?.nombre || "Sin ruta";
+    if (consoleDistStop) {
+      consoleDistStop.textContent = formatearDuracion(ruta?.tiempoEstimadoTotal) || "-- min";
+    }
+  }
+
+  // /mi-unidad ya trae la ruta incrustada; si llega sin el tiempo estimado
+  // se pide el detalle completo de la ruta.
+  async function obtenerRutaCompleta(dataCamion) {
+    if (!dataCamion?.rutaId) return null;
+    if (dataCamion.ruta && dataCamion.ruta.tiempoEstimadoTotal !== undefined) {
+      return dataCamion.ruta;
+    }
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/rutas/${dataCamion.rutaId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return dataCamion.ruta || null;
+      return await res.json();
+    } catch (_) {
+      return dataCamion.ruta || null;
     }
   }
 
@@ -408,6 +418,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (headerDisplay) headerDisplay.textContent = "Sin Unidad Asignada";
         if (busDisplay) busDisplay.textContent = "Sin Unidad Asignada";
         if (routeDisplay) routeDisplay.textContent = "Sin ruta asignada";
+        pintarRutaEnConsola(null);
         return;
       }
 
@@ -433,17 +444,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // 3. RUTA: se dibuja siempre que el camión tenga una ruta asignada,
       //    sin importar el día ni la hora.
-      if (dataCamion.ruta && dataCamion.ruta.paradas?.length > 0) {
+      const ruta = await obtenerRutaCompleta(dataCamion);
+      if (ruta && ruta.paradas?.length > 0) {
         INDICE_VIAJE_ACTUAL = 0;
         await cargarRutaActiva({
           rutaId: dataCamion.rutaId,
           rutaNombre: dataCamion.rutaNombre,
-          ruta: dataCamion.ruta,
+          ruta,
         });
       } else {
         if (routeDisplay) routeDisplay.textContent = "Sin ruta asignada";
         console.log("ℹ️ Camión sin ruta asignada. Pide al admin que la asigne.");
       }
+
+      // Dato central de la consola: ruta y duración
+      pintarRutaEnConsola(ruta);
 
       // 4. Horarios: SOLO información de apoyo (próximo recorrido).
       MIS_VIAJES_HOY = dataCamion.viaje ? [dataCamion.viaje] : [];
@@ -702,6 +717,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (headerDisplay) headerDisplay.textContent = texto;
         if (busDisplay) busDisplay.textContent = texto;
         if (routeDisplay) routeDisplay.textContent = "Sin ruta asignada";
+        pintarRutaEnConsola(null);
         return;
       }
 
@@ -716,6 +732,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // La ruta se mantiene siempre visible mientras el camión la tenga asignada.
+      const rutaActual = await obtenerRutaCompleta(dataCamion);
+
       if (dataCamion.rutaNombre && routeDisplay) {
         routeDisplay.textContent = dataCamion.rutaNombre;
 
@@ -724,38 +742,35 @@ document.addEventListener("DOMContentLoaded", () => {
           cargarRutaActiva({
             rutaId: dataCamion.rutaId,
             rutaNombre: dataCamion.rutaNombre,
-            ruta: dataCamion.ruta,
+            ruta: rutaActual,
           });
         }
       } else if (routeDisplay) {
         routeDisplay.textContent = "Sin ruta asignada";
       }
 
+      // Dato central de la consola: ruta y duración
+      pintarRutaEnConsola(rutaActual);
+
       // --- Estado operativo a partir del horario (solo informativo) ---
       const ahora = new Date();
       const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes();
 
       let estadoActual = "Fuera de Servicio";
-      let esPreparacion = false;
 
       if (dataCamion.viaje) {
         const [h, m] = String(dataCamion.viaje.hora).split(":");
         const inicio = parseInt(h) * 60 + parseInt(m);
-        const duracion = dataCamion.ruta?.tiempoEstimadoTotal || 45;
+        const duracion = rutaActual?.tiempoEstimadoTotal || 45;
         const fin = inicio + duracion;
 
         if (minutosActuales >= inicio - 15 && minutosActuales < inicio) {
           estadoActual = "Inicio de Recorridos";
-          esPreparacion = true;
         } else if (minutosActuales >= inicio && minutosActuales <= fin) {
           estadoActual = "En Servicio";
         } else {
           estadoActual = "En Espera";
         }
-      }
-
-      if (esPreparacion && consoleNextStop) {
-        consoleNextStop.textContent = "Abordando pasajeros...";
       }
 
       iniciarGeolocalizacion();
