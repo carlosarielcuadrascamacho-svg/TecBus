@@ -263,7 +263,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function cargarRutaActiva(viaje) {
     // 1. Actualizar Textos UI
-    if (routeDisplay) routeDisplay.textContent = viaje.rutaNombre;
+    if (routeDisplay)
+      routeDisplay.textContent = viaje.rutaNombre || viaje.ruta?.nombre || "--";
 
     try {
       // 2. Limpiar mapa anterior
@@ -274,11 +275,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       window.stopMarkersArray = [];
 
-      // 3. Obtener datos de la ruta
-      const response = await fetch(`${BACKEND_URL}/api/rutas/${viaje.rutaId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const ruta = await response.json();
+      // 3. Obtener datos de la ruta.
+      // Si ya viene incrustada (así la entrega /mi-unidad) no se vuelve a pedir.
+      let ruta = viaje.ruta;
+      if (!ruta) {
+        const response = await fetch(`${BACKEND_URL}/api/rutas/${viaje.rutaId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        ruta = await response.json();
+      }
 
       if (ruta.paradas && ruta.paradas.length > 0) {
         // Separar trazo de paradas
@@ -386,127 +391,70 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function inicializarSistema() {
     try {
-      // --- DEFINICIÓN PREVIA PARA EVITAR EL CRASH ---
-      let dataCamion = null;
-
-      // A. Obtener Camión (Ruta Dinámica)
+      // ============================================================
+      // PASO ÚNICO: La unidad y la ruta vienen de la asignación directa.
+      // Los horarios ya no deciden si el conductor ve su ruta.
+      // ============================================================
       const resCamion = await fetch(BACKEND_URL + "/api/camiones/mi-unidad", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // --- MANEJO DEL ESTADO ---
-      if (resCamion.status === 404) {
-        console.log(
-          "ℹ️ Conductor logueado, pero sin horario activo en este momento."
-        );
+      if (!resCamion.ok) {
+        // Única causa real de no tener ruta: el admin aún no le asignó un camión.
+        const err = await resCamion.json().catch(() => ({}));
+        console.warn("⚠️ Sin unidad asignada:", err.mensaje);
         MI_CAMION_ID = null;
 
-        if (headerDisplay) headerDisplay.textContent = "Sin Turno Activo";
-        if (busDisplay) busDisplay.textContent = "Sin Turno Activo";
-        if (routeDisplay) routeDisplay.textContent = "--";
-      } else if (!resCamion.ok) {
-        console.warn("⚠️ Error desconocido al pedir camión:", resCamion.status);
+        if (headerDisplay) headerDisplay.textContent = "Sin Unidad Asignada";
+        if (busDisplay) busDisplay.textContent = "Sin Unidad Asignada";
+        if (routeDisplay) routeDisplay.textContent = "Sin ruta asignada";
         return;
+      }
+
+      const dataCamion = await resCamion.json();
+
+      // 1. Unidad (siempre presente si el conductor tiene camión)
+      let textoCamion = "Sin Unidad";
+      if (dataCamion.camionId) {
+        MI_CAMION_ID = dataCamion.camionId;
+        textoCamion =
+          `Unidad ${dataCamion.numeroUnidad}` +
+          (dataCamion.placa ? ` (${dataCamion.placa})` : "");
+      }
+      if (headerDisplay) headerDisplay.textContent = textoCamion;
+      if (busDisplay) busDisplay.textContent = textoCamion;
+
+      // 2. Ubicación actual del camión (si el ESP32 ya reportó)
+      if (dataCamion.ubicacionActual?.coordinates) {
+        const [lng, lat] = dataCamion.ubicacionActual.coordinates;
+        driverMarker.setLngLat([lng, lat]);
+        map.jumpTo({ center: [lng, lat], zoom: 15 });
+      }
+
+      // 3. RUTA: se dibuja siempre que el camión tenga una ruta asignada,
+      //    sin importar el día ni la hora.
+      if (dataCamion.ruta && dataCamion.ruta.paradas?.length > 0) {
+        INDICE_VIAJE_ACTUAL = 0;
+        await cargarRutaActiva({
+          rutaId: dataCamion.rutaId,
+          rutaNombre: dataCamion.rutaNombre,
+          ruta: dataCamion.ruta,
+        });
       } else {
-        // Si encontró camión (Status 200)
-        dataCamion = await resCamion.json(); // ASIGNAMOS LA VARIABLE AQUÍ
-        let textoCamion = "Sin Unidad";
-        let unidad = null;
-
-        if (dataCamion.camionId) {
-          MI_CAMION_ID = dataCamion.camionId;
-          unidad = dataCamion.numeroUnidad;
-          textoCamion =
-            `Unidad ${unidad}` +
-            (dataCamion.placa ? ` (${dataCamion.placa})` : "");
-        }
-
-        if (headerDisplay) headerDisplay.textContent = textoCamion;
-        if (busDisplay) busDisplay.textContent = textoCamion;
-
-        if (
-          dataCamion.ubicacionActual &&
-          dataCamion.ubicacionActual.coordinates
-        ) {
-          const [lng, lat] = dataCamion.ubicacionActual.coordinates;
-          driverMarker.setLngLat([lng, lat]);
-          map.jumpTo({ center: [lng, lat], zoom: 15 });
-        }
+        if (routeDisplay) routeDisplay.textContent = "Sin ruta asignada";
+        console.log("ℹ️ Camión sin ruta asignada. Pide al admin que la asigne.");
       }
 
-      // B. Obtener TODOS los horarios del día
-      const resHorarios = await fetch(BACKEND_URL + "/api/horarios", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const todosHorarios = await resHorarios.json();
-
-      const dias = [
-        "domingo",
-        "lunes",
-        "martes",
-        "miercoles",
-        "jueves",
-        "viernes",
-        "sabado",
-      ];
-      const hoyBackend = {
-        lunes: "Lunes",
-        martes: "Martes",
-        miercoles: "Miércoles",
-        jueves: "Jueves",
-        viernes: "Viernes",
-        sabado: "Sábado",
-        domingo: "Domingo",
-      }[dias[new Date().getDay()]];
-
-      // Filtrar mis viajes de hoy
-      MIS_VIAJES_HOY = todosHorarios.filter((h) => {
-        const esHoy = h.diaSemana === hoyBackend;
-        const soyYo =
-          h.infoConductor && h.infoConductor[0]?._id === (user._id || user.id);
-
-        // --- CORRECCIÓN DEL CRASH AQUÍ ---
-        // Verificamos si dataCamion existe antes de leer sus propiedades
-        const esMiCamion =
-          dataCamion &&
-          String(h.camionUnidad) === String(dataCamion.numeroUnidad);
-
-        return esHoy && (soyYo || esMiCamion);
-      });
-
-      // Ordenar por hora
-      const horaAInt = (h) =>
-        parseInt(h.split(":")[0]) * 60 + parseInt(h.split(":")[1]);
-      MIS_VIAJES_HOY.sort((a, b) => horaAInt(a.hora) - horaAInt(b.hora));
-
-      if (MIS_VIAJES_HOY.length === 0) {
-        if (routeDisplay) routeDisplay.textContent = "Día Libre";
-        return;
+      // 4. Horarios: SOLO información de apoyo (próximo recorrido).
+      MIS_VIAJES_HOY = dataCamion.viaje ? [dataCamion.viaje] : [];
+      if (dataCamion.viaje) {
+        console.log(
+          `🕐 Próximo recorrido programado: ${dataCamion.viaje.hora} (dato informativo)`
+        );
+      } else {
+        console.log("🕐 Sin horarios registrados. Tu ruta se muestra igual.");
       }
 
-      // C. Determinar en qué viaje vamos
-      const now = new Date();
-      const horaActual = now.getHours() * 60 + now.getMinutes();
-      let indiceEncontrado = 0;
-
-      for (let i = 0; i < MIS_VIAJES_HOY.length; i++) {
-        const horaViaje = horaAInt(MIS_VIAJES_HOY[i].hora);
-        if (horaActual < horaViaje + 30) {
-          indiceEncontrado = i;
-          break;
-        }
-        if (i === MIS_VIAJES_HOY.length - 1) indiceEncontrado = i;
-      }
-
-      const ultimoViaje = MIS_VIAJES_HOY[MIS_VIAJES_HOY.length - 1];
-      if (horaActual > horaAInt(ultimoViaje.hora) + 120) {
-        finDelServicio();
-        iniciarGeolocalizacion();
-        return;
-      }
-
-      INDICE_VIAJE_ACTUAL = indiceEncontrado;
-      cargarRutaActiva(MIS_VIAJES_HOY[INDICE_VIAJE_ACTUAL]);
       iniciarGeolocalizacion();
     } catch (error) {
       console.error("Error inicializando:", error);
@@ -628,8 +576,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const todosLosHorarios = await res.json();
 
       const misHorarios = todosLosHorarios.filter((h) => {
-        const info = h.infoConductor && h.infoConductor[0];
-        if (info) return info._id === (user._id || user.id);
+        if (h.conductorId) {
+          return String(h.conductorId) === String(user._id || user.id);
+        }
         return h.conductorNombre === user.nombre;
       });
 
@@ -727,27 +676,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 5. LÓGICA DEL ESTADO DEL CONDUCTOR (Principal)
 
-  function obtenerDiaSemana() {
-    const dias = [
-      "domingo",
-      "lunes",
-      "martes",
-      "miercoles",
-      "jueves",
-      "viernes",
-      "sabado",
-    ];
-    return dias[new Date().getDay()];
-  }
-  const mapaDiasBackend = {
-    lunes: "Lunes",
-    martes: "Martes",
-    miercoles: "Miércoles",
-    jueves: "Jueves",
-    viernes: "Viernes",
-    sabado: "Sábado",
-    domingo: "Domingo",
-  };
   function horaAEntero(horaStr) {
     if (!horaStr) return 0;
     const [h, m] = horaStr.split(":");
@@ -757,216 +685,80 @@ document.addEventListener("DOMContentLoaded", () => {
   // Variables globales para evitar spam al servidor
   let ULTIMO_ESTADO_REPORTADO = "";
 
-  // Función auxiliar: Convertir "06:30" a minutos (390)
-  function horaAEntero(horaStr) {
-    if (!horaStr) return 0;
-    const [h, m] = horaStr.split(":");
-    return parseInt(h) * 60 + parseInt(m);
-  }
-
-  // Función auxiliar: Convertir minutos (405) a "06:45"
-  function minutosAHora(minutos) {
-    let h = Math.floor(minutos / 60);
-    const m = minutos % 60;
-    h = h % 24;
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-  }
-
   async function actualizarEstadoConductor() {
     try {
-      const statusMsgBox = document.querySelector(".students-count");
-
-      // Variable para guardar el número de unidad si la API /mi-unidad responde
-      let unidadDetectada = null;
-
-      // 1. INTENTO A: OBTENER CAMIÓN ASIGNADO DIRECTAMENTE
+      // ============================================================
+      // La UNIDAD y la RUTA salen de la asignación directa (/mi-unidad).
+      // El horario solo calcula el estado operativo ("En Servicio", etc.)
+      // y NUNCA borra la ruta de la pantalla.
+      // ============================================================
       const resCamion = await fetch(BACKEND_URL + "/api/camiones/mi-unidad", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (resCamion.ok) {
-        const dataCamion = await resCamion.json();
-        if (dataCamion.camionId) {
-          MI_CAMION_ID = dataCamion.camionId;
-          unidadDetectada = dataCamion.numeroUnidad;
-
-          let textoCamion =
-            `Unidad ${unidadDetectada}` +
-            (dataCamion.placa ? ` (${dataCamion.placa})` : "");
-          if (headerDisplay) headerDisplay.textContent = textoCamion;
-          if (busDisplay) busDisplay.textContent = textoCamion;
-        }
-      } else {
-        console.warn(
-          "⚠️ API /mi-unidad dio 404. Usaremos el Horario para buscar el camión."
-        );
+      if (!resCamion.ok) {
+        MI_CAMION_ID = null;
+        const texto = "Sin Unidad Asignada";
+        if (headerDisplay) headerDisplay.textContent = texto;
+        if (busDisplay) busDisplay.textContent = texto;
+        if (routeDisplay) routeDisplay.textContent = "Sin ruta asignada";
+        return;
       }
 
-      // 2. OBTENER HORARIOS
-      const resHorarios = await fetch(BACKEND_URL + "/api/horarios", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const dataCamion = await resCamion.json();
 
-      if (!resHorarios.ok) return;
+      if (dataCamion.camionId) {
+        MI_CAMION_ID = dataCamion.camionId;
+        const texto = `Unidad ${dataCamion.numeroUnidad}` +
+          (dataCamion.placa ? ` (${dataCamion.placa})` : "");
+        if (headerDisplay) headerDisplay.textContent = texto;
+        if (busDisplay) busDisplay.textContent = texto;
+      }
 
-      const todosHorarios = await resHorarios.json();
+      // La ruta se mantiene siempre visible mientras el camión la tenga asignada.
+      if (dataCamion.rutaNombre && routeDisplay) {
+        routeDisplay.textContent = dataCamion.rutaNombre;
 
-      // Filtrar horarios de HOY
-      const diasArr = [
-        "domingo",
-        "lunes",
-        "martes",
-        "miercoles",
-        "jueves",
-        "viernes",
-        "sabado",
-      ];
-      const hoyIndex = new Date().getDay();
-      const mapaDiasBackend = {
-        lunes: "Lunes",
-        martes: "Martes",
-        miercoles: "Miércoles",
-        jueves: "Jueves",
-        viernes: "Viernes",
-        sabado: "Sábado",
-        domingo: "Domingo",
-      };
-      const hoyFormatted = mapaDiasBackend[diasArr[hoyIndex]];
+        if (MI_RUTA_NOMBRE !== dataCamion.rutaNombre) {
+          MI_RUTA_NOMBRE = dataCamion.rutaNombre;
+          cargarRutaActiva({
+            rutaId: dataCamion.rutaId,
+            rutaNombre: dataCamion.rutaNombre,
+            ruta: dataCamion.ruta,
+          });
+        }
+      } else if (routeDisplay) {
+        routeDisplay.textContent = "Sin ruta asignada";
+      }
 
-      const salidasHoy = todosHorarios.filter((h) => {
-        const esDia = h.diaSemana === hoyFormatted;
-        const infoCond = h.infoConductor && h.infoConductor[0];
-        const soyYo = infoCond && infoCond._id === (user._id || user.id);
-        const nombreCoincide = h.conductorNombre === user.nombre;
-        const esMiCamion = unidadDetectada
-          ? String(h.camionUnidad) === String(unidadDetectada)
-          : false;
+      // --- Estado operativo a partir del horario (solo informativo) ---
+      const ahora = new Date();
+      const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes();
 
-        return esDia && (soyYo || esMiCamion || nombreCoincide);
-      });
-
-      // Ordenar por hora
-      salidasHoy.sort((a, b) => horaAEntero(a.hora) - horaAEntero(b.hora));
-
-      // 3. DETERMINAR VIAJE ACTIVO
-      const now = new Date();
-      const minutosActuales = now.getHours() * 60 + now.getMinutes();
-
-      let viajeActivo = null;
-      let viajeSiguiente = null;
       let estadoActual = "Fuera de Servicio";
       let esPreparacion = false;
 
-      for (let i = 0; i < salidasHoy.length; i++) {
-        const viaje = salidasHoy[i];
-        const inicio = horaAEntero(viaje.hora);
-        const duracion = viaje.rutaDuracion || 45;
+      if (dataCamion.viaje) {
+        const [h, m] = String(dataCamion.viaje.hora).split(":");
+        const inicio = parseInt(h) * 60 + parseInt(m);
+        const duracion = dataCamion.ruta?.tiempoEstimadoTotal || 45;
         const fin = inicio + duracion;
 
         if (minutosActuales >= inicio - 15 && minutosActuales < inicio) {
-          viajeActivo = viaje;
-          viajeActivo.horaFin = minutosAHora(fin);
-          esPreparacion = true;
-          break;
-        }
-        if (minutosActuales >= inicio && minutosActuales <= fin) {
-          viajeActivo = viaje;
-          viajeActivo.horaFin = minutosAHora(fin);
-          break;
-        }
-        if (minutosActuales < inicio && !viajeSiguiente) {
-          viajeSiguiente = viaje;
-        }
-      }
-
-      // --- 4. LÓGICA PRINCIPAL DE RECUPERACIÓN ---
-      if (viajeActivo) {
-        // >>>>> AQUÍ ESTÁ LA SOLUCIÓN <<<<<
-        // Si no tenemos ID, usamos 'camionUnidad' ("TEC-01") para buscarlo en la BD
-        if (!MI_CAMION_ID && viajeActivo.camionUnidad) {
-          console.log(
-            `🔎 Buscando ID para la unidad: ${viajeActivo.camionUnidad}...`
-          );
-
-          try {
-            // Pedimos la lista de todos los camiones
-            const resAllBus = await fetch(BACKEND_URL + "/api/camiones", {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (resAllBus.ok) {
-              const listaCamiones = await resAllBus.json();
-
-              // Buscamos el camión que tenga ese numeroUnidad o placa
-              const camionEncontrado = listaCamiones.find(
-                (c) =>
-                  String(c.numeroUnidad) === String(viajeActivo.camionUnidad) ||
-                  c.placa === viajeActivo.camionUnidad
-              );
-
-              if (camionEncontrado) {
-                MI_CAMION_ID = camionEncontrado._id || camionEncontrado.id;
-                console.log(
-                  "✅ ¡ID RECUPERADO POR NOMBRE DE UNIDAD!",
-                  MI_CAMION_ID
-                );
-
-                // Forzamos actualización visual del nombre del camión
-                const texto = `Unidad ${camionEncontrado.numeroUnidad} (${camionEncontrado.placa})`;
-                if (headerDisplay) headerDisplay.textContent = texto;
-                if (busDisplay) busDisplay.textContent = texto;
-              } else {
-                console.error(
-                  "❌ No existe ningún camión en la BD con número:",
-                  viajeActivo.camionUnidad
-                );
-              }
-            }
-          } catch (errBus) {
-            console.error("Error buscando camión por nombre:", errBus);
-          }
-        }
-        // >>>>> FIN SOLUCIÓN <<<<<
-
-        // Actualizar UI
-        const textoUnidadActiva = `Unidad ${
-          viajeActivo.camionUnidad || "Asignada"
-        }`;
-        if (!MI_CAMION_ID) {
-          // Solo si no lo encontramos arriba
-          if (headerDisplay) headerDisplay.textContent = textoUnidadActiva;
-          if (busDisplay) busDisplay.textContent = textoUnidadActiva;
-        }
-
-        routeDisplay.textContent = viajeActivo.rutaNombre;
-        iniciarGeolocalizacion();
-
-        if (MI_RUTA_NOMBRE !== viajeActivo.rutaNombre) {
-          MI_RUTA_NOMBRE = viajeActivo.rutaNombre;
-          cargarRutaActiva(viajeActivo);
-        }
-
-        if (esPreparacion) {
           estadoActual = "Inicio de Recorridos";
-          if (consoleNextStop) consoleNextStop.textContent = "Abordando pasajeros...";
-        } else {
+          esPreparacion = true;
+        } else if (minutosActuales >= inicio && minutosActuales <= fin) {
           estadoActual = "En Servicio";
-        }
-      } else {
-        // --- CASO: FUERA DE SERVICIO ---
-        if (!resCamion.ok) {
-          MI_CAMION_ID = null;
-        }
-
-        if (viajeSiguiente) {
-          if (routeDisplay) routeDisplay.textContent = "En Espera";
-          estadoActual = "En Espera";
         } else {
-          if (routeDisplay) routeDisplay.textContent = "Jornada Finalizada";
-          estadoActual = "Fuera de Servicio";
+          estadoActual = "En Espera";
         }
       }
 
+      if (esPreparacion && consoleNextStop) {
+        consoleNextStop.textContent = "Abordando pasajeros...";
+      }
+
+      iniciarGeolocalizacion();
       gestionarEstadoBD(estadoActual);
     } catch (error) {
       console.error("Error estado conductor:", error);

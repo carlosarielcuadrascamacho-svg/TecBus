@@ -68,7 +68,9 @@ router.get("/", protect, async (req, res) => {
           // 👇 AGREGAR ESTA LÍNEA: Traemos el tiempo estimado de la colección Rutas
           rutaDuracion: { $arrayElemAt: ["$infoRuta.tiempoEstimadoTotal", 0] },
           camionUnidad: { $arrayElemAt: ["$infoCamion.numeroUnidad", 0] },
+          camionId: { $arrayElemAt: ["$infoCamion._id", 0] },
           conductorNombre: { $arrayElemAt: ["$infoConductor.nombre", 0] },
+          conductorId: { $arrayElemAt: ["$infoConductor._id", 0] },
         },
       },
       {
@@ -100,25 +102,31 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-// --- HELPER: Sincronizar ruta y conductor del camión desde sus horarios ---
-async function syncCamionRuta(camionId) {
+// --- HELPER: Rellena datos del camión SOLO si están vacíos ---
+// El horario es un dato informativo: NUNCA desasigna una ruta ya definida
+// en la ficha del camión. Solo rellena huecos para no perder la información
+// que se capturó antes de que existiera la asignación directa.
+async function rellenarCamionDesdeHorario(camionId) {
   if (!camionId) return;
-  const horarios = await Horario.find({ "salidas.camionAsignado": camionId });
-  if (horarios.length === 0) {
-    await Camion.findByIdAndUpdate(camionId, { $unset: { rutaAsignada: "", conductorActual: "" } });
-  } else {
-    const rutaId = horarios[0].ruta;
-    let conductorId = null;
-    for (const h of horarios) {
-      const salida = h.salidas.find(s => s.camionAsignado?.toString() === camionId.toString());
-      if (salida?.conductorAsignado) {
-        conductorId = salida.conductorAsignado;
-        break;
-      }
-    }
-    const update = { rutaAsignada: rutaId };
-    if (conductorId) update.conductorActual = conductorId;
-    await Camion.findByIdAndUpdate(camionId, update);
+
+  const camion = await Camion.findById(camionId).select("rutaAsignada conductorActual");
+  if (!camion) return;
+  if (camion.rutaAsignada && camion.conductorActual) return;
+
+  const horario = await Horario.findOne({ "salidas.camionAsignado": camionId });
+  if (!horario) return;
+
+  const salida = horario.salidas.find(s => s.camionAsignado?.toString() === camionId.toString());
+  if (!salida) return;
+
+  const update = {};
+  if (!camion.rutaAsignada) update.rutaAsignada = horario.ruta;
+  if (!camion.conductorActual && salida.conductorAsignado) {
+    update.conductorActual = salida.conductorAsignado;
+  }
+
+  if (Object.keys(update).length > 0) {
+    await Camion.findByIdAndUpdate(camionId, { $set: update });
   }
 }
 
@@ -193,7 +201,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
     await Promise.all(promesas);
 
     if (camionAsignado) {
-      await syncCamionRuta(camionAsignado);
+      await rellenarCamionDesdeHorario(camionAsignado);
     }
 
     res.status(201).json({ message: "Horarios procesados correctamente" });
@@ -221,7 +229,7 @@ router.delete("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => 
     );
 
     if (camionId) {
-      await syncCamionRuta(camionId);
+      await rellenarCamionDesdeHorario(camionId);
     }
 
     res.json({ message: "Salida eliminada" });
@@ -273,10 +281,10 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
             );
 
             if (oldCamionId && oldCamionId.toString() !== camionAsignado) {
-                await syncCamionRuta(oldCamionId);
+                await rellenarCamionDesdeHorario(oldCamionId);
             }
             if (camionAsignado) {
-                await syncCamionRuta(camionAsignado);
+                await rellenarCamionDesdeHorario(camionAsignado);
             }
 
             return res.json({ message: "Salida actualizada correctamente" });
@@ -310,10 +318,10 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
             await horarioDestino.save();
 
             if (oldCamionId && oldCamionId.toString() !== camionAsignado) {
-                await syncCamionRuta(oldCamionId);
+                await rellenarCamionDesdeHorario(oldCamionId);
             }
             if (camionAsignado) {
-                await syncCamionRuta(camionAsignado);
+                await rellenarCamionDesdeHorario(camionAsignado);
             }
 
             return res.json({ message: "Horario movido y actualizado correctamente" });
@@ -381,6 +389,7 @@ router.get("/publico/:rutaId", protect, async (req, res) => {
           hora: "$salidas.hora",
           rutaNombre: { $arrayElemAt: ["$infoRuta.nombre", 0] },
           camionUnidad: { $arrayElemAt: ["$infoCamion.numeroUnidad", 0] },
+          camionId: { $arrayElemAt: ["$infoCamion._id", 0] },
         },
       },
       { $sort: { ordenDia: 1, hora: 1 } }

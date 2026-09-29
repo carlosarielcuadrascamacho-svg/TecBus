@@ -1,6 +1,7 @@
 // backend/routes/camiones.js
 
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const Camion = require("../models/Camion");
 const Horario = require('../models/Horario');
@@ -201,87 +202,113 @@ router.put("/update-location", async (req, res) => {
 });
 
 // ==================================================================
-//  RUTA INTELIGENTE: ASIGNACIÓN DINÁMICA POR HORARIO
+//  UNIDAD DEL CONDUCTOR
+//  La asignación es DIRECTA: camion.conductorActual + camion.rutaAsignada.
+//  El horario ya NO decide si el conductor ve su unidad ni su ruta.
+//  Solo se devuelve como dato informativo del próximo recorrido.
 // ==================================================================
-router.get('/mi-unidad', protect, async (req, res) => {
+const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+function diaActualSegura() {
+    return DIAS_SEMANA[new Date().getDay()];
+}
+
+// Próximo horario del conductor para HOY. Es solo informativo:
+// aunque no exista ninguno, el conductor sigue viendo su unidad y su ruta.
+async function obtenerProximoViaje(conductorId, diaActual) {
     try {
-        const idConductor = req.user._id; // Obtenemos ID del token (middleware protect)
+        const ahora = new Date();
+        const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes();
 
-        // 1. Obtener Día y Hora Actual
-        const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const fechaActual = new Date();
-        // Ajuste horario manual si tu servidor no está en la zona horaria correcta (opcional)
-        // fechaActual.setHours(fechaActual.getHours() - 7); 
-        
-        const diaActual = dias[fechaActual.getDay()];
-        const minutosActuales = fechaActual.getHours() * 60 + fechaActual.getMinutes();
-
-        console.log(`🔎 Buscando unidad para conductor ${idConductor} en día ${diaActual} a las ${fechaActual.getHours()}:${fechaActual.getMinutes()}`);
-
-        // 2. Buscar Horarios que coincidan con el día y contengan al conductor
-        // Nota: Buscamos en 'diaSemana' (puede ser "Lunes" o "lunes") y dentro del array 'salidas'
         const horarios = await Horario.find({
             $or: [{ diaSemana: diaActual }, { diaSemana: diaActual.toLowerCase() }],
-            "salidas.conductorAsignado": idConductor
-        }).populate({
-            path: 'salidas.camionAsignado',
-            model: 'Camion'
-        });
+            "salidas.conductorAsignado": conductorId
+        }).select("salidas");
 
-        if (!horarios || horarios.length === 0) {
-            return res.status(404).json({ mensaje: "No tienes recorridos programados para hoy." });
-        }
-
-        // 3. Filtrar la salida más relevante (La que está ocurriendo o va a ocurrir pronto)
-        let camionEncontrado = null;
-        let rutaEncontrada = null;
-
-        // Aplanamos todas las salidas del conductor para hoy
-        let misSalidasHoy = [];
+        const viajes = [];
         horarios.forEach(h => {
-            h.salidas.forEach(salida => {
-                if (salida.conductorAsignado.toString() === idConductor.toString()) {
-                    misSalidasHoy.push({
-                        ...salida.toObject(),
-                        rutaId: h.ruta
-                    });
+            h.salidas.forEach(s => {
+                if (s.conductorAsignado?.toString() === conductorId.toString()) {
+                    viajes.push({ hora: s.hora, rutaId: h.ruta });
                 }
             });
         });
 
-        // Buscamos la salida activa (Margen: desde 1 hora antes hasta 3 horas despues de la hora de salida)
-        for (const salida of misSalidasHoy) {
-            const [h, m] = salida.hora.split(':');
-            const minutosSalida = parseInt(h) * 60 + parseInt(m);
+        const aMinutos = (hora) => {
+            const [h, m] = String(hora).split(':');
+            return parseInt(h) * 60 + parseInt(m);
+        };
 
-            // RANGO: Si es desde 60 min antes hasta 180 min (3 horas) después del inicio
-            // Ejemplo: Salida 7:00am (420 min). Válido desde 6:00am (360) hasta 10:00am (600)
-            if (minutosActuales >= (minutosSalida - 60) && minutosActuales <= (minutosSalida + 180)) {
-                if (salida.camionAsignado) {
-                    camionEncontrado = salida.camionAsignado;
-                    // Rompemos el ciclo al encontrar la primera coincidencia válida actual
+        viajes.sort((a, b) => aMinutos(a.hora) - aMinutos(b.hora));
+
+        return viajes.find(v => aMinutos(v.hora) >= minutosActuales) || viajes[0] || null;
+    } catch (error) {
+        console.error("⚠️ Error calculando próximo viaje:", error.message);
+        return null;
+    }
+}
+
+router.get('/mi-unidad', protect, async (req, res) => {
+    try {
+        const idConductor = req.user._id;
+
+        // 1. Vía principal: camión con asignación directa al conductor
+        let camion = await Camion.findOne({ conductorActual: idConductor })
+            .populate("rutaAsignada")
+            .populate("conductorActual", "nombre");
+
+        let origen = "conductorActual";
+
+        // 2. Respaldo: si aún no hay asignación directa, se toma el camión de
+        //    un horario suyo para que el conductor no quede sin unidad.
+        if (!camion) {
+            const diaActual = diaActualSegura();
+            const horarios = await Horario.find({
+                $or: [{ diaSemana: diaActual }, { diaSemana: diaActual.toLowerCase() }],
+                "salidas.conductorAsignado": idConductor
+            }).populate("salidas.camionAsignado");
+
+            for (const h of horarios) {
+                const salida = h.salidas.find(
+                    s => s.conductorAsignado?.toString() === idConductor.toString()
+                );
+                if (salida?.camionAsignado) {
+                    camion = await Camion.findById(salida.camionAsignado._id)
+                        .populate("rutaAsignada")
+                        .populate("conductorActual", "nombre");
+                    origen = "horario";
                     break;
                 }
             }
         }
 
-        // 4. Si encontramos camión, devolvemos formato esperado por el frontend
-        if (camionEncontrado) {
-            return res.json({
-                camionId: camionEncontrado._id,
-                numeroUnidad: camionEncontrado.numeroUnidad,
-                placa: camionEncontrado.placa,
-                ubicacionActual: camionEncontrado.ubicacionActual,
-                velocidad: camionEncontrado.velocidad,
-                estado: "Asignado por Horario"
+        if (!camion) {
+            return res.status(404).json({
+                mensaje: "No tienes una unidad asignada. Pide al administrador que te asigne un camión."
             });
-        } else {
-            // Si tiene horarios hoy pero no es la hora todavía
-            return res.status(404).json({ mensaje: "Tienes viajes hoy, pero no en este horario." });
         }
 
+        // 3. Próximo horario (informativo, nunca condiciona la respuesta)
+        const viaje = await obtenerProximoViaje(idConductor, diaActualSegura());
+
+        // 4. La unidad y su ruta se devuelven siempre juntas
+        return res.json({
+            camionId: camion._id,
+            numeroUnidad: camion.numeroUnidad,
+            placa: camion.placa,
+            estado: camion.estado,
+            ubicacionActual: camion.ubicacionActual,
+            velocidad: camion.velocidad,
+            conductorNombre: camion.conductorActual?.nombre || null,
+            ruta: camion.rutaAsignada || null,
+            rutaId: camion.rutaAsignada?._id || null,
+            rutaNombre: camion.rutaAsignada?.nombre || null,
+            origen,
+            viaje
+        });
+
     } catch (error) {
-        console.error("❌ Error buscando unidad dinámica:", error);
+        console.error("❌ Error buscando unidad del conductor:", error);
         res.status(500).json({ mensaje: "Error al buscar la unidad del conductor" });
     }
 });
@@ -294,9 +321,33 @@ router.get('/mi-unidad', protect, async (req, res) => {
 // --- Obtener todos los camiones ---
 router.get("/", protect, async (req, res) => {
   try {
-    const camiones = await Camion.find().populate("rutaAsignada", "nombre");
+    const camiones = await Camion.find()
+      .populate("rutaAsignada", "nombre")
+      .populate("conductorActual", "nombre");
     res.json(camiones);
   } catch (error) {
+    res.status(500).json({ message: "Error del servidor" });
+  }
+});
+
+// --- Camiones de una RUTA (fuente: la asignación directa del camión) ---
+// El horario NO interviene: si el camión tiene la ruta asignada, aparece siempre.
+router.get("/por-ruta/:rutaId", protect, async (req, res) => {
+  try {
+    const { rutaId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(rutaId)) {
+      return res.status(400).json({ message: "ID de ruta inválido" });
+    }
+
+    const camiones = await Camion.find({ rutaAsignada: rutaId })
+      .populate("rutaAsignada", "nombre")
+      .populate("conductorActual", "nombre")
+      .sort({ numeroUnidad: 1 });
+
+    res.json(camiones);
+  } catch (error) {
+    console.error("Error obteniendo camiones por ruta:", error);
     res.status(500).json({ message: "Error del servidor" });
   }
 });
@@ -304,7 +355,7 @@ router.get("/", protect, async (req, res) => {
 // --- Crear nuevo camión ---
 router.post("/", protect, adminOnly, async (req, res) => {
   try {
-    const { numeroUnidad, placa, modelo, año, capacidad } = req.body;
+    const { numeroUnidad, placa, modelo, año, capacidad, rutaAsignada, conductorActual } = req.body;
 
     const camionExists = await Camion.findOne({ placa });
     if (camionExists)
@@ -316,6 +367,8 @@ router.post("/", protect, adminOnly, async (req, res) => {
       modelo,
       año,
       capacidad,
+      rutaAsignada: rutaAsignada || null,
+      conductorActual: conductorActual || null,
       estado: "activo",
     });
 
@@ -335,10 +388,30 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
       camion.numeroUnidad = req.body.numeroUnidad || camion.numeroUnidad;
       camion.placa = req.body.placa || camion.placa;
       camion.modelo = req.body.modelo || camion.modelo;
+      camion.capacidad = req.body.capacidad || camion.capacidad;
       camion.estado = req.body.estado || camion.estado;
-      camion.rutaAsignada = req.body.rutaAsignada || null;
 
-      const camionActualizado = await camion.save();
+      // Ruta y conductor se administran desde la ficha del camión,
+      // con independencia de los horarios.
+      if ("rutaAsignada" in req.body) {
+        camion.rutaAsignada = req.body.rutaAsignada || null;
+      }
+      if ("conductorActual" in req.body) {
+        camion.conductorActual = req.body.conductorActual || null;
+      }
+
+      // Solo puede haber un camión por conductor: liberamos el anterior.
+      if (camion.conductorActual) {
+        await Camion.updateMany(
+          { conductorActual: camion.conductorActual, _id: { $ne: camion._id } },
+          { $set: { conductorActual: null } }
+        );
+      }
+
+      const camionActualizado = await camion
+        .save()
+        .then(c => c.populate("rutaAsignada").then(p => p.populate("conductorActual", "nombre")));
+
       res.json(camionActualizado);
     } else {
       res.status(404).json({ message: "Camión no encontrado" });
@@ -389,25 +462,16 @@ function deg2rad(deg) {
 // GET /api/camiones/:id
 router.get("/:id", protect, async (req, res) => {
   try {
-    const camion = await Camion.findById(req.params.id).populate("conductorActual", "nombre");
+    const camion = await Camion.findById(req.params.id)
+      .populate("conductorActual", "nombre")
+      .populate("rutaAsignada");
 
     if (!camion) {
       return res.status(404).json({ message: "Camión no encontrado en la BD" });
     }
 
-    if (!camion.conductorActual) {
-      const Horario = require("../models/Horario");
-      const horario = await Horario.findOne({ "salidas.camionAsignado": camion._id }).populate("salidas.conductorAsignado", "nombre");
-      if (horario) {
-        const salida = horario.salidas.find(s => s.camionAsignado?.toString() === camion._id.toString());
-        if (salida?.conductorAsignado) {
-          camion.conductorActual = salida.conductorAsignado;
-        }
-      }
-    }
-
     res.json(camion);
-    
+
   } catch (error) {
     console.error("Error al obtener camión individual:", error);
     res.status(500).json({ message: "Error en el servidor al consultar camión" });

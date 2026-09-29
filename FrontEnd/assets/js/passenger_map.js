@@ -470,14 +470,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const response = await fetch(`${BACKEND_URL}/api/horarios/publico/${rutaId}`, { headers: { Authorization: `Bearer ${token}` } });
         if (!response.ok) throw new Error("Error");
         const horarios = await response.json();
-        dibujarCalendario(horarios);
+
+        // Unidades de la ruta (asignación del camión). Se usan solo como
+        // respaldo informativo cuando un horario no trae camión.
+        let unidadesRuta = [];
+        try {
+          const resCam = await fetch(`${BACKEND_URL}/api/camiones/por-ruta/${rutaId}`, { headers: { Authorization: `Bearer ${token}` } });
+          if (resCam.ok) {
+            const cams = await resCam.json();
+            unidadesRuta = cams.map(c => c.numeroUnidad);
+          }
+        } catch (_) {}
+
+        dibujarCalendario(horarios, unidadesRuta);
       } catch (error) {
         calendarGrid.innerHTML = '<p class="placeholder-text" style="color:red">Error al cargar calendario.</p>';
       }
     });
   }
 
-  function dibujarCalendario(horarios) {
+  function dibujarCalendario(horarios, unidadesRuta = []) {
     const diasOrdenados = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
     const grupos = {};
     diasOrdenados.forEach((d) => (grupos[d] = []));
@@ -488,7 +500,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const viajes = grupos[dia];
       let contenido = viajes.length === 0 ? '<div class="no-service">Sin servicio</div>' : "";
       viajes.forEach((v) => {
-        contenido += `<div class="cal-item"><span class="cal-time">${v.hora}</span><span class="cal-bus"><i class="fas fa-bus"></i> ${v.camionUnidad || "?"}</span></div>`;
+        // El horario es un dato informativo: la unidad puede venir del propio
+        // horario o, si no, de las unidades asignadas a la ruta.
+        const unidad = v.camionUnidad || unidadesRuta.join(", ") || "Sin unidad asignada";
+        contenido += `<div class="cal-item"><span class="cal-time">${v.hora}</span><span class="cal-bus"><i class="fas fa-bus"></i> ${unidad}</span></div>`;
       });
       calendarGrid.innerHTML += `<div class="day-card"><div class="day-header"><h3>${dia}</h3></div><div class="day-body">${contenido}</div></div>`;
     });
@@ -530,7 +545,9 @@ document.addEventListener("DOMContentLoaded", () => {
       currentRouteId = e.target.value;
       registrarBusqueda(currentRouteId);
       dibujarRuta(currentRouteId);
-      filtrarCamionesEnMapa();
+      // Los camiones de la ruta se piden por la asignación del camión,
+      // así que se recargan al cambiar de ruta.
+      fetchAndUpdateBuses();
       mostrarTarjetaRuta(currentRouteId);
     });
   }
@@ -901,7 +918,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function fetchAndUpdateBuses() {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/camiones`, { headers: { Authorization: `Bearer ${token}` } });
+      // Si hay ruta seleccionada, se piden solo sus camiones.
+      // La fuente es la asignación del camión, NO el horario.
+      const url = currentRouteId
+        ? `${BACKEND_URL}/api/camiones/por-ruta/${currentRouteId}`
+        : `${BACKEND_URL}/api/camiones`;
+
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) throw new Error("Error");
       const camiones = await response.json();
 
       camiones.forEach((camion) => {
@@ -910,13 +934,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!estadosVisibles.includes(camion.estado) || !camion.ubicacionActual) {
             return;
         }
-        const rutaId = camion.rutaAsignada ? camion.rutaAsignada._id : null;
+        const rutaId = camion.rutaAsignada
+          ? camion.rutaAsignada._id || camion.rutaAsignada
+          : null;
 
         if (busMarkers[camion._id]) {
           busMarkers[camion._id].setLngLat([camion.ubicacionActual.coordinates[0], camion.ubicacionActual.coordinates[1]]);
           busMarkers[camion._id].rutaId = rutaId;
         } else {
-          const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`🚍 **${camion.numeroUnidad}**<br>Ruta: ${camion.rutaAsignada ? camion.rutaAsignada.nombre : "Sin asignar"}`);
+          const nombreRuta = camion.rutaAsignada ? camion.rutaAsignada.nombre : "Sin asignar";
+          const nombreConductor = camion.conductorActual?.nombre || "Conductor SmartBus";
+          const popup = new maplibregl.Popup({ offset: 15 })
+            .setHTML(`🚍 **${camion.numeroUnidad}**<br>Ruta: ${nombreRuta}<br>Conductor: ${nombreConductor}`);
           const marker = new maplibregl.Marker({ element: createBusElement(camion._id) })
             .setLngLat([camion.ubicacionActual.coordinates[0], camion.ubicacionActual.coordinates[1]])
             .setPopup(popup);
