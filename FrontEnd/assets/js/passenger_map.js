@@ -707,7 +707,7 @@ document.addEventListener("DOMContentLoaded", () => {
         enviarNotificacionProximidad(distanciaMinima);
       }
     } else {
-      etaEl.textContent = "Sin buses";
+      etaEl.textContent = "Sin autobuses";
     }
   }
 
@@ -1229,6 +1229,81 @@ document.addEventListener("DOMContentLoaded", () => {
   // Polling inicial
   fetchAndUpdateBuses();
   setInterval(fetchAndUpdateBuses, 10000);
+
+  // ============================================================
+  // 10. LÓGICA DE MI MONEDERO (VISUAL E HISTORIAL)
+  // ============================================================
+  const modalMonedero = document.getElementById("fullscreen-monedero");
+  const btnOpenMonedero = document.getElementById("btn-open-monedero");
+  const btnCerrarMonedero = document.getElementById("btn-cerrar-monedero");
+
+  function abrirMonedero() {
+      sidebar.classList.remove("active");
+      modalMonedero.classList.add("active");
+      cargarHistorialMonedero();
+  }
+
+  function cargarHistorialMonedero() {
+      // 1. Cargar el saldo grande
+      fetch(`${BACKEND_URL}/api/transacciones/saldo`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => {
+          document.getElementById("monedero-saldo-vista").textContent = `$${parseFloat(data.saldo || 0).toFixed(2)}`;
+      }).catch(() => document.getElementById("monedero-saldo-vista").textContent = "$--");
+
+      // 2. Cargar las transacciones
+      fetch(`${BACKEND_URL}/api/transacciones/mias`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(transacciones => {
+          const container = document.getElementById("monedero-transacciones");
+          if (transacciones.length === 0) {
+              container.innerHTML = '<p style="color: #666; text-align: center; margin: 10px 0;">Sin transacciones recientes</p>';
+              return;
+          }
+          container.innerHTML = transacciones.map(t => {
+              const fecha = new Date(t.timestamp).toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+              const hora = new Date(t.timestamp).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+              const esRecarga = t.tipo === 'recarga';
+              
+              // Montos: Verde para ingresos, Rojo para pagos
+              const colorMonto = esRecarga ? '#3DDC84' : 'var(--color-error)';
+              const signo = esRecarga ? '+' : '-';
+              const concepto = esRecarga ? 'Recarga de Monedero' : (t.rutaId?.nombre || "Pago de Pasaje");
+              
+              // Íconos: Verde para recargas, Blanco/Gris para el camión
+              const iconClass = esRecarga ? 'fas fa-arrow-down' : 'fas fa-bus';
+              const iconBg = esRecarga ? 'rgba(61, 220, 132, 0.15)' : 'rgba(255, 255, 255, 0.1)';
+              const iconColor = esRecarga ? '#3DDC84' : '#ffffff';
+
+              return `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
+                <div style="display:flex; align-items:center; gap: 15px;">
+                  
+                  <!-- Ícono Circular -->
+                  <div style="width: 45px; height: 45px; border-radius: 50%; background: ${iconBg}; color: ${iconColor}; display: flex; justify-content: center; align-items: center; font-size: 1.1rem; flex-shrink: 0;">
+                    <i class="${iconClass}"></i>
+                  </div>
+
+                  <!-- Textos Centrales -->
+                  <div style="display:flex; flex-direction:column; gap: 4px; text-align: left;">
+                    <span style="color:#fff; font-size:1rem; font-weight: 600; letter-spacing: 0.3px;">${concepto}</span>
+                    <span style="color:#aaa; font-size:0.85rem;">${fecha} • ${hora}</span>
+                  </div>
+
+                </div>
+                
+                <!-- Monto a la derecha -->
+                <span style="color:${colorMonto}; font-weight:700; font-size:1.2rem; letter-spacing: 0.5px; margin-right: 15px;">
+                  ${signo}$${parseFloat(t.monto).toFixed(2)}
+                </span>
+              </div>`;
+          }).join("");
+      }).catch(() => container.innerHTML = '<p style="color: #ff6b6b; text-align: center;">Error al cargar historial</p>');
+  }
+
+  if (btnOpenMonedero) btnOpenMonedero.addEventListener("click", (e) => { e.preventDefault(); abrirMonedero(); });
+  if (btnCerrarMonedero) btnCerrarMonedero.addEventListener("click", () => modalMonedero.classList.remove("active"));
+
 });
 
 // ============================================================
@@ -1255,3 +1330,32 @@ window.addEventListener("beforeunload", () => {
         }
     }
 });
+
+// ==========================================
+// 9. LÓGICA DEL MODAL DE AYUDA (GLOBAL)
+// ==========================================
+function abrirModalAyuda(event) {
+    if(event) event.preventDefault();
+    const modalAyuda = document.getElementById('modalAyuda');
+    // Usamos 'active' al igual que en las instrucciones para que sea pantalla completa
+    if(modalAyuda) modalAyuda.classList.add('active'); 
+}
+
+function cerrarModalAyuda() {
+    const modalAyuda = document.getElementById('modalAyuda');
+    if(modalAyuda) modalAyuda.classList.remove('active');
+}
+
+function toggleFaq(btn) {
+    const content = btn.nextElementSibling;
+    const icon = btn.querySelector('.fa-chevron-down');
+
+    // Lógica para expandir/contraer suavemente el acordeón
+    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+        content.style.maxHeight = '0px';
+        icon.style.transform = 'rotate(0deg)';
+    } else {
+        content.style.maxHeight = content.scrollHeight + "px";
+        icon.style.transform = 'rotate(180deg)';
+    }
+}

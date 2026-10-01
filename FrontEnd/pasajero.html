@@ -102,9 +102,12 @@
         <a href="#" id="btn-open-perfil-sidebar" class="nav-item">
           <i class="fas fa-user-circle"></i> Mi Perfil
         </a>
+        <a href="#" id="btn-open-monedero" class="nav-item">
+          <i class="fas fa-wallet"></i> Mi Monedero
+        </a>
         <a
           href="#"
-          onclick="alert('Por ahora no hace nada oke?')"
+          onclick="abrirModalAyuda(event)"
           class="nav-item"
         >
           <i class="fas fa-question-circle"></i> Ayuda
@@ -157,7 +160,7 @@
           </button>
         </div>
 
-        <div class="profile-card">
+        <!-- <div class="profile-card">
           <i class="fas fa-user-circle profile-avatar"></i>
           <h3
             id="perfil-nombre-completo"
@@ -209,7 +212,15 @@
           >
             Aceptar
           </button>
+        </div> -->
+        <div style="margin-top: 15px;">
+          <h4 style="color: var(--color-texto-gris); font-size: 0.9rem; margin: 0 0 10px 0;"><i class="fas fa-receipt"></i> Últimas Transacciones</h4>
+          <div id="perfil-transacciones" style="max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 8px;">
+            <p style="color: #666; text-align: center; font-size: 0.85rem;">Cargando...</p>
+          </div>
         </div>
+
+
       </div>
     </div>
 
@@ -273,9 +284,9 @@
         </button>
       </div>
       <div class="map-controls card-panel">
-        <label for="ruta-selector" class="control-label"
-          >🚚 Selecciona tu Ruta</label
-        >
+        <label for="ruta-selector" class="control-label">
+          <i class="fas fa-bus" style="color: var(--color-primario); margin-right: 5px;"></i> Selecciona tu Ruta
+        </label>
         <select id="ruta-selector" class="custom-select">
           <option value="">Cargando rutas disponibles...</option>
         </select>
@@ -381,9 +392,9 @@
           <div class="instructions-grid">
             <div class="instruction-card fade-in-up delay-1">
               <div class="card-icon" style="color: #28a745">
-                <i class="fab fa-chrome"></i> <i class="fab fa-edge"></i>
+                <i class="fab fa-chrome"></i> <i class="fab fa-edge"></i> <i class="fab fa-android" style="transform: translateY(0px);"></i>
               </div>
-              <h3>Chrome / Edge</h3>
+              <h3>Chrome / Edge (Android)</h3>
               <p class="desc">Nativo y rápido.</p>
               <ul class="steps">
                 <li>
@@ -435,6 +446,182 @@
                 <li>4. Activa las alertas desde ahí.</li>
               </ul>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANTALLA COMPLETA: MI MONEDERO -->
+    <div id="fullscreen-monedero" class="fullscreen-overlay">
+      <div class="overlay-header">
+        <div class="header-title">
+          <i class="fas fa-wallet"></i> Mi Monedero
+        </div>
+        <button id="btn-cerrar-monedero" class="close-overlay-btn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="overlay-content">
+        <div class="container-fluid" style="max-width: 600px; padding-bottom: 40px;">
+          
+          <!-- Tarjeta de Saldo -->
+          <div class="card-panel" style="text-align: center; margin-bottom: 20px;">
+             <h3 style="color: var(--color-texto-gris); font-size: 1rem; margin-bottom: 5px;">Saldo Disponible</h3>
+             <h1 id="monedero-saldo-vista" style="color: var(--color-primario); font-size: 3rem; margin: 0; font-weight: 700;">$--</h1>
+          </div>
+          
+          <!-- Tarjeta de Recarga (Solo Diseño) -->
+          <div class="card-panel" style="margin-bottom: 20px;">
+             <h3 style="margin-bottom: 10px; font-size: 1.1rem;"><i class="fas fa-credit-card"></i> Recargar Saldo</h3>
+             <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 15px;">Ingresa el monto a recargar en tu monedero.</p>
+             <div id="controles-recarga" style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" id="monto-recarga" style="flex: 1; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;" placeholder="Monto (Min $10)" min="10">
+                <button class="btn btn-primary-lg" style="margin: 0; padding: 12px 20px; width: auto;" onclick="alert('La pasarela de pago se habilitará en la siguiente fase de desarrollo.')">Siguiente</button>
+             </div>
+          </div>
+
+          <!-- Tarjeta de Historial -->
+          <div class="card-panel">
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem;"><i class="fas fa-receipt"></i> Historial de Transacciones</h3>
+            <div id="monedero-transacciones" style="max-height: 300px; overflow-y: auto; padding-right: 5px;">
+              <p style="color: #666; text-align: center;">Cargando...</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE AYUDA AL PASAJERO (PANTALLA COMPLETA) -->
+    <div id="modalAyuda" class="fullscreen-overlay">
+      <div class="overlay-header">
+        <div class="header-title">
+          <i class="fas fa-question-circle"></i> Centro de Ayuda
+        </div>
+        <button class="close-overlay-btn" onclick="cerrarModalAyuda()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="overlay-content">
+        <div class="container-fluid" style="max-width: 800px; padding-bottom: 40px;">
+          <h2 class="text-center mb-4 fade-in-up" style="color: white; font-weight: 700">
+            Preguntas Frecuentes
+          </h2>
+
+          <div class="faq-container fade-in-up delay-1">
+            
+            <!-- Pregunta 1 -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-map-marked-alt" style="color: var(--color-primario); width: 25px;"></i> ¿Cómo rastreo mi camión?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Para rastrear un camión, debes seleccionar tu ruta en el buscador desplegable que se encuentra justo arriba del mapa. Al seleccionarla, el mapa te mostrará la ubicación en tiempo real de todas las unidades activas.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 2 -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-location-arrow" style="color: var(--color-primario); width: 25px;"></i> Para qué sirve "Notificar mi parada"</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Al presionar este botón, envías una alerta anónima al conductor indicando que hay un pasajero esperando en tu ubicación actual. Esto es muy útil porque algunas paradas suelen estar solas y los choferes se las saltan para ahorrar tiempo; con esta alerta, asegurarás que el conductor sepa que hay gente esperándolo.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 3 -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-bell-slash" style="color: var(--color-primario); width: 25px;"></i> No recibo notificaciones</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Asegúrate de haber tocado el botón de la campana en el mapa para activarlas. Si sigues teniendo problemas, toca el botón con el signo de interrogación ( <i class="fas fa-question"></i> ) que está justo debajo del botón de notificaciones en el mapa; ahí encontrarás guías detalladas para configurarlo en diferentes teléfonos (Android o iPhone) y navegadores.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 4 -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-star" style="color: var(--color-primario); width: 25px;"></i> ¿Cómo guardo una ruta favorita?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Cuando selecciones una ruta, aparecerá una tarjeta informativa en la parte inferior. Toca el ícono de la estrella para guardarla y tenerla siempre a la mano en tu lista de rutas.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 5 -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-user-tie" style="color: var(--color-primario); width: 25px;"></i> ¿Cómo veo la información del chofer?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Una vez que tengas una ruta seleccionada en el mapa, busca los camiones activos y presiona el ícono del camión de tu elección. Esto abrirá una tarjeta con los detalles de esa unidad en específico, incluyendo el número de placas y el nombre del conductor actual.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 6 (NUEVA: Significado de ETA) -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-stopwatch" style="color: var(--color-primario); width: 25px;"></i> ¿Qué significa ETA en la tarjeta de la ruta?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;"><strong>ETA</strong> son las siglas en inglés de <em>Tiempo Estimado de Llegada (Estimated Time of Arrival)</em>. En la tarjeta informativa de la parte inferior, este indicador te muestra los minutos aproximados que tardará el camión más cercano en llegar a la parada que tienes seleccionada actualmente en el mapa.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 7 (Marcador de ubicación) -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-map-marker-alt" style="color: var(--color-primario); width: 25px;"></i> ¿Qué es el marcador azul claro en el mapa?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Ese ícono en forma de gota azul claro con un círculo blanco en el centro representa <strong>tu ubicación actual</strong> en tiempo real. Te sirve para ubicarte rápidamente respecto a por dónde viene el camión o qué tan lejos estás de una parada. Si no lo ves, puedes presionar el botón de la mira (<i class="fas fa-crosshairs"></i>) en los controles laterales del mapa para centrar la pantalla donde tú estás.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 8 (Línea y Puntos) -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-route" style="color: var(--color-primario); width: 25px;"></i> ¿Qué son la línea azul y los puntos amarillos?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Al seleccionar una ruta, verás una <strong>línea azul brillante</strong> que marca el recorrido oficial por donde pasa el camión. Además, verás <strong>puntos amarillos</strong> que representan las paradas establecidas. Si haces clic en un punto amarillo, el sistema lo marcará como tu destino de espera y calculará el tiempo estimado (ETA) en el que llegará el camión más cercano a ese punto exacto.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 9 (Mi Monedero) -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-wallet" style="color: var(--color-primario); width: 25px;"></i> ¿Cómo recargo mi monedero?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Abre el menú lateral y entra a "Mi Monedero". Ingresa el monto que deseas abonar (el mínimo es de $10) y presiona "Recargar". Aparecerá un botón seguro de Mercado Pago donde podrás completar la transacción usando tu tarjeta de débito, crédito o transferencia, y tu saldo se reflejará al instante.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 10 (Gastos e Ingresos) -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-receipt" style="color: var(--color-primario); width: 25px;"></i> ¿Dónde puedo ver mis gastos e ingresos?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Ve a la sección "Mi Monedero" desde el menú principal. En la parte inferior encontrarás tu historial bancario detallado. Tus <strong>ingresos (recargas)</strong> resaltarán en color verde indicando que sumaste saldo, mientras que tus <strong>gastos (pagos de pasaje)</strong> mostrarán el ícono de un camión, el nombre de la ruta que tomaste y se restarán de tu saldo disponible.</p>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
