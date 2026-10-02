@@ -102,12 +102,12 @@
         <a href="#" id="btn-open-perfil-sidebar" class="nav-item">
           <i class="fas fa-user-tie"></i> Mi Perfil
         </a>
-        <a href="#" id="btn-open-cobros-sidebar" class="nav-item">
+        <!-- <a href="#" id="btn-open-cobros-sidebar" class="nav-item">
           <i class="fas fa-cash-register"></i> Cobros
-        </a>
+        </a> -->
         <a
           href="#"
-          onclick="alert('Tampoco tiene nada por ahora oke?')"
+          onclick="abrirModalAyuda()"
           class="nav-item"
         >
           <i class="fas fa-question-circle"></i> Ayuda
@@ -156,23 +156,41 @@
       <div id="hud-alerts-container" class="hud-alerts-compact"></div>
     </div>
 
+    
+    <!-- MODAL DE REPORTE DE INCIDENTES -->
     <div id="incident-modal" class="modal">
-      <div class="modal-content">
-        <span class="close-button">&times;</span>
-        <h2>Reporte de Incidente</h2>
-        <p>Selecciona el tipo de retraso en la ruta:</p>
-        <select id="incident-type" class="custom-select">
-          <option value="">-- Elige un tipo --</option>
-          <option value="Trafico">Tráfico Pesado</option>
-          <option value="Accidente">Accidente en Vía</option>
-          <option value="Bloqueo">Calle Bloqueada</option>
-          <option value="Falla">Falla Mecánica</option>
-          <option value="Otro">Otro Retraso</option>
-        </select>
-        <textarea id="incident-details" placeholder="Detalles..."></textarea>
-        <button id="send-incident" class="btn btn-error-lg">
-          Enviar Alerta
-        </button>
+      <div class="modal-content" style="max-width: 400px; padding: 25px;">
+        
+        <!-- Encabezado -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+          <h2 style="margin: 0; color: white; font-size: 1.4rem; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-exclamation-triangle" style="color: var(--color-error);"></i> Reportar Incidente
+          </h2>
+          <button class="close-overlay-btn" onclick="cerrarModalIncidente()" style="width: 35px; height: 35px; display: flex; justify-content: center; align-items: center;">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Cuerpo del formulario -->
+        <p style="color: #aaa; font-size: 0.95rem; margin-bottom: 15px; text-align: left;">Selecciona el tipo de retraso en la ruta:</p>
+
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+          <select id="incident-type" class="incident-input custom-select">
+            <option value="">-- Elige un tipo --</option>
+            <option value="Trafico">Tráfico Pesado</option>
+            <option value="Accidente">Accidente en Vía</option>
+            <option value="Bloqueo">Calle Bloqueada</option>
+            <option value="Falla">Falla Mecánica</option>
+            <option value="Otro">Otro Incidente</option>
+          </select>
+
+          <textarea id="incident-details" class="incident-input" rows="4" placeholder="Detalles adicionales (opcional)..." style="resize: none;"></textarea>
+
+          <button id="send-incident" class="btn btn-error-lg btn-animado-rojo" style="width: 100%; margin-top: 10px; padding: 15px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <i class="fas fa-paper-plane"></i> Enviar Alerta
+          </button>
+        </div>
+
       </div>
     </div>
 
@@ -289,6 +307,104 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE AYUDA AL CONDUCTOR (PANTALLA COMPLETA) -->
+    <div id="modalAyuda" class="fullscreen-overlay">
+      <div class="overlay-header">
+        <!-- 1. Botón de cerrar a la izquierda -->
+        <button class="close-overlay-btn" onclick="cerrarModalAyuda()">
+          <i class="fas fa-times"></i>
+        </button>
+        
+        <!-- 2. Título al centro -->
+        <div class="header-title">
+          <i class="fas fa-question-circle"></i> Ayuda para Conductores
+        </div>
+        
+        <!-- 3. Elemento invisible para equilibrar el 'space-between' -->
+        <div style="width: 24px;"></div>
+      </div>
+
+      <div class="overlay-content">
+        <div class="container-fluid" style="max-width: 800px; padding-bottom: 40px;">
+          <h2 class="text-center mb-4 fade-in-up" style="color: white; font-weight: 700">
+            Preguntas Frecuentes
+          </h2>
+
+          <div class="faq-container fade-in-up delay-1">
+            
+            <!-- Pregunta 1 -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-play-circle" style="color: var(--color-primario); width: 25px;"></i> ¿Cómo inicio mi ruta?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Tu ruta es asignada por el administrador y aparecerá automáticamente en el centro de tu panel inferior. Para iniciar, solo necesitas mantener la aplicación abierta y comenzar a conducir; el sistema detectará tu movimiento y comenzará a transmitir tu ubicación a los pasajeros en tiempo real.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 2 -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-stop-circle" style="color: var(--color-primario); width: 25px;"></i> ¿Cómo detengo la transmisión?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">No necesitas hacer nada manualmente. La aplicación está programada para detener la transmisión de tu ubicación de forma automática exactamente cuando concluya tu horario de servicio y llegues a la última parada de tu recorrido.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 3 -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-bell" style="color: var(--color-primario); width: 25px;"></i> ¿Qué significa la alerta de pasajero?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Si recibes una notificación en tu pantalla, significa que un pasajero presionó el botón de "Notificar Parada" y te está esperando más adelante. Trata de no saltarte las siguientes paradas.</p>
+              </div>
+            </div>
+
+            <!-- Pregunta 4 -->
+            <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
+              <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
+                <span style="font-weight: 600;"><i class="fas fa-wallet" style="color: var(--color-primario); width: 25px;"></i> ¿Cómo funciona el cobro automático?</span>
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
+              </button>
+              <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
+                <p style="padding-bottom: 8px; color: #ccc; margin: 0; font-size: 0.9rem;">El sistema admite dos formas de pago que descuentan el pasaje directamente del monedero del estudiante:</p>
+                <ul style="color: #ccc; font-size: 0.9rem; margin: 0 0 12px 0; padding-left: 20px;">
+                  <li style="margin-bottom: 6px;"><strong>Desde la App:</strong> El pasajero paga desde su aplicación y tu pantalla mostrará un mensaje verde confirmando el cobro.</li>
+                  <li style="margin-bottom: 6px;"><strong>Con Tarjeta Física (RFID):</strong> El pasajero acerca su credencial inteligente al lector del camión, registrando el pago al instante.</li>
+                </ul>
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">En cualquiera de los dos casos, si el pasajero no tiene saldo suficiente, el sistema emitirá un sonido de error para que realices el cobro de forma tradicional en efectivo.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENEDOR PARA ALERTAS FLOTANTES DE PAGO -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- MODAL DE CONFIRMACIÓN DE CERRAR SESIÓN -->
+    <div id="modal-logout" class="modal">
+      <div class="modal-content" style="min-height: auto; max-width: 350px; text-align: center; padding: 30px 20px;">
+        <div style="font-size: 3.5rem; color: var(--color-error); margin-bottom: 15px;">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h2 style="margin-bottom: 10px; color: white;">¿Cerrar Sesión?</h2>
+        <p style="color: #aaa; margin-bottom: 25px; font-size: 0.95rem;">Se detendrá la transmisión de tu ubicación y saldrás de tu turno.</p>
+        
+        <div style="display: flex; gap: 15px; justify-content: center;">
+          <button class="btn btn-secondary-sm" onclick="cerrarModalLogout()" style="flex: 1; margin: 0;">Cancelar</button>
+          <button class="btn btn-error-lg" onclick="ejecutarLogout()" style="flex: 1; margin: 0; padding: 12px;">Sí, salir</button>
         </div>
       </div>
     </div>
