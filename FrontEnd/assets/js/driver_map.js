@@ -66,10 +66,9 @@ document.addEventListener("DOMContentLoaded", () => {
   driverEl.className = 'custom-driver-icon';
   driverEl.innerHTML = '<div style="background-color: var(--color-primario); border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; color: white; border: 3px solid white; font-size: 20px; box-shadow: 0 0 15px var(--color-primario); transition: all 0.3s ease;">🚌</div>';
   
-  const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setText("Ubicación Guardada");
   const driverMarker = new maplibregl.Marker({ element: driverEl })
     .setLngLat([initialLng, initialLat])
-    .setPopup(popup)
+    
     .addTo(map);
   
   driverMarker.togglePopup();
@@ -129,8 +128,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // 4. Mover el marcador
             driverMarker.setLngLat([lngDB, latDB]);
-            driverMarker.getPopup().setHTML(`📍 Ubicación Real (BD)<br>🚀 ${Math.round(velocidadDB)} km/h`);
-            if(!driverMarker.getPopup().isOpen()) driverMarker.togglePopup();
 
             // Actualizar Consola
             if (consoleSpeed) consoleSpeed.innerHTML = `${Math.round(velocidadDB)} <small>km/h</small>`;
@@ -213,19 +210,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function finDelServicio() {
-    if (routeDisplay) routeDisplay.textContent = "Jornada Finalizada";
+    // if (routeDisplay) routeDisplay.textContent = "Jornada Finalizada";
     
-    DESTINO_ACTUAL = null;
-    if (map.getLayer("ruta-layer")) map.removeLayer("ruta-layer");
-    if (map.getSource("ruta-source")) map.removeSource("ruta-source");
-    if (window.stopMarkersArray) {
-      window.stopMarkersArray.forEach(m => m.remove());
-      window.stopMarkersArray = [];
-    }
+    // DESTINO_ACTUAL = null;
+    // if (map.getLayer("ruta-layer")) map.removeLayer("ruta-layer");
+    // if (map.getSource("ruta-source")) map.removeSource("ruta-source");
+    // if (window.stopMarkersArray) {
+    //   window.stopMarkersArray.forEach(m => m.remove());
+    //   window.stopMarkersArray = [];
+    // }
 
-    alert(
-      "🏁 Has llegado al destino final de hoy.\nTu estado ahora es: Fuera de Servicio."
-    );
+    // alert(
+    //   "🏁 Has llegado al destino final de hoy.\nTu estado ahora es: Fuera de Servicio."
+    // );
   }
 
   // --- El dato central de la consola muestra la RUTA y su DURACIÓN ---
@@ -809,6 +806,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   }
+
   // 7. REPORTAR INCIDENTE
   const incidentModal = document.getElementById("incident-modal");
   const btnMainReporte = document.getElementById("btn-reporte-incidente");
@@ -819,20 +817,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnCloseIncident = incidentModal ? incidentModal.querySelector(".close-button") : null;
   if (btnCloseIncident) {
     btnCloseIncident.onclick = () =>
-      incidentModal.classList.remove("modal-visible");
+      incidentModal.classList.remove("show"); // Actualizado a .show
   }
 
   if (btnMainReporte && incidentModal) {
     btnMainReporte.addEventListener("click", (e) => {
       e.preventDefault();
       console.log("⚠️ Abriendo modal de incidente...");
-      incidentModal.classList.add("modal-visible");
+      incidentModal.classList.add("show"); // Actualizado a .show
     });
   }
 
   window.onclick = (event) => {
     if (event.target.classList.contains("modal")) {
-      event.target.classList.remove("modal-visible");
+      event.target.classList.remove("show"); // Actualizado a .show
     }
   };
 
@@ -849,8 +847,8 @@ document.addEventListener("DOMContentLoaded", () => {
           hora: new Date().toISOString(),
         });
 
-        incidentModal.classList.remove("modal-visible");
-        alert("⚠️ Incidente reportado a los estudiantes.");
+        incidentModal.classList.remove("show"); // Actualizado a .show
+        alert("⚠️️ Incidente reportado a los estudiantes.");
 
         document.getElementById("incident-type").value = "";
         document.getElementById("incident-details").value = "";
@@ -862,7 +860,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  // frontend/assets/js/driver_map.js
+  
 
   // 2. Escuchar el evento cuando un estudiante dice "Estoy Aquí"
   socket.on("studentWaiting", (data) => {
@@ -1039,6 +1037,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 5000);
       }
     }
+
+    // Mostrar la alerta flotante en pantalla
+    mostrarAlertaPago(data.monto, data.metodo || 'App');
   });
 
   // Cobro manual — servidor calcula el precio, frontend espera confirmación
@@ -1135,16 +1136,56 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function logoutAction(e) {
     e.preventDefault();
-    if (confirm("¿Estás seguro de que quieres cerrar sesión?")) {
-      localStorage.removeItem("tecbus_token");
-      localStorage.removeItem("tecbus_user");
-      window.location.href = "login.html";
-    }
+    // 1. Ocultar el menú lateral si está abierto
+    const sidebar = document.getElementById("sidebar");
+    if (sidebar) sidebar.classList.remove("active");
+    
+    // 2. Mostrar nuestro modal oscuro
+    document.getElementById("modal-logout").classList.add("show");
   }
 
+  // Funciones globales para que los botones del HTML las puedan encontrar
+  window.cerrarModalLogout = function() {
+    document.getElementById("modal-logout").classList.remove("show");
+  };
+
+  window.ejecutarLogout = function() {
+    // Animación de carga en el botón
+    const btnSalir = document.querySelector("#modal-logout .btn-error-lg");
+    if (btnSalir) {
+        btnSalir.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saliendo...';
+        btnSalir.disabled = true;
+    }
+
+    const token = localStorage.getItem("tecbus_token");
+    const userString = localStorage.getItem("tecbus_user");
+
+    if (token && userString) {
+        const user = JSON.parse(userString);
+        const userId = user._id || user.id;
+        
+        // Poner al chofer "inactivo" en la base de datos antes de salir
+        fetch(`${BACKEND_URL}/api/users/${userId}`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ estado: "inactivo" }) 
+        }).finally(() => {
+            localStorage.removeItem("tecbus_token");
+            localStorage.removeItem("tecbus_user");
+            window.location.href = "login.html";
+        });
+    } else {
+        localStorage.removeItem("tecbus_token");
+        localStorage.removeItem("tecbus_user");
+        window.location.href = "login.html";
+    }
+  };
+
   if (btnLogout) btnLogout.addEventListener("click", logoutAction);
-  if (btnSidebarLogout)
-    btnSidebarLogout.addEventListener("click", logoutAction);
+  if (btnSidebarLogout) btnSidebarLogout.addEventListener("click", logoutAction);
 
   // 9. DROPDOWN PERFIL
   const profileToggle = document.getElementById("profile-toggle");
@@ -1167,3 +1208,68 @@ document.addEventListener("DOMContentLoaded", () => {
   actualizarEstadoConductor();
   setInterval(actualizarEstadoConductor, 60000);
 });
+
+// ==========================================
+// LÓGICA DEL MODAL DE AYUDA (CONDUCTOR)
+// ==========================================
+function abrirModalAyuda(event) {
+    if(event) event.preventDefault();
+    
+    // Ocultar sidebar si está abierto (ajusta el ID si tu sidebar se llama diferente)
+    const sidebar = document.getElementById("sidebar");
+    if (sidebar) sidebar.classList.remove("active");
+
+    const modalAyuda = document.getElementById('modalAyuda');
+    if(modalAyuda) modalAyuda.classList.add('active'); 
+}
+
+function cerrarModalAyuda() {
+    const modalAyuda = document.getElementById('modalAyuda');
+    if(modalAyuda) modalAyuda.classList.remove('active');
+}
+
+function toggleFaq(btn) {
+    const content = btn.nextElementSibling;
+    const icon = btn.querySelector('.fa-chevron-down');
+
+    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+        content.style.maxHeight = '0px';
+        icon.style.transform = 'rotate(0deg)';
+    } else {
+        content.style.maxHeight = content.scrollHeight + "px";
+        icon.style.transform = 'rotate(180deg)';
+    }
+}
+
+// ==========================================
+// ALERTAS FLOTANTES DE PAGO
+// ==========================================
+function mostrarAlertaPago(monto, metodo = 'App') {
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+
+    const toast = document.createElement("div");
+    toast.className = "toast-pago";
+    
+    // Cambiar el ícono según el método (App o RFID)
+    const icono = metodo === 'RFID' ? 'fa-id-card' : 'fa-mobile-alt';
+    
+    toast.innerHTML = `<i class="fas ${icono}"></i> Pago ${metodo}: $${parseFloat(monto).toFixed(2)}`;
+
+    container.appendChild(toast);
+
+    // Destruir el elemento HTML después de 3 segundos (cuando termina la animación CSS)
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// ==========================================
+// CERRAR MODAL DE INCIDENTES
+// ==========================================
+window.cerrarModalIncidente = function() {
+    const modalIncidente = document.getElementById("incident-modal");
+    if(modalIncidente) {
+        modalIncidente.classList.remove("show");
+    }
+};
