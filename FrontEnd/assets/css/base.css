@@ -184,3 +184,31 @@ a {
     font-size: 12px;
   }
 }
+
+/* ==========================================================================
+   EFECTO FOCUS GLOBAL PARA CAJAS CON ICONOS (INPUT GROUPS)
+   ========================================================================== */
+/* 1. Quitamos el brillo azul individual del input para que no se corte */
+.input-group .form-control:focus {
+    box-shadow: none !important;
+}
+
+/* 2. Le damos el brillo a todo el grupo completo cuando haces clic adentro */
+.input-group:focus-within {
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+    border-radius: var(--bs-border-radius);
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+/* 3. Pintamos la línea del borde de color azul para todas las partes */
+.input-group:focus-within .form-control,
+.input-group:focus-within .input-group-text {
+    border-color: var(--color-primario) !important;
+    transition: border-color 0.15s ease-in-out;
+}
+
+/* Opcional: Que los íconos también se pinten de azul al hacer clic */
+.input-group:focus-within .input-group-text i {
+    color: var(--color-primario) !important;
+    transition: color 0.15s ease-in-out;
+}

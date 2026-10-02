@@ -1527,3 +1527,29 @@ header {
         align-items: center;
     }
 }
+
+/* ==========================================================================
+   ANIMACIONES PARA BOTONES DEL MODAL DE LOGOUT
+   ========================================================================== */
+.btn-animado-gris,
+.btn-animado-rojo {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.btn-animado-gris:hover {
+    transform: scale(1.05);
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.btn-animado-rojo:hover {
+    transform: scale(1.05);
+    background-color: #ff4757 !important;
+    box-shadow: 0 0 20px rgba(255, 71, 87, 0.6);
+}
+
+.btn-animado-gris:active,
+.btn-animado-rojo:active {
+    transform: scale(0.95);
+}

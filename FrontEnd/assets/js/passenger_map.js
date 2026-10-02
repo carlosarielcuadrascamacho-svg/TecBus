@@ -322,25 +322,44 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ==========================================
+  // LÓGICA PARA CERRAR SESIÓN (NUEVO MODAL)
+  // ==========================================
   function handleLogout(e) {
     e.preventDefault();
-    if (confirm("¿Cerrar sesión?")) {
-      // Intentar marcar como inactivo antes de borrar token
-      const userId = user._id || user.id;
-      fetch(`${BACKEND_URL}/api/users/${userId}`, {
-          method: 'PUT',
-          headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}` 
-          },
-          body: JSON.stringify({ estado: "inactivo" }) 
-      }).finally(() => {
-          localStorage.removeItem("tecbus_token");
-          localStorage.removeItem("tecbus_user");
-          window.location.href = "login.html";
-      });
-    }
+    const sidebar = document.getElementById("sidebar");
+    if (sidebar) sidebar.classList.remove("active");
+    
+    document.getElementById("modal-logout").classList.add("show");
   }
+
+  window.cerrarModalLogout = function() {
+    document.getElementById("modal-logout").classList.remove("show");
+  };
+
+  window.ejecutarLogout = function() {
+    const btnSalir = document.querySelector("#modal-logout .btn-error-lg");
+    if (btnSalir) {
+        btnSalir.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saliendo...';
+        btnSalir.disabled = true;
+    }
+
+    const userId = user._id || user.id;
+    
+    // Intentar marcar como inactivo antes de borrar token
+    fetch(`${BACKEND_URL}/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ estado: "inactivo" }) 
+    }).finally(() => {
+        localStorage.removeItem("tecbus_token");
+        localStorage.removeItem("tecbus_user");
+        window.location.href = "login.html";
+    });
+  };
 
   const logoutBtn = document.getElementById("logout-button");
   const sidebarLogout = document.getElementById("sidebar-logout");

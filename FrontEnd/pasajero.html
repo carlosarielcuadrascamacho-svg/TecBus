@@ -627,6 +627,22 @@
       </div>
     </div>
 
+    <!-- MODAL DE CONFIRMACIÓN DE CERRAR SESIÓN -->
+    <div id="modal-logout" class="modal">
+      <div class="modal-content" style="min-height: auto; max-width: 350px; text-align: center; padding: 30px 20px;">
+        <div style="font-size: 3.5rem; color: var(--color-error); margin-bottom: 15px;">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h2 style="margin-bottom: 10px; color: white;">¿Cerrar Sesión?</h2>
+        <p style="color: #aaa; margin-bottom: 25px; font-size: 0.95rem;">Saldrás de tu cuenta en este dispositivo y dejarás de recibir alertas de tus rutas.</p>
+        
+        <div style="display: flex; gap: 15px; justify-content: center;">
+          <button class="btn btn-secondary-sm btn-animado-gris" onclick="cerrarModalLogout()" style="flex: 1; margin: 0;">Cancelar</button>
+          <button class="btn btn-error-lg btn-animado-rojo" onclick="ejecutarLogout()" style="flex: 1; margin: 0; padding: 12px;">Sí, salir</button>
+        </div>
+      </div>
+    </div>
+
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="assets/js/passenger_map.js?v=2"></script>
