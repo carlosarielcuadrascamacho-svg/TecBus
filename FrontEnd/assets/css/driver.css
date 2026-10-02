@@ -1075,14 +1075,36 @@ header {
 }
 
 /* ==========================================================================
-   ANIMACIONES PARA BOTONES DEL MODAL DE LOGOUT
+   ESTILOS BASE Y ANIMACIONES PARA BOTONES DEL MODAL
    ========================================================================== */
+.btn {
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    text-align: center;
+}
+
+.btn-secondary-sm {
+    padding: 12px;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: #aaa;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-error-lg {
+    background-color: #ff4757;
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+}
+
+/* Animaciones de rebote (Glow y Scale) */
 .btn-animado-gris,
 .btn-animado-rojo {
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 
-/* Efecto al pasar el cursor (Hover) */
 .btn-animado-gris:hover {
     transform: scale(1.05);
     background-color: rgba(255, 255, 255, 0.1) !important;
@@ -1092,11 +1114,10 @@ header {
 
 .btn-animado-rojo:hover {
     transform: scale(1.05);
-    background-color: #ff4757 !important; /* Un rojo más brillante */
+    background-color: #ff6b81 !important;
     box-shadow: 0 0 20px rgba(255, 71, 87, 0.6);
 }
 
-/* Efecto al hacer clic (Active) */
 .btn-animado-gris:active,
 .btn-animado-rojo:active {
     transform: scale(0.95);

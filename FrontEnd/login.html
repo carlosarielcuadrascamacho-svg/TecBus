@@ -92,12 +92,15 @@
               <span class="input-group-text"><i class="fas fa-lock"></i></span>
               <input
                 type="password"
-                class="form-control"
+                class="form-control border-end-0"
                 id="contrasena"
                 name="contrasena"
                 placeholder="********"
                 required
               />
+              <button class="input-group-text border-start-0 text-muted" type="button" id="togglePassword" style="background-color: var(--bs-body-bg); cursor: pointer;">
+                <i class="fas fa-eye-slash" id="eyeIcon"></i>
+              </button>
             </div>
           </div>
 
@@ -124,6 +127,36 @@
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
       <script src="assets/js/login.js"></script>
       <script src="assets/js/pwa-install.js"></script>
+
+      <script>
+        document.addEventListener("DOMContentLoaded", function() {
+          const togglePassword = document.getElementById("togglePassword");
+          const passwordInput = document.getElementById("contrasena");
+          const eyeIcon = document.getElementById("eyeIcon");
+
+          if (togglePassword && passwordInput) {
+            togglePassword.addEventListener("click", function () {
+              // Verifica si actualmente es un campo de contraseña
+              const isPassword = passwordInput.getAttribute("type") === "password";
+              
+              // Alterna el tipo de input
+              passwordInput.setAttribute("type", isPassword ? "text" : "password");
+              
+              // Alterna el ícono según el nuevo estado
+              if (isPassword) {
+                // Ahora es texto visible -> Mostrar ojo normal
+                eyeIcon.classList.remove("fa-eye-slash");
+                eyeIcon.classList.add("fa-eye");
+              } else {
+                // Ahora está oculta -> Mostrar ojo tachado
+                eyeIcon.classList.remove("fa-eye");
+                eyeIcon.classList.add("fa-eye-slash");
+              }
+            });
+          }
+        });
+      </script>
+
     </body>
   </html>
 </html>
