@@ -72,37 +72,58 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // --- 5. LOGOUT (ESTÁTICO) ---
-  // Esto permite cerrar sesión incluso si el backend falla
+  // --- 5. LOGOUT (NUEVO MODAL) ---
   const btnLogout = Array.from(navLinks).find(l => l.textContent.includes("Cerrar Sesión"));
   if(btnLogout) {
-      btnLogout.addEventListener("click", async (e) => {
+      btnLogout.addEventListener("click", (e) => {
           e.preventDefault();
-          if (confirm("¿Estás seguro de que quieres cerrar sesión?")) {
-            
-            // 👇 NUEVO: Avisar al backend para poner estado: "inactivo"
-            try {
-                const token = localStorage.getItem("tecbus_token");
-                const user = JSON.parse(localStorage.getItem("tecbus_user"));
-                if(user && user.id) {
-                    await fetch(`${BACKEND_URL}/api/users/${user.id}`, {
-                        method: 'PUT',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}` 
-                        },
-                        body: JSON.stringify({ estado: "inactivo" }) 
-                    });
-                }
-            } catch(err) { console.error("Error al cerrar sesión en BD", err); }
+          // Ocultar el menú lateral en móviles si está abierto
+          if (sidebar) sidebar.classList.remove("open");
+          if (backdrop) backdrop.classList.remove("open");
 
-            // Proceder a borrar localstorage y salir
-            localStorage.removeItem("tecbus_token");
-            localStorage.removeItem("tecbus_user");
-            window.location.href = "index.html";
-          }
+          // Mostrar nuestro modal oscuro
+          document.getElementById("modal-logout").classList.add("modal-visible");
       });
   }
+
+  // Funciones globales para los botones del HTML
+  window.cerrarModalLogout = function() {
+      document.getElementById("modal-logout").classList.remove("modal-visible");
+  };
+
+  window.ejecutarLogout = async function() {
+      const btnSalir = document.querySelector("#modal-logout .btn-danger");
+      if (btnSalir) {
+          btnSalir.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saliendo...';
+          btnSalir.disabled = true;
+      }
+
+      try {
+          const token = localStorage.getItem("tecbus_token");
+          const userString = localStorage.getItem("tecbus_user");
+          if(token && userString) {
+              const user = JSON.parse(userString);
+              if(user && user.id) {
+                  // Marcar como inactivo en la base de datos
+                  await fetch(`${BACKEND_URL}/api/users/${user.id}`, {
+                      method: 'PUT',
+                      headers: { 
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}` 
+                      },
+                      body: JSON.stringify({ estado: "inactivo" }) 
+                  });
+              }
+          }
+      } catch(err) { 
+          console.error("Error al cerrar sesión en BD", err); 
+      } finally {
+          // Borrar datos locales y redirigir
+          localStorage.removeItem("tecbus_token");
+          localStorage.removeItem("tecbus_user");
+          window.location.href = "login.html"; 
+      }
+  };
 
   // --- 6. DETECTOR DE CIERRE DE PESTAÑA (Auto-Logout) ---
   window.addEventListener("beforeunload", () => {
