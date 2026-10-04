@@ -761,9 +761,97 @@
                 <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Buscar</button>
               </form>
 
-              <!-- Aquí se inyectan los resultados del usuario (el div que ya tienes oculto por defecto) -->
+              <!-- Resultados del usuario (oculto hasta que se ejecuta una búsqueda) -->
               <div id="taquilla-user-result" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <!-- Contenido de usuario (saldo, rfid, etc.) mantén el tuyo aquí -->
+
+                <!-- DATOS DEL USUARIO -->
+                <h5 style="color: #0dcaf0; margin-bottom: 15px; font-size: 0.9rem;"><i class="fas fa-user"></i> Datos del Usuario</h5>
+                <div class="form-grid" style="grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Nombre</label>
+                    <span id="tq-nombre" style="color: #fff; font-weight: 500;">--</span>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Email</label>
+                    <span id="tq-email" style="color: var(--color-texto-claro);">--</span>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Tipo</label>
+                    <span id="tq-tipo" style="color: var(--color-texto-claro);">--</span>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Saldo Actual</label>
+                    <span id="tq-saldo" style="font-size: 1.3rem; font-weight: 700; color: var(--color-primario);">$0.00</span>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>RFID Vinculado</label>
+                    <span id="tq-rfid" style="color: var(--color-texto-claro);">Ninguno</span>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Estudiante</label>
+                    <span id="tq-estudiante" style="color: var(--color-texto-claro);">No</span>
+                  </div>
+                </div>
+                <input type="hidden" id="tq-user-id" />
+
+                <div style="margin-top: 15px; text-align: right;">
+                  <button type="button" id="btn-desvincular-rfid" class="btn btn-danger btn-sm" style="display: none;"><i class="fas fa-unlink"></i> Desvincular RFID</button>
+                </div>
+
+                <hr style="border-color: rgba(255,255,255,0.05); margin: 20px 0;">
+
+                <!-- VINCULAR RFID / RECARGAR -->
+                <h5 style="color: #0dcaf0; margin-bottom: 15px; font-size: 0.9rem;"><i class="fas fa-credit-card"></i> Vincular RFID / Recargar</h5>
+                <form id="form-vincular-rfid" class="flex-form-row" style="margin-bottom: 0;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="tq-rfid-uid">UID de Tarjeta RFID</label>
+                    <input type="text" id="tq-rfid-uid" class="form-control" placeholder="Ej: A3B2C1D4" />
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="tq-monto-recarga">Monto a Recargar ($)</label>
+                    <input type="number" id="tq-monto-recarga" class="form-control" placeholder="50" min="0" step="10" />
+                  </div>
+                  <button type="submit" class="btn btn-primary"><i class="fas fa-link"></i> Vincular y Recargar</button>
+                  <button type="button" id="btn-recargar-solo" class="btn btn-secondary"><i class="fas fa-coins"></i> Solo Recargar</button>
+                </form>
+
+                <hr style="border-color: rgba(255,255,255,0.05); margin: 20px 0;">
+
+                <!-- ESTADO DE ESTUDIANTE -->
+                <h5 style="color: #0dcaf0; margin-bottom: 15px; font-size: 0.9rem;"><i class="fas fa-graduation-cap"></i> Estado de Estudiante</h5>
+                <form id="form-toggle-estudiante" class="flex-form-row" style="margin-bottom: 0;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="tq-es-estudiante">¿Paga tarifa de estudiante?</label>
+                    <select id="tq-es-estudiante" class="form-control">
+                      <option value="false">No — Tarifa General</option>
+                      <option value="true">Sí — Tarifa Estudiante</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar</button>
+                </form>
+
+                <hr style="border-color: rgba(255,255,255,0.05); margin: 20px 0;">
+
+                <!-- TRANSACCIONES RECIENTES -->
+                <h5 style="color: #0dcaf0; margin-bottom: 15px; font-size: 0.9rem;"><i class="fas fa-receipt"></i> Transacciones Recientes</h5>
+                <div class="table-container" style="background: rgba(0,0,0,0.2); border-radius: 8px; max-height: 300px; overflow-y: auto;">
+                  <table class="admin-table">
+                    <thead>
+                      <tr>
+                        <th>FECHA</th>
+                        <th>MONTO</th>
+                        <th>TIPO</th>
+                        <th>RUTA</th>
+                        <th>UNIDAD</th>
+                        <th>BOLETOS</th>
+                        <th>SALDO</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tq-transacciones-body">
+                      <tr><td colspan="7" style="text-align: center; color: #888; padding: 20px;">Busca un usuario para ver sus movimientos</td></tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
