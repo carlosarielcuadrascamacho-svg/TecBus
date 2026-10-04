@@ -580,6 +580,7 @@
 
 .badge-danger { background: rgba(255, 71, 87, 0.2); color: #ff4757; border-color: rgba(255, 71, 87, 0.3); }
 .badge-warning { background: rgba(255, 165, 2, 0.2); color: #ffa502; border-color: rgba(255, 165, 2, 0.3); }
+.badge-success { background: rgba(40, 167, 69, 0.2); color: #2ecc71; border-color: rgba(40, 167, 69, 0.3); }
 .badge-admin { background: rgba(0, 123, 255, 0.2); color: #007bff; border-color: rgba(0, 123, 255, 0.3); }
 .badge-estudiante { background: rgba(0, 123, 255, 0.15); color: #74b9ff; }
 .badge-conductor { background: rgba(255, 159, 67, 0.15); color: #ff9f43; }
@@ -2800,4 +2801,20 @@
     #tq-saldo {
         font-size: 1.8rem !important;
     }
+}
+
+/* ==========================================================================
+   UTILIDADES DE TEXTO
+   Clases de estado (cargando / vacío / error) que el JS de las tablas
+   del panel usa pero nunca se habían definido.
+   ========================================================================== */
+.text-center { text-align: center; }
+.text-muted  { color: var(--color-texto-gris); }
+.text-danger { color: var(--color-error); }
+
+/* El JS colorea los montos de recarga con --color-acento (verde esmeralda),
+   pero esa variable solo estaba definida en passenger.css y landing_style.css.
+   admin.html carga base.css + admin.css, así que aquí quedaba sin resolver. */
+:root {
+    --color-acento: #10b981;
 }
