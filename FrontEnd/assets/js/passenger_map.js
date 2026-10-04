@@ -1378,3 +1378,122 @@ function toggleFaq(btn) {
         icon.style.transform = 'rotate(180deg)';
     }
 }
+
+
+
+// ==========================================================================
+//   MÓDULO DE RECARGA DE SALDO (PASAJERO - SIMULACIÓN)
+// ==========================================================================
+
+window.mostrarModalRecarga = function() {
+    Swal.fire({
+        title: 'Recargar Monedero',
+        html: `
+            <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 15px;">Selecciona un monto rápido o escribe uno:</p>
+            <div class="opciones-recarga">
+                <button class="btn-monto" onclick="document.getElementById('monto-recarga').value = 50">$50</button>
+                <button class="btn-monto" onclick="document.getElementById('monto-recarga').value = 100">$100</button>
+                <button class="btn-monto" onclick="document.getElementById('monto-recarga').value = 200">$200</button>
+            </div>
+            <div class="form-group mt-3" style="text-align: center;">
+                <input type="number" id="monto-recarga" class="form-control" 
+                       style="text-align: center; font-size: 1.5rem; font-weight: bold; width: 100%; max-width: 250px; margin: 0 auto; background: rgba(0,0,0,0.3); color: white; border: 1px solid #0ea5e9; border-radius: 8px; padding: 10px;" 
+                       placeholder="$0.00" min="10">
+            </div>
+        `,
+        background: 'rgba(30, 30, 45, 0.95)',
+        color: '#ffffff',
+        showCancelButton: true,
+        showDenyButton: false,
+        confirmButtonText: '<i class="fas fa-credit-card"></i> Pagar ahora',
+        cancelButtonText: 'Cancelar',
+        buttonsStyling: false,
+        customClass: {
+            popup: 'swal-recharge-popup', // Usamos una clase limpia nueva para evitar el lag
+            confirmButton: 'btn btn-primary-lg',
+            cancelButton: 'btn btn-secondary-sm',
+            actions: 'modal-actions-center'
+        },
+        // preConfirm detiene el cierre de la ventana y nos permite procesar la carga adentro
+        preConfirm: () => {
+            const input = document.getElementById('monto-recarga').value;
+            if (!input || input < 10) {
+                Swal.showValidationMessage('Ingresa un monto mínimo de $10 MXN');
+                return false;
+            }
+            
+            // 1. Mostrar ruedita de carga y cambiar el título suavemente
+            Swal.showLoading();
+            const title = Swal.getTitle();
+            if(title) title.textContent = "Procesando pago...";
+
+            // 2. Hacer la simulación/petición sin cerrar el modal
+            return new Promise((resolve) => {
+                setTimeout(async () => {
+                    try {
+                        const token = localStorage.getItem("tecbus_token");
+                        const res = await fetch(`${BACKEND_URL}/api/transacciones/recargar`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Authorization: `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ monto: parseFloat(input) })
+                        });
+
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.message || "Error en el pago");
+                        
+                        resolve({ success: true, monto: input, nuevoSaldo: data.nuevoSaldo });
+                    } catch (error) {
+                        resolve({ success: false, error: error.message });
+                    }
+                }, 2000);
+            });
+        }
+    }).then((result) => {
+        // 3. Cuando termina la carga, mostramos el modal final de éxito o error
+        if (result.isConfirmed) {
+            const response = result.value;
+            
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Recarga Exitosa!',
+                    text: `Tu pago fue aprobado. Se han añadido $${parseFloat(response.monto).toFixed(2)} MXN.`,
+                    background: 'rgba(30, 30, 45, 0.95)',
+                    color: '#ffffff',
+                    confirmButtonText: 'Genial',
+                    buttonsStyling: false,
+                    customClass: { 
+                        popup: 'swal-recharge-popup',
+                        confirmButton: 'btn btn-primary-lg' 
+                    }
+                });
+
+                // Actualizar UI
+                const saldoVisual = document.getElementById("monedero-saldo-vista");
+                if (saldoVisual && response.nuevoSaldo) {
+                    saldoVisual.textContent = `$${parseFloat(response.nuevoSaldo).toFixed(2)}`;
+                }
+                if (typeof cargarHistorialMonedero === 'function') {
+                    cargarHistorialMonedero();
+                }
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Pago Rechazado',
+                    text: 'Hubo un error. ' + response.error,
+                    background: 'rgba(30, 30, 45, 0.95)',
+                    color: '#ffffff',
+                    confirmButtonText: 'Entendido',
+                    buttonsStyling: false,
+                    customClass: { 
+                        popup: 'swal-recharge-popup',
+                        confirmButton: 'btn btn-error-lg' 
+                    }
+                });
+            }
+        }
+    });
+};
