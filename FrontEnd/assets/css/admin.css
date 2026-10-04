@@ -2738,3 +2738,66 @@
 .admin-table th:last-child, .admin-table td:last-child {
     border-right: none;
 }
+
+/* ==========================================================================
+   RESPONSIVIDAD MÓVIL: TAQUILLA Y TARIFAS
+   ========================================================================== */
+@media screen and (max-width: 768px) {
+    /* 1. Arreglar el grid principal (Romper el minmax de 450px) */
+    .taquilla-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+
+    /* 2. Formularios de taquilla apilados en columna */
+    #taquilla .flex-form-row {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+
+    /* Quitar anchos forzados en línea del formulario de "Excepción por Ruta" */
+    #taquilla .flex-form-row .form-group,
+    #taquilla .flex-form-row button {
+        width: 100% !important;
+        flex: none !important;
+        min-width: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    /* 3. Encabezados con botones (Como el del Historial Global) */
+    #taquilla .analytics-card .card-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+    
+    #taquilla .analytics-card .card-header button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* 4. Tablas adaptables con scroll horizontal perfecto */
+    #taquilla .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 10px;
+        margin-top: 10px;
+    }
+
+    #taquilla .admin-table {
+        min-width: 700px; /* Fuerza el scroll horizontal sin aplastar textos */
+    }
+
+    #taquilla .admin-table th, 
+    #taquilla .admin-table td {
+        white-space: nowrap !important; /* Evita que el texto brinque de línea */
+        padding: 12px 10px !important;
+    }
+    
+    /* Achicar el número del saldo gigante en pantallas pequeñas */
+    #tq-saldo {
+        font-size: 1.8rem !important;
+    }
+}
