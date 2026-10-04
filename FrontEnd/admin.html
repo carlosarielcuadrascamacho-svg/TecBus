@@ -562,6 +562,16 @@
         </section>
 
         <section id="estadisticas" class="dashboard-section">
+          <!-- NUEVO ENCABEZADO CON FILTROS DE TIEMPO -->
+          <div class="section-header-tabs" style="margin-bottom: 20px; border-bottom: none;">
+            <h3 style="margin: 0;"><i class="fas fa-chart-pie" style="color: var(--color-primario); margin-right: 10px;"></i> Panel de Estadísticas</h3>
+            <div class="tab-controls" id="stats-time-filters">
+                <button class="btn-tab active" data-period="hoy">Hoy</button>
+                <button class="btn-tab" data-period="semana">Semana</button>
+                <button class="btn-tab" data-period="mes">Mes</button>
+            </div>
+          </div>
+
           <div class="analytics-grid">
             <div class="analytics-card main-chart">
               <div class="card-header">
@@ -582,14 +592,32 @@
             <div class="analytics-card">
               <div class="card-header">
                 <h4><i class="fas fa-exclamation-triangle"></i> Tipos de Alertas</h4>
-                <p>Distribución de incidentes semanal</p>
+                <p>Distribución de incidentes</p>
               </div>
               <canvas id="chart-alertas"></canvas>
+            </div>
+
+            <!-- NUEVA TARJETA: INGRESOS DE TAQUILLA -->
+            <div class="analytics-card">
+              <div class="card-header">
+                <h4><i class="fas fa-coins" style="color: #10b981;"></i> Ingresos de Taquilla</h4>
+                <p>Recaudación total (MXN)</p>
+              </div>
+              <canvas id="chart-taquilla"></canvas>
             </div>
           </div>
         </section>
 
         <section id="sostenibilidad" class="dashboard-section">
+          
+          <!-- NUEVO ENCABEZADO CON BOTÓN EXPORTAR -->
+          <div class="section-header-tabs" style="margin-bottom: 20px; border-bottom: none;">
+            <h3 style="margin: 0;"><i class="fas fa-leaf" style="color: #2ecc71; margin-right: 10px;"></i> Sostenibilidad y Green ROI</h3>
+            <button class="btn btn-secondary" onclick="exportarReportePDF()" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem;">
+                <i class="fas fa-file-download" style="color: #0dcaf0;"></i> Exportar Reporte
+            </button>
+          </div>
+
           <!-- Eco-Dashboard Cards -->
           <div class="eco-dashboard-grid">
             <div class="eco-card eco-card-diesel">
@@ -713,122 +741,123 @@
         </section>
 
         <section id="taquilla" class="dashboard-section">
-          <div class="form-container">
-            <h3><i class="fas fa-search"></i> Buscar Usuario</h3>
-            <form id="form-buscar-usuario-taquilla">
-              <div class="form-grid" style="grid-template-columns: 1fr auto;">
-                <div class="form-group">
-                  <label for="taquilla-email">Correo Electrónico</label>
-                  <input type="email" id="taquilla-email" placeholder="usuario@ejemplo.com" required />
-                </div>
-                <div class="form-group" style="display:flex; align-items:flex-end;">
-                  <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Buscar</button>
-                </div>
-              </div>
-            </form>
+          <div class="section-header-tabs" style="margin-bottom: 20px; border-bottom: none;">
+            <h3 style="margin: 0;"><i class="fas fa-ticket-alt" style="color: var(--color-primario); margin-right: 10px;"></i> Centro de Taquilla y Tarifas</h3>
           </div>
 
-          <div id="taquilla-user-result" style="display:none;">
-            <div class="form-container">
-              <h3><i class="fas fa-user"></i> Datos del Usuario</h3>
-              <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                <div class="form-group"><label>Nombre</label><span id="tq-nombre" class="text-muted">--</span></div>
-                <div class="form-group"><label>Email</label><span id="tq-email" class="text-muted">--</span></div>
-                <div class="form-group"><label>Tipo</label><span id="tq-tipo" class="text-muted">--</span></div>
-                <div class="form-group"><label>Saldo Actual</label><span id="tq-saldo" class="text-muted" style="font-size:1.3rem; font-weight:700; color:var(--color-primario);">$0.00</span></div>
-                <div class="form-group"><label>RFID Vinculado</label><span id="tq-rfid" class="text-muted">Ninguno</span></div>
-                <div class="form-group"><label>Estudiante</label><span id="tq-estudiante" class="text-muted">No</span></div>
+          <div class="taquilla-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px;">
+            
+            <!-- COLUMNA IZQUIERDA: GESTIÓN DE USUARIOS -->
+            <div class="analytics-card">
+              <div class="card-header" style="margin-bottom: 15px;">
+                <h4><i class="fas fa-user-check"></i> Buscar Usuario / Recargas</h4>
               </div>
-              <div style="margin-top:12px; text-align:right;">
-                <button type="button" id="btn-desvincular-rfid" class="btn btn-secondary btn-sm" style="display:none;"><i class="fas fa-unlink"></i> Desvincular RFID</button>
+              
+              <form id="form-buscar-usuario-taquilla" class="flex-form-row">
+                <div class="form-group" style="flex-grow: 1; margin-bottom: 0;">
+                  <label>Correo Electrónico</label>
+                  <input type="email" id="taquilla-email" class="form-control" placeholder="usuario@ejemplo.com" required>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Buscar</button>
+              </form>
+
+              <!-- Aquí se inyectan los resultados del usuario (el div que ya tienes oculto por defecto) -->
+              <div id="taquilla-user-result" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <!-- Contenido de usuario (saldo, rfid, etc.) mantén el tuyo aquí -->
               </div>
-              <input type="hidden" id="tq-user-id" />
             </div>
 
-            <div class="form-container">
-              <h3><i class="fas fa-credit-card"></i> Vincular RFID / Recargar</h3>
-              <form id="form-vincular-rfid">
-                <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr auto;">
-                  <div class="form-group">
-                    <label for="tq-rfid-uid">UID de Tarjeta RFID</label>
-                    <input type="text" id="tq-rfid-uid" placeholder="Ej: A3B2C1D4" />
-                  </div>
-                  <div class="form-group">
-                    <label for="tq-monto-recarga">Monto a Recargar ($)</label>
-                    <input type="number" id="tq-monto-recarga" placeholder="50" min="0" step="10" />
-                  </div>
-                  <div class="form-group" style="display:flex; align-items:flex-end;">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-link"></i> Vincular y Recargar</button>
-                  </div>
-                  <div class="form-group" style="display:flex; align-items:flex-end;">
-                    <button type="button" id="btn-recargar-solo" class="btn btn-secondary"><i class="fas fa-coins"></i> Solo Recargar</button>
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            <div class="form-container">
-              <h3><i class="fas fa-graduation-cap"></i> Estado de Estudiante</h3>
-              <form id="form-toggle-estudiante">
-                <div class="form-grid" style="grid-template-columns: 1fr auto;">
-                  <div class="form-group">
-                    <label>¿Este usuario paga tarifa de estudiante?</label>
-                    <select id="tq-es-estudiante">
-                      <option value="false">No — Tarifa General</option>
-                      <option value="true">Sí — Tarifa Estudiante</option>
-                    </select>
-                  </div>
-                  <div class="form-group" style="display:flex; align-items:flex-end;">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar</button>
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            <div class="table-container">
-              <div class="table-header-flex">
-                <h3><i class="fas fa-receipt"></i> Transacciones Recientes</h3>
+            <!-- COLUMNA DERECHA: GESTIÓN DE TARIFAS -->
+            <div class="analytics-card">
+              <div class="card-header" style="margin-bottom: 15px;">
+                <h4><i class="fas fa-dollar-sign"></i> Gestión de Tarifas</h4>
               </div>
-              <table class="data-table">
-                <thead><tr><th>Fecha</th><th>Monto</th><th>Tipo</th><th>Ruta</th><th>Camion</th><th>Boletos</th><th>Saldo Después</th></tr></thead>
-                <tbody id="tq-transacciones-body"></tbody>
-              </table>
-            </div>
-          </div>
 
-          <div class="form-container">
-            <h3><i class="fas fa-dollar-sign"></i> Gestión de Tarifas</h3>
-            <div style="margin-bottom:20px; padding:15px; background:rgba(255,255,255,0.03); border-radius:8px;">
-              <h4 style="margin:0 0 10px 0; color:var(--color-primario);">Tarifa Global (todas las rutas)</h4>
-              <form id="form-tarifa-global">
-                <div class="form-grid" style="grid-template-columns: 1fr 1fr auto;">
-                  <div class="form-group"><label>Precio General ($)</label><input type="number" id="tg-general" step="0.5" min="0" required /></div>
-                  <div class="form-group"><label>Precio Estudiante ($)</label><input type="number" id="tg-estudiante" step="0.5" min="0" required /></div>
-                  <div class="form-group" style="display:flex; align-items:flex-end;"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar Global</button></div>
+              <!-- Tarifa Global -->
+              <h5 style="color: #0dcaf0; margin-bottom: 10px; font-size: 0.9rem;">Tarifa Global (Todas las rutas)</h5>
+              <form id="form-tarifa-global" class="flex-form-row" style="margin-bottom: 25px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>General ($)</label>
+                  <input type="number" id="tg-general" class="form-control" step="0.5" required>
                 </div>
-              </form>
-            </div>
-            <div>
-              <h4 style="margin:0 0 10px 0; color:var(--color-primario);">Tarifa por Ruta</h4>
-              <form id="form-tarifa-ruta">
-                <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr auto;">
-                  <div class="form-group">
-                    <label>Ruta</label>
-                    <select id="tr-ruta" required><option value="">-- Seleccionar --</option></select>
-                  </div>
-                  <div class="form-group"><label>Precio General ($)</label><input type="number" id="tr-general" step="0.5" min="0" required /></div>
-                  <div class="form-group"><label>Precio Estudiante ($)</label><input type="number" id="tr-estudiante" step="0.5" min="0" required /></div>
-                  <div class="form-group" style="display:flex; align-items:flex-end;"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar por Ruta</button></div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Estudiante ($)</label>
+                  <input type="number" id="tg-estudiante" class="form-control" step="0.5" required>
                 </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar</button>
               </form>
+
+              <hr style="border-color: rgba(255,255,255,0.05); margin: 20px 0;">
+
+              <!-- Tarifa por Ruta -->
+              <h5 style="color: #0dcaf0; margin-bottom: 10px; font-size: 0.9rem;">Excepción por Ruta</h5>
+              <form id="form-tarifa-ruta" class="flex-form-row" style="margin-bottom: 25px; flex-wrap: nowrap;">
+                
+                <div class="form-group" style="flex: 2; min-width: 160px; margin-bottom: 0;">
+                  <label>Ruta</label>
+                  <select id="tr-ruta" class="form-control" required>
+                    <option value="">-- Seleccionar --</option>
+                  </select>
+                </div>
+                
+                <div class="form-group" style="flex: 1; min-width: 80px; margin-bottom: 0;">
+                  <label>Gral ($)</label>
+                  <input type="number" id="tr-general" class="form-control" step="0.5" required>
+                </div>
+                
+                <div class="form-group" style="flex: 1; min-width: 80px; margin-bottom: 0;">
+                  <label>Est. ($)</label>
+                  <input type="number" id="tr-estudiante" class="form-control" step="0.5" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="flex-shrink: 0;"><i class="fas fa-plus"></i> Añadir</button>
+              </form>
+
+              <!-- Tabla de Tarifas -->
+              <div class="table-container" style="background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>ÁMBITO</th>
+                      <th>GRAL</th>
+                      <th>ESTUDIANTE</th>
+                      <th>ACCIÓN</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-tarifas-body">
+                    <!-- Se llena con JS -->
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div class="table-container" style="margin-top:20px;">
-              <h4>Tarifas Configuradas</h4>
-              <table class="data-table">
-                <thead><tr><th>Ámbito</th><th>Precio General</th><th>Precio Estudiante</th><th>Acción</th></tr></thead>
-                <tbody id="tabla-tarifas-body"></tbody>
-              </table>
+            
+            <!-- HISTORIAL GLOBAL DE INGRESOS (ANCHO COMPLETO) -->
+            <div class="analytics-card" style="grid-column: 1 / -1; margin-top: 10px;">
+              <div class="card-header" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0;"><i class="fas fa-chart-line" style="color: #10b981;"></i> Historial Global de Transacciones</h4>
+                <button class="btn btn-secondary btn-sm" onclick="cargarHistorialIngresosGlobal()" style="font-size: 0.8rem; padding: 5px 15px;">
+                  <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+              </div>
+              
+              <div class="table-container" style="background: rgba(0,0,0,0.2); border-radius: 8px; max-height: 350px; overflow-y: auto;">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>FECHA Y HORA</th>
+                      <th>USUARIO / CORREO</th>
+                      <th>TIPO DE MOVIMIENTO</th>
+                      <th>RUTA / UNIDAD</th>
+                      <th>MONTO</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-ingresos-global-body">
+                    <tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">Cargando historial de ingresos...</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
+
           </div>
         </section>
       </main>
@@ -1129,6 +1158,22 @@
           </form>
         </div>
       </div>
+
+      <!-- MODAL DE CONFIRMACIÓN DE CERRAR SESIÓN -->
+    <div id="modal-logout" class="modal">
+      <div class="modal-content" style="min-height: auto; max-width: 350px; text-align: center; padding: 30px 20px;">
+        <div style="font-size: 3.5rem; color: var(--color-error); margin-bottom: 15px;">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h2 style="margin-bottom: 10px; color: white;">¿Cerrar Sesión?</h2>
+        <p style="color: #aaa; margin-bottom: 25px; font-size: 0.95rem;">Saldrás del Centro de Control de forma segura.</p>
+        
+        <div style="display: flex; gap: 15px; justify-content: center;">
+          <button class="btn btn-secondary btn-animado-gris" onclick="cerrarModalLogout()" style="flex: 1; margin: 0;">Cancelar</button>
+          <button class="btn btn-danger btn-animado-rojo" onclick="ejecutarLogout()" style="flex: 1; margin: 0; padding: 12px;">Sí, salir</button>
+        </div>
+      </div>
+    </div>
 
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>

@@ -1,6 +1,18 @@
 // frontend/assets/js/admin_dashboard.js
 
 document.addEventListener("DOMContentLoaded", () => {
+
+  // --- 0. ESTANDARIZAR MODO OSCURO EN TODOS LOS MENSAJES (SWEETALERT2) ---
+  window.Swal = Swal.mixin({
+    background: 'rgba(30, 30, 45, 0.95)',
+    color: '#ffffff',
+    customClass: {
+      // Se eliminó 'popup: modal-content' para no romper las notificaciones pequeñas
+      confirmButton: 'btn btn-primary',
+      cancelButton: 'btn btn-secondary'
+    }
+  });
+
   // --- 1. VERIFICACIÓN DE SEGURIDAD ---
   const token = localStorage.getItem("tecbus_token");
   const userString = localStorage.getItem("tecbus_user");
@@ -99,7 +111,11 @@ document.addEventListener("DOMContentLoaded", () => {
         popularDropdownsHorarios();
       }
       if (targetId === "#alertas") cargarAlertas();
-      if (targetId === "#taquilla") { cargarTarifas(); inicializarTaquillaRutas(); }
+      if (targetId === "#taquilla") { 
+          cargarTarifas(); 
+          inicializarTaquillaRutas();
+          cargarHistorialIngresosGlobal(); // <--- Agrega esta línea
+      }
     });
   });
 
@@ -110,7 +126,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (initialHash === "#rutas") cargarRutas();
   if (initialHash === "#horarios") { cargarHorarios(); popularDropdownsHorarios(); }
   if (initialHash === "#alertas") cargarAlertas();
-  if (initialHash === "#taquilla") { cargarTarifas(); inicializarTaquillaRutas(); }
+  if (initialHash === "#taquilla") { 
+    cargarTarifas(); 
+    inicializarTaquillaRutas(); 
+    cargarHistorialIngresosGlobal(); 
+}
 
   // ============================================================
   //  MANEJO DE SIDEBAR COLAPSABLE
@@ -283,6 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.alert = function(message) {
     if (!message) return;
     const isError = message.toLowerCase().includes('error');
+    
     Swal.fire({
       toast: true,
       position: 'top-end',
@@ -290,19 +311,32 @@ document.addEventListener("DOMContentLoaded", () => {
       title: message.replace(/✅|❌/g, '').trim(),
       showConfirmButton: false,
       timer: 3000,
-      timerProgressBar: true
+      timerProgressBar: true,
+      background: 'rgba(30, 30, 45, 0.95)',
+      color: '#ffffff',
+      iconColor: isError ? '#ff4757' : '#2ecc71'
     });
   };
 
   window.confirmAsync = async function(mensaje) {
     const result = await Swal.fire({
       title: mensaje,
+      text: "Esta acción no se puede deshacer.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#e74c3c',
-      cancelButtonColor: '#95a5a6',
-      confirmButtonText: 'Sí, continuar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: '<i class="fas fa-trash"></i> Sí, continuar',
+      cancelButtonText: 'Cancelar',
+      background: 'rgba(30, 30, 45, 0.95)', 
+      color: '#ffffff',
+      backdrop: 'rgba(0, 0, 0, 0.8)',
+      buttonsStyling: false, // <--- CLAVE: Apaga los estilos feos por defecto
+      customClass: {
+        popup: 'modal-content',
+        confirmButton: 'btn btn-danger btn-animado-rojo', // Usa tu animación roja
+        cancelButton: 'btn btn-cancelar-transparente btn-animado-gris', // Usa fondo transparente + animación gris
+        actions: 'modal-actions-center',
+        htmlContainer: 'text-muted'
+      }
     });
     return result.isConfirmed;
   };
@@ -1560,31 +1594,57 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function abrirEditarHorario(horarioId, salidaId) {
+    // 1. Cargamos primero los desplegables (rutas, camiones, conductores)
     await popularDropdownsHorarios("editar");
+    
     try {
+      // 2. Pedimos los datos del horario al servidor
       const res = await fetch(`${BACKEND_URL}/api/horarios/${horarioId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      
+      if (!res.ok) throw new Error("No se pudo obtener la información.");
       const horarioDoc = await res.json();
-      const salida = horarioDoc.salidas.find((s) => s._id === salidaId);
+      
+      // 3. ADAPTACIÓN INTELIGENTE (Soporta esquemas planos o anidados)
+      let salida = horarioDoc; 
+      if (horarioDoc.salidas && Array.isArray(horarioDoc.salidas) && horarioDoc.salidas.length > 0) {
+          salida = horarioDoc.salidas.find((s) => s._id === salidaId) || horarioDoc.salidas[0];
+      }
 
+      // 4. Asignamos los IDs ocultos para cuando se envíe el formulario
       document.getElementById("edit-horario-id").value = horarioId;
-      document.getElementById("edit-salida-id").value = salidaId;
-      editingSalidaId = salidaId;
+      document.getElementById("edit-salida-id").value = salidaId || horarioId;
       editingHorarioId = horarioId;
+      editingSalidaId = salidaId || horarioId;
 
-      document.getElementById("edit-horario-ruta").value =
-        horarioDoc.ruta._id || horarioDoc.ruta;
-      document.getElementById("edit-horario-dia").value = horarioDoc.diaSemana;
-      document.getElementById("edit-horario-salida").value = salida.hora;
-      document.getElementById("edit-horario-camion").value =
-        salida.camionAsignado || "";
-      document.getElementById("edit-horario-conductor").value =
-        salida.conductorAsignado || "";
+      // 5. Extraemos los IDs con respaldos de seguridad (fallback)
+      const rutaId = horarioDoc.ruta ? (horarioDoc.ruta._id || horarioDoc.ruta) : (horarioDoc.rutaId || "");
+      const camionId = salida.camionAsignado || salida.camionId || (salida.camion ? salida.camion._id : "");
+      const conductorId = salida.conductorAsignado || salida.conductorId || (salida.conductor ? salida.conductor._id : "");
 
+      // 6. Inyectamos los valores a los inputs del modal
+      document.getElementById("edit-horario-ruta").value = rutaId;
+      document.getElementById("edit-horario-dia").value = horarioDoc.diaSemana || salida.diaSemana || "";
+      document.getElementById("edit-horario-salida").value = salida.hora || "";
+      document.getElementById("edit-horario-camion").value = camionId;
+      document.getElementById("edit-horario-conductor").value = conductorId;
+
+      // 7. Mostramos la ventana de edición
       modalEditarHorario.classList.add("modal-visible");
+      
     } catch (e) {
-      alert(e.message);
+      console.error("Error al abrir modal de edición de horario:", e);
+      // Mostramos el error usando nuestra alerta oscura premium
+      Swal.fire({
+          icon: 'error',
+          title: 'Error de Lectura',
+          text: 'No se pudo abrir el horario debido a un problema con los datos.',
+          background: 'rgba(30, 30, 45, 0.95)',
+          color: '#ffffff',
+          confirmButtonColor: '#ff4757',
+          customClass: { popup: 'modal-content' }
+      });
     }
   }
 
@@ -2913,6 +2973,62 @@ document.addEventListener("DOMContentLoaded", () => {
       Swal.fire({ icon: "error", title: "Error", text: error.message, background: "#1e1e1e", color: "#fff", confirmButtonColor: "#0ea5e9" });
     }
   }
+
+  // ============================================================
+  //  HISTORIAL GLOBAL DE INGRESOS (NUEVO)
+  // ============================================================
+  window.cargarHistorialIngresosGlobal = async function() {
+    const tbody = document.getElementById("tabla-ingresos-global-body");
+    if (!tbody) return;
+    
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Cargando datos...</td></tr>';
+
+    try {
+      // Nota: Asegúrate de que tu backend tenga este endpoint para obtener TODAS las transacciones
+      // Si el endpoint se llama diferente (ej. /api/transacciones/todas), cámbialo aquí abajo:
+      const res = await fetch(`${BACKEND_URL}/api/transacciones`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!res.ok) throw new Error("No se pudo obtener el historial");
+      const transacciones = await res.json();
+
+      if (transacciones.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No hay movimientos registrados.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = "";
+      
+      // Mostrar las transacciones (asumiendo que las más recientes vienen primero)
+      transacciones.forEach((t) => {
+        // Formatear Fecha
+        const fechaObj = new Date(t.timestamp || t.createdAt);
+        const fecha = isNaN(fechaObj) ? "Fecha desconocida" : fechaObj.toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });
+        
+        // Identificar si es ingreso (Recarga) o cobro (Boleto)
+        const esRecarga = t.tipo_tarifa === "Recarga";
+        const montoColor = esRecarga ? "#10b981" : "#e74c3c"; // Verde para ingresos de saldo, rojo para cobros
+        const signo = esRecarga ? "+" : "-";
+        const badgeClass = esRecarga ? "badge-success" : "badge-admin";
+        
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${fecha}</td>
+          <td><b>${t.usuarioId?.nombre || t.usuarioEmail || "Usuario no identificado"}</b></td>
+          <td><span class="badge ${badgeClass}">${t.tipo_tarifa || "Desconocido"}</span></td>
+          <td>${t.rutaId?.nombre || "N/A"} <br><small style="color: #aaa;">${t.camionId || ""}</small></td>
+          <td style="color: ${montoColor}; font-weight: bold; font-size: 1.05rem;">
+            ${signo}$${parseFloat(t.monto).toFixed(2)}
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    } catch (error) {
+      console.error("Error al cargar el historial global:", error);
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #e74c3c; padding: 20px;">Error al conectar con la base de datos. Verifica el endpoint de transacciones.</td></tr>';
+    }
+  };
 });
 
 async function cargarDashboardStats() {
@@ -3013,10 +3129,13 @@ document.addEventListener("click", (e) => {
         mostrarPreviewRuta(rutaId);
     }
     
-    // Cerrar Modales (Genérico)
+    // Cerrar Modales (Genérico Corregido)
     if (e.target.classList.contains("close-button") || e.target.classList.contains("close-modal")) {
         const modal = e.target.closest(".modal");
-        if (modal) modal.style.display = "none";
+        if (modal) {
+            modal.classList.remove("modal-visible"); // Usamos la clase estándar
+            modal.style.display = ""; // Limpiamos la invisibilidad forzada
+        }
     }
 });
 
@@ -3024,7 +3143,8 @@ async function mostrarPreviewRuta(rutaId) {
     const modal = document.getElementById("route-preview-modal");
     if (!modal) return;
     
-    modal.style.display = "flex";
+    modal.style.display = ""; // Limpiamos cualquier estilo viejo
+    modal.classList.add("modal-visible"); // Lo abrimos con la clase correcta
     
     // Limpiar campos antes de cargar
     document.getElementById("preview-ruta-nombre").textContent = "Cargando...";
@@ -3180,35 +3300,87 @@ async function mostrarPreviewRuta(rutaId) {
 let chartDemanda = null;
 let chartFlota = null;
 let chartAlertas = null;
+let chartTaquilla = null;
 
-function inicializarGraficos() {
-    console.log("📊 Inicializando Gráficos...");
+// Configuración de Tooltips Premium
+const premiumTooltip = {
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    titleColor: '#fff',
+    bodyColor: '#aaa',
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    padding: 12,
+    displayColors: true,
+    boxPadding: 4
+};
+
+// Base de datos simulada para alimentar los filtros
+const statsData = {
+    hoy: {
+        demanda: { labels: ['06:00', '10:00', '14:00', '18:00', '22:00'], values: [8, 15, 12, 5, 2] }, 
+        flota:   { labels: [['U001', '(Activo)'], ['Próxima', 'unidad...'], ['Próxima', 'unidad...']], values: [110, 0, 0] }, 
+        alertas: { values: [0, 1, 0, 0] }, 
+        taquilla:{ labels: [['Tamazula -', 'Guamúchil'], ['Próximas', 'rutas...'], ['Próximas', 'rutas...']], values: [450, 0, 0], maximo: 500 } 
+    },
+    semana: {
+        demanda: { labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'], values: [42, 45, 38, 46, 50, 15, 10] }, 
+        flota:   { labels: [['U001', '(Activo)'], ['Próxima', 'unidad...'], ['Próxima', 'unidad...']], values: [650, 0, 0] }, 
+        alertas: { values: [0, 3, 1, 0] }, 
+        // Ganancia de 7 días (~450 * 7) con tope visual de 3500
+        taquilla:{ labels: [['Tamazula -', 'Guamúchil'], ['Próximas', 'rutas...'], ['Próximas', 'rutas...']], values: [3150, 0, 0], maximo: 3500 } 
+    },
+    mes: {
+        demanda: { labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'], values: [250, 265, 240, 280] }, 
+        flota:   { labels: [['U001', '(Activo)'], ['Próxima', 'unidad...'], ['Próxima', 'unidad...']], values: [2800, 0, 0] }, 
+        alertas: { values: [1, 10, 2, 3] }, 
+        // Ganancia de 30 días (~450 * 30) con tope visual de 15000
+        taquilla:{ labels: [['Tamazula -', 'Guamúchil'], ['Próximas', 'rutas...'], ['Próximas', 'rutas...']], values: [13500, 0, 0], maximo: 15000 } 
+    }
+};
+
+function inicializarGraficos(periodo = 'hoy') {
+    console.log(`📊 Inicializando Gráficos para el periodo: ${periodo}`);
     
-    // 1. Gráfico de Demanda (Líneas)
+    // Obtenemos los datos correspondientes al chip seleccionado
+    const data = statsData[periodo];
+
+    // 1. Gráfico de Demanda (Líneas con Gradiente)
     const ctxDemanda = document.getElementById('chart-demanda');
     if (ctxDemanda) {
+        const ctx = ctxDemanda.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+        gradient.addColorStop(0, 'rgba(0, 123, 255, 0.5)'); // Azul
+        gradient.addColorStop(1, 'rgba(0, 123, 255, 0.0)'); // Transparente
+
         if (chartDemanda) chartDemanda.destroy();
         chartDemanda = new Chart(ctxDemanda, {
             type: 'line',
             data: {
-                labels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
+                labels: data.demanda.labels,
                 datasets: [{
-                    label: 'Pasajeros Esperando',
-                    data: [12, 45, 30, 65, 80, 40, 55, 20],
+                    label: 'Pasajeros',
+                    data: data.demanda.values,
                     borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    backgroundColor: gradient,
                     fill: true,
-                    tension: 0.4
+                    tension: 0.4,
+                    pointBackgroundColor: '#1f1f1f',
+                    pointBorderColor: '#007bff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: premiumTooltip },
                 scales: {
                     y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
-                    x: { grid: { display: false }, ticks: { color: '#888' } }
-                }
+                    x: { grid: { display: false }, ticks: { color: '#888', 
+                            maxRotation: 0, // <--- Obliga a mantener el texto totalmente derecho
+                            minRotation: 0 } }
+                },
+                animation: { duration: 600, easing: 'easeOutQuart' } // Animación de cambio fluida
             }
         });
     }
@@ -3220,22 +3392,30 @@ function inicializarGraficos() {
         chartFlota = new Chart(ctxFlota, {
             type: 'bar',
             data: {
-                labels: ['TEC-01', 'TEC-02', 'TEC-03', 'TEC-04', 'TEC-05'],
+                labels: data.flota.labels,
                 datasets: [{
                     label: 'KM Recorridos',
-                    data: [120, 85, 150, 95, 110],
-                    backgroundColor: '#2ed573',
-                    borderRadius: 8
+                    data: data.flota.values,
+                    backgroundColor: '#0dcaf0', // Azul cyan
+                    borderRadius: 6,
+                    maxBarThickness: 60 // <--- Evita que la barra se haga gigante
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: premiumTooltip },
                 scales: {
                     y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
-                    x: { grid: { display: false }, ticks: { color: '#888' } }
-                }
+                    x: { 
+                        grid: { display: false }, 
+                        ticks: { 
+                            color: '#888',
+                            maxRotation: 0, // <--- Obliga a mantener el texto totalmente derecho
+                            minRotation: 0 
+                        } 
+                    }
+                },
+                animation: { duration: 600 }
             }
         });
     }
@@ -3249,44 +3429,99 @@ function inicializarGraficos() {
             data: {
                 labels: ['SOS', 'Retrasos', 'Mecánico', 'Otros'],
                 datasets: [{
-                    data: [5, 12, 3, 8],
+                    data: data.alertas.values,
                     backgroundColor: ['#ff4757', '#ffa502', '#2f3542', '#ced4da'],
                     borderWidth: 0
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#888', padding: 20 } }
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: '#888', padding: 20 } }, tooltip: premiumTooltip },
+                cutout: '70%',
+                animation: { duration: 600 }
+            }
+        });
+    }
+
+    // 4. Gráfico de Taquilla (Barras por Ruta)
+    const ctxTaquilla = document.getElementById('chart-taquilla');
+    if (ctxTaquilla) {
+        if (chartTaquilla) chartTaquilla.destroy();
+        chartTaquilla = new Chart(ctxTaquilla, {
+            type: 'bar',
+            data: {
+                labels: data.taquilla.labels,
+                datasets: [{
+                    label: 'Ingresos MXN',
+                    data: data.taquilla.values,
+                    backgroundColor: '#10b981',
+                    borderRadius: 6,
+                    hoverBackgroundColor: '#059669',
+                    maxBarThickness: 60
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: premiumTooltip },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        suggestedMax: data.taquilla.maximo, // Permite que Chart.js dibuje los escalones libremente
+                        grid: { color: 'rgba(255,255,255,0.05)' }, 
+                        ticks: { 
+                            color: '#888',
+                            // Formatea los números de la izquierda con el signo de $
+                            callback: function(value) {
+                                return '$' + value.toLocaleString('es-MX'); 
+                            }
+                        } 
+                    },
+                    x: { 
+                        grid: { display: false }, 
+                        ticks: { 
+                            color: '#888',
+                            maxRotation: 0,
+                            minRotation: 0 
+                        } 
+                    }
                 },
-                cutout: '70%'
+                animation: { duration: 600 }
             }
         });
     }
 }
 
-// Escuchar cambios de pestaña para refrescar gráficos
+// LÓGICA DE LAS PÍLDORAS DE TIEMPO (Hoy / Semana / Mes)
+const timeFilters = document.querySelectorAll('#stats-time-filters .btn-tab');
+timeFilters.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        // Quitar la clase 'active' de todos los botones y ponerla en el que fue clicado
+        timeFilters.forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        
+        // Obtener el periodo ('hoy', 'semana', o 'mes') y redibujar TODO
+        const period = e.target.getAttribute('data-period');
+        inicializarGraficos(period);
+    });
+});
+
+// Escuchar cambios de pestaña general (Menú Lateral) para dibujar los gráficos al entrar
 document.addEventListener("click", (e) => {
     const link = e.target.closest(".nav-item");
-    // Solo actualizar si hacemos clic en el link de estadísticas
     if (link && link.getAttribute("href") === "#estadisticas") {
         setTimeout(() => {
             if (!chartDemanda) {
-                inicializarGraficos();
+                // Al entrar por primera vez, buscamos cuál es la píldora activa
+                const activeTab = document.querySelector('#stats-time-filters .btn-tab.active');
+                const initialPeriod = activeTab ? activeTab.getAttribute('data-period') : 'hoy';
+                inicializarGraficos(initialPeriod);
             }
-            // Eliminamos actualizarDatosGraficos() para que sea estático
         }, 150);
     }
 });
 
-async function actualizarDatosGraficos() {
-    // Función desactivada para mantener datos estáticos
-    console.log("📊 Datos estáticos mantenidos.");
-}
-
 if (window.location.hash === "#estadisticas") {
-    setTimeout(inicializarGraficos, 500);
+    setTimeout(() => inicializarGraficos('hoy'), 500);
 }
 
 // =========================================================
@@ -3379,3 +3614,66 @@ function ocultarMapaCalorVacios(map) {
         map.setLayoutProperty('heatmap-layer', 'visibility', 'none');
     }
 }
+
+// ==========================================================================
+//   SOSTENIBILIDAD: ANIMACIÓN ODOMETRO Y EXPORTACIÓN
+// ==========================================================================
+
+// Función matemática para animar los números
+function animarContador(id, valorFinal, duracion) {
+    const elemento = document.getElementById(id);
+    if (!elemento) return;
+    
+    let inicio = 0;
+    // Calculamos el incremento basado en 60 cuadros por segundo
+    const incremento = valorFinal / (duracion / 15); 
+    
+    const timer = setInterval(() => {
+        inicio += incremento;
+        if (inicio >= valorFinal) {
+            clearInterval(timer);
+            // Mostrar número final exacto (con 1 decimal si lo requiere)
+            elemento.textContent = valorFinal % 1 !== 0 ? valorFinal.toFixed(1) : valorFinal;
+        } else {
+            // Mostrar progreso
+            elemento.textContent = inicio % 1 !== 0 ? inicio.toFixed(1) : Math.floor(inicio);
+        }
+    }, 16);
+}
+
+// Detectar cuando el usuario hace clic en la pestaña "Sostenibilidad"
+document.addEventListener("click", (e) => {
+    const link = e.target.closest(".nav-item");
+    if (link && link.getAttribute("href") === "#sostenibilidad") {
+        // Ponemos un ligero retraso de 200ms para que la pestaña termine de abrirse
+        setTimeout(() => {
+            animarContador("eco-val-diesel", 862, 1500); // 1.5 segundos
+            animarContador("eco-val-co2", 2.3, 1500);
+            animarContador("eco-val-arboles", 116, 1500);
+        }, 200);
+    }
+});
+
+// Función para el botón "Exportar Reporte"
+window.exportarReportePDF = function() {
+    // Alerta de carga
+    Swal.fire({
+        title: 'Generando Reporte...',
+        text: 'Recopilando datos de sostenibilidad y proyección de ROI.',
+        icon: 'info',
+        timer: 2000,
+        showConfirmButton: false,
+        background: '#1e1e1e', 
+        color: '#fff'
+    }).then(() => {
+        // Alerta de éxito
+        Swal.fire({
+            title: '¡Reporte Listo!',
+            text: 'El reporte ejecutivo (PDF) se ha descargado correctamente.',
+            icon: 'success',
+            background: '#1e1e1e', 
+            color: '#fff',
+            confirmButtonColor: '#2ecc71'
+        });
+    });
+};

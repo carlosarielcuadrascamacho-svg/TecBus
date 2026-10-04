@@ -5,6 +5,22 @@ const { protect, adminOnly } = require("../middleware/authMiddleware");
 
 router.use(protect);
 
+// GET /api/transacciones — Admin: Historial global de transacciones
+router.get("/", adminOnly, async (req, res) => {
+    try {
+        const transacciones = await Transaccion.find({})
+            .populate("usuarioId", "nombre email")
+            .populate("rutaId", "nombre")
+            .sort({ timestamp: -1 }) // Las más recientes primero
+            .limit(100); // Traemos las últimas 100 para que cargue súper rápido
+            
+        res.json(transacciones);
+    } catch (error) {
+        console.error("Error obteniendo historial global:", error);
+        res.status(500).json({ message: "Error del servidor" });
+    }
+});
+
 // GET /api/transacciones/admin/user/:userId — Admin: ver transacciones de cualquier usuario
 router.get("/admin/user/:userId", adminOnly, async (req, res) => {
     try {

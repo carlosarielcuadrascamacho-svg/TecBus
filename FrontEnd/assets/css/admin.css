@@ -1187,6 +1187,16 @@
     align-items: center;
     justify-content: center;
 }
+
+.modal-actions-center {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Esto fuerza a que se peguen al centro */
+    gap: 15px;          
+    margin-top: 30px;   
+    width: 100%;
+}
+
 .btn-grow { flex: 2; }
 .btn-shrink { flex: 1; }
 .btn-full { width: 100%; }
@@ -2609,4 +2619,122 @@
         max-width: 100%;
         margin: 10px;
     }
+}
+
+/* ==========================================================================
+   ANIMACIONES PARA BOTONES DEL MODAL DE LOGOUT
+   ========================================================================== */
+.btn-animado-gris,
+.btn-animado-rojo {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.btn-animado-gris:hover {
+    transform: scale(1.05);
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.btn-animado-rojo:hover {
+    transform: scale(1.05);
+    background-color: #ff4757 !important;
+    box-shadow: 0 0 20px rgba(255, 71, 87, 0.6);
+}
+
+.btn-animado-gris:active,
+.btn-animado-rojo:active {
+    transform: scale(0.95);
+}
+
+/* ==========================================================================
+   OCULTAR SCROLL VISUAL DEL MENÚ LATERAL
+   ========================================================================== */
+.main-nav {
+    -ms-overflow-style: none;  /* Oculta en IE y Edge */
+    scrollbar-width: none;     /* Oculta en Firefox */
+}
+
+.main-nav::-webkit-scrollbar {
+    display: none;             /* Oculta en Chrome, Safari y Opera */
+}
+
+/* ==========================================================================
+   BOTÓN CANCELAR TRANSPARENTE (SWEETALERT)
+   ========================================================================== */
+.btn-cancelar-transparente {
+    background-color: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #aaa !important;
+    margin-right: 15px; /* Separación con el botón rojo */
+}
+
+/* ==========================================================================
+   ALINEACIÓN DE FORMULARIOS COMPACTOS (TAQUILLA)
+   ========================================================================== */
+.flex-form-row {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end; /* Alinea los botones con las cajas de texto ignorando los labels */
+    flex-wrap: wrap;
+}
+
+.flex-form-row button {
+    height: 42px; /* Mantiene la misma altura que los inputs */
+    padding: 0 20px;
+    white-space: nowrap;
+}
+
+/* ==========================================================================
+   MEJORAS DE ESPACIADO PARA TABLA DE TAQUILLA
+   ========================================================================== */
+.admin-table th {
+    padding: 12px 15px !important;
+    text-align: left;
+    white-space: nowrap; /* Evita que el texto de los títulos se rompa en dos líneas */
+}
+
+/* Centrar las columnas de precios y acciones (columnas 2, 3 y 4) */
+.admin-table th:nth-child(2), 
+.admin-table th:nth-child(3), 
+.admin-table th:nth-child(4) {
+    text-align: center;
+}
+
+#tabla-tarifas-body td {
+    padding: 15px !important;
+}
+
+#tabla-tarifas-body td:nth-child(2), 
+#tabla-tarifas-body td:nth-child(3), 
+#tabla-tarifas-body td:nth-child(4) {
+    text-align: center;
+}
+
+/* ==========================================================================
+   BORDES TIPO CUADRÍCULA PARA TABLAS
+   ========================================================================== */
+.admin-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+/* Línea divisoria inferior más gruesa para los encabezados */
+.admin-table th {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Líneas divisorias horizontales para las filas */
+.admin-table td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Opcional: Líneas verticales para crear celdas cerradas */
+.admin-table th, .admin-table td {
+    border-right: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Quitar la línea vertical del último elemento para que no choque con el borde exterior */
+.admin-table th:last-child, .admin-table td:last-child {
+    border-right: none;
 }
