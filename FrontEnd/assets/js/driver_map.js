@@ -1273,3 +1273,14 @@ window.cerrarModalIncidente = function() {
         modalIncidente.classList.remove("show");
     }
 };
+
+// ==========================================
+// CERRAR MODAL DE ALERTAS
+// ==========================================
+window.cerrarModalAlertas = function() {
+    // Cambia "alert-modal" por el ID exacto que tenga tu modal en el HTML
+    const modalAlertas = document.getElementById("alert-modal"); 
+    if(modalAlertas) {
+        modalAlertas.classList.remove("show", "active");
+    }
+};
