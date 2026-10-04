@@ -462,29 +462,33 @@
         </button>
       </div>
 
-      <div class="overlay-content">
-        <div class="container-fluid" style="max-width: 600px; padding-bottom: 40px;">
+      <div class="overlay-content" style="align-items: flex-start; padding-top: 20px;">
+        <!-- Usamos flexbox con gap para que los elementos se apilen hacia abajo y no se encimen -->
+        <div class="container-fluid" style="width: 100%; max-width: 500px; padding-bottom: 40px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
           
-          <!-- Tarjeta de Saldo -->
-          <div class="card-panel" style="text-align: center; margin-bottom: 20px;">
-             <h3 style="color: var(--color-texto-gris); font-size: 1rem; margin-bottom: 5px;">Saldo Disponible</h3>
-             <h1 id="monedero-saldo-vista" style="color: var(--color-primario); font-size: 3rem; margin: 0; font-weight: 700;">$--</h1>
-          </div>
-          
-          <!-- Tarjeta de Recarga (Solo Diseño) -->
-          <div class="card-panel" style="margin-bottom: 20px;">
-             <h3 style="margin-bottom: 10px; font-size: 1.1rem;"><i class="fas fa-credit-card"></i> Recargar Saldo</h3>
-             <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 15px;">Ingresa el monto a recargar en tu monedero.</p>
-             <div id="controles-recarga" style="display: flex; gap: 10px; align-items: center;">
-                <input type="number" id="monto-recarga" style="flex: 1; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;" placeholder="Monto (Min $10)" min="10">
-                <button class="btn btn-primary-lg" style="margin: 0; padding: 12px 20px; width: auto;" onclick="alert('La pasarela de pago se habilitará en la siguiente fase de desarrollo.')">Siguiente</button>
+          <!-- 1. TARJETA TIPO BANCO (Saldo + Botón Integrado) -->
+          <div style="background: linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(16,185,129,0.1) 100%); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 30px 20px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3); position: relative; overflow: hidden;">
+             
+             <!-- Icono decorativo de fondo -->
+             <div style="position: absolute; top: -10px; right: -15px; font-size: 8rem; color: rgba(255,255,255,0.03); z-index: 0; transform: rotate(-15deg);">
+               <i class="fas fa-wallet"></i>
+             </div>
+             
+             <div style="position: relative; z-index: 1;">
+                 <h3 style="color: #94a3b8; font-size: 1rem; margin-bottom: 5px; font-weight: 500;">Saldo Disponible</h3>
+                 <h1 id="monedero-saldo-vista" style="color: #ffffff; font-size: 3.5rem; margin: 0 0 25px 0; font-weight: 700; letter-spacing: -1px;">$--</h1>
+                 
+                 <!-- Botón de recarga ancho y llamativo -->
+                 <button class="btn btn-primary-lg" style="width: 100%; border-radius: 14px; background: var(--color-primario); display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 1.1rem; padding: 16px; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);" onclick="window.mostrarModalRecarga()">
+                    <i class="fas fa-plus-circle"></i> Agregar Fondos
+                </button>
              </div>
           </div>
 
-          <!-- Tarjeta de Historial -->
-          <div class="card-panel">
-            <h3 style="margin-bottom: 15px; font-size: 1.1rem;"><i class="fas fa-receipt"></i> Historial de Transacciones</h3>
-            <div id="monedero-transacciones" style="max-height: 300px; overflow-y: auto; padding-right: 5px;">
+          <!-- 2. TARJETA DE HISTORIAL (Preservando tu diseño exacto) -->
+          <div style="background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 24px; padding: 20px; box-shadow: var(--glass-shadow);">
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: #fff;"><i class="fas fa-receipt"></i> Historial de Transacciones</h3>
+            <div id="monedero-transacciones" style="max-height: 350px; overflow-y: auto; padding-right: 5px;">
               <p style="color: #666; text-align: center;">Cargando...</p>
             </div>
           </div>
@@ -645,7 +649,11 @@
 
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script src="assets/js/passenger_map.js?v=2"></script>
+
+    <!-- Agrega esta línea para que el monedero y las alertas funcionen -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="assets/js/passenger_map.js?v=3"></script>
     <script src="assets/js/pwa-install.js"></script>
   </body>
 </html>
