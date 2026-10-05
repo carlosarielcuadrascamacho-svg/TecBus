@@ -91,6 +91,11 @@
 #include <ArduinoJson.h>
 #include <TinyGPSPlus.h>
 #include <SPI.h>
+
+// --- AJUSTE DE VELOCIDAD SPI PARA CABLE LARGO / CAT6 ---
+// Por defecto la librería corre a 4 MHz (4000000u). A 500 kHz los pulsos duran
+// 2 microsegundos (8 veces más tiempo), tolerando la capacitancia y diafonía del cable CAT6.
+#define MFRC522_SPICLOCK 500000u  // 500 kHz (puedes cambiar a 1000000u para 1 MHz)
 #include <MFRC522.h>
 #include <Wire.h>
 #include <DHT.h>
@@ -298,6 +303,7 @@ void setup() {
   delay(50);
 
   SPI.begin(18, 19, 23, 5);
+  SPI.setFrequency(500000);  // 500 kHz en el bus SPI para compensar el cable largo CAT6
   mfrc522.PCD_Init();
   delay(80);  // Estabilización módulo RFID
   mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_max); // Aumentar alcance y sensibilidad de lectura
