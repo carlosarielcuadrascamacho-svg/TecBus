@@ -266,7 +266,7 @@ void actualizarLED();
 
 void setup() {
   Serial.begin(115200);
-  delay(100);
+  delay(1500);  // Pausa de 1.5s para dar tiempo al Monitor Serial de Windows a enganchar
 
   Serial.println(F("\n============================================================"));
   Serial.println(F("  SMARTBUS / TECBUS — FIRMWARE UNIFICADO (Arduino IDE / PIO)"));
@@ -290,14 +290,20 @@ void setup() {
   gpsSerial.begin(9600, SERIAL_8N1, RX2_PIN, TX2_PIN);
   Serial.println(F("[GPS] UART2 iniciado (RX=GPIO16, TX=GPIO17) @9600 bps"));
 
-  // --- RFID SPI ---
-  SPI.begin();
+  // --- RFID SPI (Mapeo explícito de pines VSPI: SCK=18, MISO=19, MOSI=23, SS=5) ---
+  pinMode(RFID_RST_PIN, OUTPUT);
+  digitalWrite(RFID_RST_PIN, LOW);
+  delay(10);
+  digitalWrite(RFID_RST_PIN, HIGH);
+  delay(50);
+
+  SPI.begin(18, 19, 23, 5);
   mfrc522.PCD_Init();
   delay(80);  // Estabilización módulo RFID
   mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_max); // Aumentar alcance y sensibilidad de lectura
   byte rfidVer = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
   if (rfidVer == 0x00 || rfidVer == 0xFF) {
-    Serial.println(F("[RFID] ⚠️ ERROR: Módulo RC522 NO responde en bus SPI"));
+    Serial.printf("[RFID] ⚠️ ERROR: Módulo RC522 NO responde en bus SPI (Versión: 0x%02X)\n", rfidVer);
     Serial.println(F("       Revisa cables: VCC=3.3V, GND, SDA=GPIO5, SCK=18, MOSI=23, MISO=19, RST=4"));
   } else {
     Serial.printf("[RFID] MFRC522 detectado correctamente (Firmware: 0x%02X, Ganancia MAX)\n", rfidVer);
@@ -907,7 +913,12 @@ void imprimirEstado() {
                 (int)colaPendientes.size(), (int)MAX_BUFFER);
 
   // RFID
-  Serial.println(F("  RFID      : Listo (Debounce 3s activo)"));
+  byte ver = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
+  if (ver == 0x00 || ver == 0xFF) {
+    Serial.printf("  RFID      : ⚠️ NO RESPONDE EN SPI (0x%02X) — Revisa cables\n", ver);
+  } else {
+    Serial.printf("  RFID      : OK (Firmware 0x%02X - Listo para leer tarjetas)\n", ver);
+  }
   Serial.println(F("------------------------------------------------------------\n"));
 }
 
