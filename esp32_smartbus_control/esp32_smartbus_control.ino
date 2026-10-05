@@ -294,7 +294,14 @@ void setup() {
   SPI.begin();
   mfrc522.PCD_Init();
   delay(80);  // Estabilización módulo RFID
-  Serial.println(F("[RFID] MFRC522 iniciado (SPI, SS=GPIO5, RST=GPIO4)"));
+  mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_max); // Aumentar alcance y sensibilidad de lectura
+  byte rfidVer = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
+  if (rfidVer == 0x00 || rfidVer == 0xFF) {
+    Serial.println(F("[RFID] ⚠️ ERROR: Módulo RC522 NO responde en bus SPI"));
+    Serial.println(F("       Revisa cables: VCC=3.3V, GND, SDA=GPIO5, SCK=18, MOSI=23, MISO=19, RST=4"));
+  } else {
+    Serial.printf("[RFID] MFRC522 detectado correctamente (Firmware: 0x%02X, Ganancia MAX)\n", rfidVer);
+  }
 
   // --- DHT22 ---
   dht.begin();
