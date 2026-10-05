@@ -8,7 +8,7 @@ const transaccionSchema = new mongoose.Schema({
     },
     camionId: {
         type: String,
-        required: true
+        required: false
     },
     rutaId: {
         type: mongoose.Schema.Types.ObjectId,

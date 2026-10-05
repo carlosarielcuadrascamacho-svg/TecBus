@@ -470,11 +470,18 @@ document.addEventListener("DOMContentLoaded", () => {
       el.className = "custom-bus-icon-alert";
       el.innerHTML = `<div style="background-color:var(--color-error); border-radius: 50%; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; color: white; border: 3px solid white; font-size: 16px; animation: pulse 1.5s infinite; box-shadow: 0 0 15px var(--color-error);"><i class="fas fa-bus"></i></div>`;
       
+      const esc = (v) => String(v == null ? "" : v)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
       const popup = marker.getPopup();
       if(popup) {
-          popup.setHTML(`🚨 <b>ALERTA: ${data.tipo}</b><br>${data.detalles || ""}`);
+          popup.setHTML(`🚨 <b>ALERTA: ${esc(data.tipo)}</b><br>${esc(data.detalles)}`);
       } else {
-          marker.setPopup(new maplibregl.Popup({ offset: 15 }).setHTML(`🚨 <b>ALERTA: ${data.tipo}</b><br>${data.detalles || ""}`));
+          marker.setPopup(new maplibregl.Popup({ offset: 15 }).setHTML(`🚨 <b>ALERTA: ${esc(data.tipo)}</b><br>${esc(data.detalles)}`));
       }
       marker.togglePopup();
     }
@@ -3656,24 +3663,12 @@ document.addEventListener("click", (e) => {
 
 // Función para el botón "Exportar Reporte"
 window.exportarReportePDF = function() {
-    // Alerta de carga
     Swal.fire({
-        title: 'Generando Reporte...',
-        text: 'Recopilando datos de sostenibilidad y proyección de ROI.',
+        title: 'Función en fase de desarrollo',
+        text: 'La exportación de reportes en PDF todavía no está disponible.',
         icon: 'info',
-        timer: 2000,
-        showConfirmButton: false,
-        background: '#1e1e1e', 
-        color: '#fff'
-    }).then(() => {
-        // Alerta de éxito
-        Swal.fire({
-            title: '¡Reporte Listo!',
-            text: 'El reporte ejecutivo (PDF) se ha descargado correctamente.',
-            icon: 'success',
-            background: '#1e1e1e', 
-            color: '#fff',
-            confirmButtonColor: '#2ecc71'
-        });
+        background: '#1e1e1e',
+        color: '#fff',
+        confirmButtonColor: '#2ecc71'
     });
 };
