@@ -200,8 +200,8 @@ io.on("connection", (socket) => {
       const Tarifa = require("./models/Tarifa");
       const Ruta = require("./models/Ruta");
 
-      const PRECIO_GENERAL_DEFAULT = 12.00;
-      const PRECIO_ESTUDIANTE_DEFAULT = 8.00;
+      const PRECIO_GENERAL_DEFAULT = 18.00;
+      const PRECIO_ESTUDIANTE_DEFAULT = 10.00;
 
       // Resolver rutaId si se envió nombre
       let rutaId = data.rutaId || null;
