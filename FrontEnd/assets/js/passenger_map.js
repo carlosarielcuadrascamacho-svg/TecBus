@@ -1021,6 +1021,86 @@ document.addEventListener("DOMContentLoaded", () => {
 
   socket.on("smartAlert", (data) => alert(`🤖 ALERTA: ${data.mensaje}`));
 
+  // --- ALERTA DE INCIDENTE ENVIADA POR EL CONDUCTOR ---
+  function escaparHTML(valor) {
+    return String(valor == null ? "" : valor)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  const ICONOS_INCIDENTE = {
+    Trafico: "fa-car",
+    Accidente: "fa-car-crash",
+    Bloqueo: "fa-ban",
+    Flla: "fa-wrench",
+    Otro: "fa-exclamation-triangle",
+  };
+
+  // Mismas etiquetas que muestra el select del panel del conductor
+  const ETIQUETAS_INCIDENTE = {
+    Trafico: "Tráfico Pesado",
+    Accidente: "Accidente en Vía",
+    Bloqueo: "Calle Bloqueada",
+    Flla: "Falla Mecánica",
+    Otro: "Otro Incidente",
+  };
+
+  function mostrarToastIncidente({ titulo, mensaje, tipo }) {
+    const contenedor = document.getElementById("toast-container");
+    if (!contenedor) return;
+
+    // Máximo 3 avisos a la vez: si hay más, cerramos el más viejo
+    while (contenedor.children.length >= 3) {
+      contenedor.removeChild(contenedor.firstElementChild);
+    }
+
+    const icono = ICONOS_INCIDENTE[tipo] || "fa-exclamation-triangle";
+    const toast = document.createElement("div");
+    toast.className = "toast-alerta";
+    toast.innerHTML =
+      `<i class="fas ${icono} toast-icono"></i>` +
+      `<div class="toast-cuerpo">` +
+      `<p class="toast-titulo">${titulo}</p>` +
+      `<p class="toast-mensaje">${mensaje}</p>` +
+      `</div>` +
+      `<button class="toast-cerrar" type="button" aria-label="Cerrar aviso">&times;</button>`;
+
+    const cerrar = () => {
+      if (toast.classList.contains("toast-out")) return;
+      toast.classList.add("toast-out");
+      setTimeout(() => toast.remove(), 320);
+    };
+
+    toast.querySelector(".toast-cerrar").addEventListener("click", cerrar);
+    contenedor.appendChild(toast);
+    setTimeout(cerrar, 7000);
+  }
+
+  socket.on("newIncidentAlert", (data) => {
+    // Si el camión no tiene ruta asignada no sabemos a quién avisar
+    if (!data.rutaId) return;
+
+    // Solo avisamos de la ruta que el pasajero está viendo en este momento.
+    // (Si no tiene ninguna ruta elegida, sí mostramos el aviso.)
+    if (currentRouteId && String(data.rutaId) !== String(currentRouteId)) return;
+
+    const unidad = data.numeroUnidad || data.camionId || "Unidad";
+    const titulo = `⚠️ Alerta en ${escaparHTML(unidad)}`;
+
+    const partes = [];
+    if (data.rutaNombre) partes.push(`Ruta ${escaparHTML(data.rutaNombre)}`);
+    if (data.detalles) partes.push(escaparHTML(data.detalles));
+
+    const mensaje =
+      escaparHTML(ETIQUETAS_INCIDENTE[data.tipo] || data.tipo || "Incidente") +
+      (partes.length ? ` — ${partes.join(" · ")}` : "");
+
+    mostrarToastIncidente({ titulo, mensaje, tipo: data.tipo });
+  });
+
   // Actualizar saldo en tiempo real cuando ocurre un cobro
   socket.on("nuevaTransaccion", (data) => {
     if (!data.usuarioId?._id && !data.usuarioId?.nombre) {
