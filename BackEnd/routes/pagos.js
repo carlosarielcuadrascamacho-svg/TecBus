@@ -1,19 +1,24 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const Tarifa = require("../models/Tarifa");
 const Transaccion = require("../models/Transaccion");
 const Ruta = require("../models/Ruta");
 const { apiKeyAuth } = require("../middleware/apiKeyMiddleware");
 
-const PRECIO_GENERAL_DEFAULT = 12.00;
-const PRECIO_ESTUDIANTE_DEFAULT = 8.00;
+const PRECIO_GENERAL_DEFAULT = 18.00;
+const PRECIO_ESTUDIANTE_DEFAULT = 10.00;
 
 router.use(apiKeyAuth);
 
 // Busca el precio aplicable para un usuario y ruta
 async function obtenerPrecioUnitario(esEstudiante, rutaId) {
-    let tarifa = await Tarifa.findOne({ rutaId, activa: true });
+    let tarifa = null;
+
+    if (rutaId && mongoose.Types.ObjectId.isValid(rutaId)) {
+        tarifa = await Tarifa.findOne({ rutaId, activa: true });
+    }
 
     if (!tarifa) {
         tarifa = await Tarifa.findOne({ rutaId: null, activa: true });
@@ -55,7 +60,14 @@ router.post("/procesar", async (req, res) => {
                     continue;
                 }
 
-                const user = await User.findOne({ rfid_uid: uid });
+                const cleanUid = String(uid).trim().toUpperCase();
+                const user = await User.findOne({
+                    $or: [
+                        { rfid_uid: cleanUid },
+                        { rfid_uid: cleanUid.toLowerCase() },
+                        { rfid_uid: String(uid).trim() }
+                    ]
+                });
                 if (!user) {
                     resultados.push({ uid, estado: "error", motivo: "Usuario no encontrado" });
                     fallidas++;
@@ -75,10 +87,11 @@ router.post("/procesar", async (req, res) => {
                 user.saldo = parseFloat(((user.saldo || 0) - total).toFixed(2));
                 await user.save();
 
+                const validRutaId = (rutaId && mongoose.Types.ObjectId.isValid(rutaId)) ? rutaId : undefined;
                 const nuevaTrans = await Transaccion.create({
                     usuarioId: user._id,
                     camionId,
-                    rutaId: rutaId || undefined,
+                    rutaId: validRutaId,
                     monto: total,
                     tipo_tarifa: tipo,
                     cantidad_boletos: cantidad,
