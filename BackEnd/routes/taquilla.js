@@ -39,20 +39,27 @@ router.put("/vincular", async (req, res) => {
             return res.status(400).json({ message: "email, rfid_uid y monto_inicial son requeridos" });
         }
 
-        if (rfid_uid === "NO_CAMBIAR" || rfid_uid.trim() === "") {
+        const rfidNormalizado = rfid_uid.trim().toUpperCase();
+        if (rfidNormalizado === "NO_CAMBIAR" || rfidNormalizado === "") {
             return res.status(400).json({ message: "UID de tarjeta RFID inválido" });
         }
 
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-        const rfidExistente = await User.findOne({ rfid_uid, _id: { $ne: user._id } });
+        const rfidExistente = await User.findOne({
+            $or: [
+                { rfid_uid: rfidNormalizado },
+                { rfid_uid: rfidNormalizado.toLowerCase() }
+            ],
+            _id: { $ne: user._id }
+        });
         if (rfidExistente) {
             return res.status(409).json({ message: "Esta tarjeta RFID ya está vinculada a otro usuario" });
         }
 
         const rfid_uid_previo = user.rfid_uid || null;
-        user.rfid_uid = rfid_uid;
+        user.rfid_uid = rfidNormalizado;
         user.saldo = (user.saldo || 0) + Number(monto_inicial);
         await user.save();
 
