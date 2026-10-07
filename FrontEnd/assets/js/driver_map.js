@@ -550,7 +550,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (elLicencia) elLicencia.textContent = textoLicencia;
     // --- MODIFICACIÓN FIN ---
 
-    modalPerfil.classList.add("modal-visible");
+    modalPerfil.classList.add("show");
   }
 
   if (btnOpenPerfilHeader)
