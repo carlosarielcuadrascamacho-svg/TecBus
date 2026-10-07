@@ -135,14 +135,18 @@ io.on("connection", (socket) => {
       let nombreParaMostrar = data.camionId; // Por defecto usamos lo que manden
 
       // PASO 1: Intentar identificar el camión
+      // (poblamos rutaAsignada para poder mandar el rutaId en la alerta)
       if (mongoose.Types.ObjectId.isValid(data.camionId)) {
         // Si nos mandaron un ID de Mongo, buscamos por ID
-        camionEncontrado = await Camion.findById(data.camionId);
+        camionEncontrado = await Camion.findById(data.camionId).populate(
+          "rutaAsignada",
+          "nombre"
+        );
       } else {
         // Si nos mandaron texto (ej: "TEC-01"), buscamos por número o placa
-        camionEncontrado = await Camion.findOne({ 
-            $or: [{ numeroUnidad: data.camionId }, { placa: data.camionId }] 
-        });
+        camionEncontrado = await Camion.findOne({
+            $or: [{ numeroUnidad: data.camionId }, { placa: data.camionId }]
+        }).populate("rutaAsignada", "nombre");
       }
 
       // PASO 2: Preparar datos según lo encontrado
@@ -166,14 +170,21 @@ io.on("connection", (socket) => {
       });
       console.log("💾 [DEBUG] Notificación guardada en MongoDB");
 
-      // PASO 4: Emitir Alerta al Admin (Inmediata)
+      // PASO 4: Emitir Alerta al Admin y a los Pasajeros (Inmediata)
+      // Campos extra (rutaId/numeroUnidad) los usa el panel del pasajero para
+      // filtrar por la ruta que está viendo; el admin solo lee tipo/detalles/camionId.
       io.emit("newIncidentAlert", {
         tipo: data.tipo,
         detalles: data.detalles,
         camionId: nombreParaMostrar, // Aquí mandamos el texto legible (ej: "TEC-01")
+        numeroUnidad: nombreParaMostrar,
+        rutaId: camionEncontrado?.rutaAsignada?._id
+          ? camionEncontrado.rutaAsignada._id.toString()
+          : null,
+        rutaNombre: camionEncontrado?.rutaAsignada?.nombre || null,
         hora: new Date()
       });
-      console.log("📡 [DEBUG] Alerta emitida a los administradores");
+      console.log("📡 [DEBUG] Alerta emitida a administradores y pasajeros");
 
     } catch (error) {
       console.error("❌ [ERROR CRÍTICO] Fallo al procesar incidente:", error);
