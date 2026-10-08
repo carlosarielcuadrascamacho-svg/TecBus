@@ -1,11 +1,26 @@
 // backend/server.js
 
 require("dotenv").config();
+const crypto = require("crypto");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const helmet = require("helmet");
+const { rateLimit } = require("express-rate-limit");
 const http = require("http");
 const { Server } = require("socket.io");
+
+// --- SEGURIDAD: secreto JWT ---
+// Nunca usamos un secreto "de respaldo" compartido: si no está definido,
+// generamos uno aleatorio por proceso (las sesiones morirán en cada reinicio
+// hasta que se configure JWT_SECRET en Render).
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = crypto.randomBytes(48).toString("hex");
+  console.warn(
+    "⚠️  JWT_SECRET no está definido. Se generó uno temporal. " +
+      "Configura la variable JWT_SECRET en Render (Environment) para que las sesiones no se pierdan al reiniciar."
+  );
+}
 
 // Importamos los Modelos
 const Camion = require("./models/Camion");
@@ -24,12 +39,24 @@ const pagoRoutes = require("./routes/pagos");
 const transaccionRoutes = require("./routes/transacciones");
 const { startAnalyticsJobs } = require("./analytics/cronJobs");
 
+// --- SEGURIDAD: orígenes permitidos (CORS) ---
+const ORIGENES_PERMITIDOS = (
+  process.env.CORS_ORIGINS ||
+  "https://smartbus-mx.onrender.com,http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://127.0.0.1:3000"
+)
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const esOrigenPermitido = (origin) =>
+  !origin || ORIGENES_PERMITIDOS.includes(origin);
+
 // 2. Inicializar la aplicación
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Permite conexiones desde cualquier IP (importante para el celular)
+    origin: ORIGENES_PERMITIDOS,
     methods: ["GET", "POST"],
   },
 });
@@ -39,9 +66,39 @@ app.set("io", io);
 
 const PORT = process.env.PORT || 5000;
 
-// 3. Middlewares
-app.use(cors());
-app.use(express.json());
+// 3. Middlewares de seguridad
+app.set("trust proxy", 1); // Render está detrás de 1 proxy (necesario para contar IPs en el rate limit)
+app.disable("x-powered-by");
+app.use(
+  helmet({
+    // La app carga scripts/CDN y usa scripts inline, por eso sin CSP:
+    contentSecurityPolicy: false,
+    // El frontend (otro dominio) consume la API por CORS:
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
+  })
+);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (esOrigenPermitido(origin)) return callback(null, true);
+      console.warn(`⛔ CORS bloqueado desde origen no permitido: ${origin}`);
+      return callback(null, false);
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
+  })
+);
+app.use(express.json({ limit: "100kb" }));
+
+// Límite de peticiones contra fuerza bruta en login/registro
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Demasiados intentos. Intenta de nuevo en 15 minutos." },
+});
 
 // 4. Conectar a la Base de Datos
 const MONGO_URI = process.env.MONGO_URI;
@@ -58,7 +115,7 @@ mongoose
 
 // 5. Rutas
 app.get("/", (req, res) => res.send("¡Servidor TecBus Activo!"));
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/camiones", camionRoutes);
 app.use("/api/rutas", rutaRoutes);
 app.use("/api/horarios", horarioRoutes);

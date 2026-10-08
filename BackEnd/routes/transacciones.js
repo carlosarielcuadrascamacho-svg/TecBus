@@ -86,6 +86,9 @@ router.post("/recargar", async (req, res) => {
         if (!monto || monto < 10) {
             return res.status(400).json({ message: "El monto mínimo es de $10 MXN" });
         }
+        if (monto > 10000) {
+            return res.status(400).json({ message: "El monto máximo por recarga es de $10,000 MXN" });
+        }
 
         // 1. Buscar al pasajero logueado
         const User = require("../models/User");
@@ -124,6 +127,9 @@ router.post("/recargar", async (req, res) => {
         
         if (!monto || monto < 10) {
             return res.status(400).json({ message: "El monto mínimo es de $10 MXN" });
+        }
+        if (monto > 10000) {
+            return res.status(400).json({ message: "El monto máximo por recarga es de $10,000 MXN" });
         }
 
         // 1. Encontrar al usuario actual

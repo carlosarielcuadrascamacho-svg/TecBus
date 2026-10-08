@@ -38,8 +38,7 @@ router.get("/", protect, async (req, res) => {
   }
 });
 // OBTENER MAPA DE CALOR (Rutas Vacías en GeoJSON para MapLibre)
-// Endpoint público o protegido según convenga, aquí lo dejamos sin auth por simplicidad del panel
-router.get("/mapa-calor-vacio", async (req, res) => {
+router.get("/mapa-calor-vacio", protect, async (req, res) => {
   try {
     const ubicacionesVacias = await HistorialUbicacion.find({ pasajeros_actuales: 0 })
       .select('ubicacion.coordinates -_id')

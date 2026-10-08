@@ -35,6 +35,19 @@ router.post("/", protect, adminOnly, async (req, res) => {
     const { nombre, email, password, tipo, licencia, matricula, carrera } =
       req.body;
 
+    if (!nombre || !email || !password || !tipo) {
+      return res.status(400).json({ message: "nombre, email, password y tipo son requeridos" });
+    }
+
+    if (String(password).length < 8) {
+      return res.status(400).json({ message: "La contraseña debe tener al menos 8 caracteres." });
+    }
+
+    const rolesValidos = ["estudiante", "conductor", "administrador", "usuario"];
+    if (!rolesValidos.includes(tipo)) {
+      return res.status(400).json({ message: "Rol no válido." });
+    }
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "El correo ya está registrado" });
@@ -133,7 +146,10 @@ router.put("/:id", protect, async (req, res) => {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    if (req.user.tipo !== 'administrador' && req.user._id.toString() !== req.params.id) {
+    const esAdmin = req.user.tipo === "administrador";
+    const esMismoUsuario = req.user._id.toString() === req.params.id;
+
+    if (!esAdmin && !esMismoUsuario) {
         return res.status(401).json({ message: "No autorizado para editar este usuario" });
     }
 
@@ -146,6 +162,17 @@ router.put("/:id", protect, async (req, res) => {
       matricula,
       vehiculoAsignado,
     } = req.body;
+
+    // Solo un administrador puede cambiar el rol o el correo de una cuenta.
+    // (Sin esto, cualquier usuario se auto-asignaba "administrador" en el body)
+    if (!esAdmin) {
+      if (tipo && tipo !== user.tipo) {
+        return res.status(403).json({ message: "Solo un administrador puede cambiar el rol de un usuario." });
+      }
+      if (email && email !== user.email) {
+        return res.status(403).json({ message: "Solo un administrador puede cambiar el correo de una cuenta." });
+      }
+    }
 
     // Actualiza campos comunes
     user.nombre = nombre || user.nombre;

@@ -15,6 +15,10 @@ router.post('/register', async (req, res) => {
         if (!nombre || !email || !password) {
             return res.status(400).json({ message: 'Por favor, introduce todos los campos.' });
         }
+
+        if (String(password).length < 8) {
+            return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres.' });
+        }
         
         // 2. Revisar si el usuario ya existe (basado en tu PDF)
         const userExists = await User.findOne({ email: email });
@@ -75,7 +79,7 @@ router.post('/login', async (req, res) => {
         // 3. Crear un Token (JWT)
         const token = jwt.sign(
             { id: user._id, tipo: user.tipo }, // Guardamos el ID y el ROL en el token
-            process.env.JWT_SECRET || 'secreto_de_respaldo', // (Deberíamos añadir JWT_SECRET al .env)
+            process.env.JWT_SECRET, // Definido en server.js (nunca usa secreto compartido)
             { expiresIn: '1d' } // El token expira en 1 día
         );
 
