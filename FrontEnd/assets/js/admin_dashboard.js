@@ -3563,7 +3563,9 @@ async function cargarMapaCalorVacios(map) {
     }
 
     try {
-        const respuesta = await fetch(`${BACKEND_URL}/api/historial/mapa-calor-vacio`);
+        const respuesta = await fetch(`${BACKEND_URL}/api/historial/mapa-calor-vacio`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("tecbus_token")}` },
+        });
         const resultado = await respuesta.json();
 
         // Agregar la fuente GeoJSON

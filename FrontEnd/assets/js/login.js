@@ -42,29 +42,38 @@ document.addEventListener("DOMContentLoaded", () => {
       // Guardamos el usuario como texto JSON para usarlo después
       localStorage.setItem("tecbus_user", JSON.stringify(data.user));
 
+      // 4. Redirección por Rol (¡La parte más importante!)
+      // Leemos el 'tipo' de usuario que nos devolvió el backend
+      // (Esto se basa en tu diseño de DB: "estudiante", "conductor", "administrador")
+
+      const paneles = {
+        estudiante: "pasajero.html",
+        conductor: "conductor.html",
+        administrador: "admin.html",
+      };
+
+      const destino = paneles[data.user.tipo];
+
+      if (!destino) {
+        if (messageEl) {
+          messageEl.textContent = `Tu cuenta tiene el rol "${
+            data.user.tipo || "sin rol"
+          }" y no tiene un panel asignado. Contacta al administrador.`;
+          messageEl.className = "text-danger mb-3";
+        }
+        submitButton.disabled = false;
+        submitButton.innerHTML =
+          '<i class="fas fa-sign-in-alt me-2"></i> Ingresar';
+        return;
+      }
+
       if (messageEl) {
         messageEl.textContent = "¡Éxito! Redirigiendo...";
         messageEl.className = "text-success mb-3"; // Color verde
       }
 
-      // 4. Redirección por Rol (¡La parte más importante!)
-      // Leemos el 'tipo' de usuario que nos devolvió el backend
-      // (Esto se basa en tu diseño de DB: "estudiante", "conductor", "administrador")
-
       setTimeout(() => {
-        switch (data.user.tipo) {
-          case "estudiante":
-            window.location.href = "pasajero.html";
-            break;
-          case "conductor":
-            window.location.href = "conductor.html";
-            break;
-          case "administrador":
-            window.location.href = "admin.html";
-            break;
-          default:
-            window.location.href = "login.html"; // Fallback
-        }
+        window.location.href = destino;
       }, 1000); // Pequeña espera para que el usuario vea el mensaje
     } catch (error) {
       // 4. Error (ej. "Credenciales incorrectas")

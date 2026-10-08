@@ -16,14 +16,16 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(" ")[1];
 
       // 3. Verifica el token
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || "secreto_de_respaldo"
-      );
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // 4. Obtiene el usuario del token y lo "adjunta" a la petición
       //    (sin la contraseña)
       req.user = await User.findById(decoded.id).select("-password");
+
+      // Si el usuario fue eliminado, el token ya no vale
+      if (!req.user) {
+        return res.status(401).json({ message: "No autorizado, usuario inexistente" });
+      }
 
       next(); // ¡Luz verde! Pasa a la siguiente función (la ruta)
     } catch (error) {
@@ -43,7 +45,7 @@ const adminOnly = (req, res, next) => {
     next(); // ¡Luz verde para el admin!
   } else {
     res
-      .status(401)
+      .status(403)
       .json({ message: "Acceso denegado. Solo para administradores." });
   }
 };

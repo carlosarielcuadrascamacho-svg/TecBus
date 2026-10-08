@@ -174,7 +174,7 @@ router.post("/suscribir", protect, async (req, res) => {
 });
 
 // Ruta para enviar una notificación de prueba (para que verifiques)
-router.post("/enviar-test", async (req, res) => {
+router.post("/enviar-test", protect, async (req, res) => {
     const { userId, mensaje } = req.body;
     // Lógica para buscar usuario y usar webpush.sendNotification...
 });
