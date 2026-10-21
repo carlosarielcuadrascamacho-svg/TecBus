@@ -105,7 +105,7 @@ const char* SERVER_URL = "https://tecbus-api.onrender.com";
 // const char* SERVER_URL = "http://192.168.1.100:5000";
 
 // --- API Key del backend (debe coincidir con API_KEY_ESP32 del .env) ---
-const char* API_KEY = "***REMOVED***";
+#include "secrets.h"
 
 // --- Identificador del camion: DEBE ser el "numeroUnidad" en MongoDB ---
 const char* BUS_ID = "U001";

@@ -49,7 +49,7 @@ const char* WIFI_SSID  = "TecBus_Hotspot";
 const char* WIFI_PASS  = "conductor123";
 
 const char* SERVER_URL  = "https://tecbus-api.onrender.com";
-const char* API_KEY     = "***REMOVED***";
+#include "secrets.h"
 const char* BUS_ID      = "U001";
 
 const unsigned long INTERVALO_GPS_MS = 10000; // 10 segundos entre envios GPS
