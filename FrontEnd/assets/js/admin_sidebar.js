@@ -125,27 +125,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
   };
 
-  // --- 6. DETECTOR DE CIERRE DE PESTAÑA (Auto-Logout) ---
-  window.addEventListener("beforeunload", () => {
-    const token = localStorage.getItem("tecbus_token");
-    const user = JSON.parse(localStorage.getItem("tecbus_user"));
+  // --- 6. CIERRE DE PESTAÑA ---
+  // No marcamos al usuario como inactivo en beforeunload: recargar o navegar
+  // también dispara ese evento y dejaba estados falsos. El logout explícito
+  // sigue marcando inactivo en ejecutarLogout().
 
-    // Solo si hay usuario y token, intentamos marcar como inactivo
-    if (user && user.id && token) {
-      
-      // Usamos fetch con 'keepalive: true'
-      // Esto le dice al navegador: "Manda esto a la base de datos aunque la ventana se cierre ya"
-      fetch(`${BACKEND_URL}/api/users/${user.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ estado: "inactivo" }),
-        keepalive: true, // <--- ¡ESTA ES LA CLAVE!
-      });
-    }
-  });
-
-  
 });

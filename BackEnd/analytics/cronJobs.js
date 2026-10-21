@@ -212,7 +212,7 @@ const actualizarEstadoConductores = async () => {
         const id = conductor._id.toString();
         const tiempos = agenda[id];
         
-        let nuevoEstado = "Sin Recorridos Hoy"; // Por defecto si no tiene agenda
+        let nuevoEstado = "Fuera de Servicio"; // Por defecto si no tiene agenda
 
         if (tiempos && tiempos.length > 0) {
             // Ordenar cronológicamente (primero la mañana, luego la tarde)
@@ -233,7 +233,7 @@ const actualizarEstadoConductores = async () => {
                 nuevoEstado = "En Servicio";
             } else {
                 // Ya pasó su hora de salida + 10 min
-                nuevoEstado = "Fin de los Recorridos";
+                nuevoEstado = "Fuera de Servicio";
             }
         }
 
@@ -263,6 +263,10 @@ const actualizarEstadoConductores = async () => {
 
 // --- 🤖 NUEVO: NOTIFICADOR INTELIGENTE ---
 const notificarPredicciones = async (io) => {
+    if (!io) {
+        console.warn("--- ⚠️ Notificador inteligente omitido: Socket.io no está disponible ---");
+        return;
+    }
     const { horaTexto } = obtenerHoraGuasave();
     console.log(`--- 🤖 Verificando predicciones para la hora: ${horaTexto} ---`);
 
@@ -300,19 +304,7 @@ const notificarPredicciones = async (io) => {
 };
 
 // --- Tareas Programadas (cron) ---
-
-// CONSULTA 3: Se ejecuta todos los días a las 3:00 AM
-const jobAnalisisVelocidad = cron.schedule(
-  "0 3 * * *",
-  ejecutarAnalisisVelocidad
-);
-
-// CONSULTA 4: Se ejecuta todos los días a las 4:00 AM
-const jobAnalisisHabitos = cron.schedule("0 4 * * *", ejecutarAnalisisHabitos);
-
-// CONTROL DE ESTADO: Se ejecuta cada 10 minutos para refrescar status
-//const jobEstadoConductores = cron.schedule("*/10 * * * *", actualizarEstadoConductores);
-const jobEstadoConductores = cron.schedule("* * * * *", actualizarEstadoConductores);
+// Se programan únicamente desde startAnalyticsJobs() para evitar jobs duplicados.
 
 // --- Función de Inicio ---
 
@@ -323,15 +315,12 @@ const startAnalyticsJobs = (io) => {
   cron.schedule("0 3 * * *", ejecutarAnalisisVelocidad).start();
   cron.schedule("0 4 * * *", ejecutarAnalisisHabitos).start();
 
-  // 2. Control de Estado Conductores (Cada minuto)
-  cron.schedule("* * * * *", actualizarEstadoConductores).start();
+  // 2. Control de Estado Conductores (cada 10 minutos)
+  cron.schedule("*/10 * * * *", actualizarEstadoConductores).start();
 
-  // 3. 🤖 Notificaciones Inteligentes (Cada minuto)
+  // 3. 🤖 Notificaciones Inteligentes (cada minuto)
   // Revisa si la hora actual coincide con la hora favorita de alguien
   cron.schedule("* * * * *", () => notificarPredicciones(io)).start();
-
-  // Ejecución inicial de prueba (Opcional)
-  // actualizarEstadoConductores();
 };
 
 module.exports = { startAnalyticsJobs };

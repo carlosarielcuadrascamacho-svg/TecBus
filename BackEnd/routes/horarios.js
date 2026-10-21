@@ -8,94 +8,103 @@ const { protect, adminOnly } = require("../middleware/authMiddleware");
 
 
 
-// --- RUTA 1: Obtener TODOS los horarios ---
+const MAPA_DIAS_DISPLAY = {
+  "lunes": "Lunes",
+  "martes": "Martes",
+  "miercoles": "Miércoles",
+  "jueves": "Jueves",
+  "viernes": "Viernes",
+  "sabado": "Sábado",
+  "domingo": "Domingo",
+};
+
+async function obtenerHorariosAgregados({ rutaId = null, incluirConductor = false } = {}) {
+  const pipeline = [];
+
+  if (rutaId) {
+    pipeline.push({ $match: { ruta: new mongoose.Types.ObjectId(rutaId) } });
+  }
+
+  pipeline.push(
+    { $unwind: "$salidas" },
+    {
+      $lookup: {
+        from: "rutas",
+        localField: "ruta",
+        foreignField: "_id",
+        as: "infoRuta",
+      },
+    },
+    {
+      $lookup: {
+        from: "camions",
+        localField: "salidas.camionAsignado",
+        foreignField: "_id",
+        as: "infoCamion",
+      },
+    },
+    {
+      $addFields: {
+        ordenDia: {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$diaSemana", "lunes"] }, then: 1 },
+              { case: { $eq: ["$diaSemana", "martes"] }, then: 2 },
+              { case: { $eq: ["$diaSemana", "miercoles"] }, then: 3 },
+              { case: { $eq: ["$diaSemana", "jueves"] }, then: 4 },
+              { case: { $eq: ["$diaSemana", "viernes"] }, then: 5 },
+              { case: { $eq: ["$diaSemana", "sabado"] }, then: 6 },
+              { case: { $eq: ["$diaSemana", "domingo"] }, then: 7 },
+            ],
+            default: 8,
+          },
+        },
+      },
+    }
+  );
+
+  if (incluirConductor) {
+    pipeline.push({
+      $lookup: {
+        from: "users",
+        localField: "salidas.conductorAsignado",
+        foreignField: "_id",
+        as: "infoConductor",
+      },
+    });
+  }
+
+  const proyecto = {
+    _id: "$_id",
+    salidaId: "$salidas._id",
+    diaSemana: "$diaSemana",
+    ordenDia: 1,
+    hora: "$salidas.hora",
+    rutaNombre: { $arrayElemAt: ["$infoRuta.nombre", 0] },
+    rutaId: { $arrayElemAt: ["$infoRuta._id", 0] },
+    rutaDuracion: { $arrayElemAt: ["$infoRuta.tiempoEstimadoTotal", 0] },
+    camionUnidad: { $arrayElemAt: ["$infoCamion.numeroUnidad", 0] },
+    camionId: { $arrayElemAt: ["$infoCamion._id", 0] },
+  };
+
+  if (incluirConductor) {
+    proyecto.conductorNombre = { $arrayElemAt: ["$infoConductor.nombre", 0] };
+    proyecto.conductorId = { $arrayElemAt: ["$infoConductor._id", 0] };
+  }
+
+  pipeline.push({ $project: proyecto }, { $sort: { ordenDia: 1, hora: 1 } });
+
+  const horarios = await Horario.aggregate(pipeline);
+  return horarios.map((h) => ({
+    ...h,
+    diaSemana: MAPA_DIAS_DISPLAY[h.diaSemana] || h.diaSemana,
+  }));
+}
+
+// --- RUTA 1: Obtener TODOS los horarios (admin) ---
 router.get("/", protect, async (req, res) => {
   try {
-    const horarios = await Horario.aggregate([
-      { $unwind: "$salidas" },
-      {
-        $lookup: {
-          from: "rutas",
-          localField: "ruta",
-          foreignField: "_id",
-          as: "infoRuta",
-        },
-      },
-      {
-        $lookup: {
-          from: "camions",
-          localField: "salidas.camionAsignado",
-          foreignField: "_id",
-          as: "infoCamion",
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "salidas.conductorAsignado",
-          foreignField: "_id",
-          as: "infoConductor",
-        },
-      },
-      // Asignar valor numérico al día para ordenar
-      {
-        $addFields: {
-          ordenDia: {
-            $switch: {
-              branches: [
-                { case: { $eq: ["$diaSemana", "lunes"] }, then: 1 },
-                { case: { $eq: ["$diaSemana", "martes"] }, then: 2 },
-                { case: { $eq: ["$diaSemana", "miercoles"] }, then: 3 },
-                { case: { $eq: ["$diaSemana", "jueves"] }, then: 4 },
-                { case: { $eq: ["$diaSemana", "viernes"] }, then: 5 },
-                { case: { $eq: ["$diaSemana", "sabado"] }, then: 6 },
-                { case: { $eq: ["$diaSemana", "domingo"] }, then: 7 }
-              ],
-              default: 8
-            }
-          }
-        }
-      },
-      {
-        $project: {
-          _id: "$_id",
-          salidaId: "$salidas._id",
-          diaSemana: "$diaSemana",
-          ordenDia: 1,
-          hora: "$salidas.hora",
-          rutaNombre: { $arrayElemAt: ["$infoRuta.nombre", 0] },
-          rutaId: { $arrayElemAt: ["$infoRuta._id", 0] },
-          // 👇 AGREGAR ESTA LÍNEA: Traemos el tiempo estimado de la colección Rutas
-          rutaDuracion: { $arrayElemAt: ["$infoRuta.tiempoEstimadoTotal", 0] },
-          camionUnidad: { $arrayElemAt: ["$infoCamion.numeroUnidad", 0] },
-          camionId: { $arrayElemAt: ["$infoCamion._id", 0] },
-          conductorNombre: { $arrayElemAt: ["$infoConductor.nombre", 0] },
-          conductorId: { $arrayElemAt: ["$infoConductor._id", 0] },
-        },
-      },
-      {
-        $sort: { ordenDia: 1, hora: 1 }
-      }
-    ]);
-
-    // 🔥 CORRECCIÓN: Mapa para mostrar acentos en la tabla
-    const mapaDiasDisplay = {
-      "lunes": "Lunes",
-      "martes": "Martes",
-      "miercoles": "Miércoles",
-      "jueves": "Jueves",
-      "viernes": "Viernes",
-      "sabado": "Sábado",
-      "domingo": "Domingo"
-    };
-
-    const horariosFormateados = horarios.map(h => ({
-        ...h,
-        // Traducimos el día crudo (ej: 'sabado') al bonito (ej: 'Sábado')
-        diaSemana: mapaDiasDisplay[h.diaSemana] || h.diaSemana
-    }));
-
-    res.json(horariosFormateados);
+    res.json(await obtenerHorariosAgregados({ incluirConductor: true }));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error del servidor" });
@@ -133,6 +142,35 @@ async function rellenarCamionDesdeHorario(camionId) {
 // --- RUTA 2: Crear/Agregar Horarios (CORREGIDA Y BLINDADA) ---
 router.post("/", protect, adminOnly, async (req, res) => {
   const { ruta, diaSemana, hora, camionAsignado, conductorAsignado } = req.body;
+  const diaSemanaTexto = String(diaSemana || "").trim();
+  const horaTexto = String(hora || "").trim();
+
+  if (!ruta || !diaSemanaTexto || !horaTexto) {
+    return res.status(400).json({ message: "ruta, diaSemana y hora son requeridos" });
+  }
+  if (!mongoose.Types.ObjectId.isValid(ruta)) {
+    return res.status(400).json({ message: "ID de ruta inválido" });
+  }
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(horaTexto)) {
+    return res.status(400).json({ message: "La hora debe tener formato HH:MM (24 h)" });
+  }
+
+  const diasPermitidos = [
+    "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes",
+    "sábado", "sabado", "domingo", "diario", "lunes-viernes",
+  ];
+  if (!diasPermitidos.includes(diaSemanaTexto.toLowerCase())) {
+    return res.status(400).json({ message: "diaSemana no válido" });
+  }
+  if (!camionAsignado || !conductorAsignado) {
+    return res.status(400).json({ message: "camionAsignado y conductorAsignado son requeridos" });
+  }
+  if (camionAsignado && !mongoose.Types.ObjectId.isValid(camionAsignado)) {
+    return res.status(400).json({ message: "ID de camión inválido" });
+  }
+  if (conductorAsignado && !mongoose.Types.ObjectId.isValid(conductorAsignado)) {
+    return res.status(400).json({ message: "ID de conductor inválido" });
+  }
 
   try {
     let diasAGuardar = [];
@@ -140,9 +178,9 @@ router.post("/", protect, adminOnly, async (req, res) => {
     // 1. TRADUCCIÓN EXACTA: Convertimos opciones de usuario a valores del Modelo
     // El modelo pide: "lunes", "martes", "miercoles" (sin tilde), etc.
     
-    if (diaSemana === "Lunes-Viernes") {
+    if (diaSemanaTexto.toLowerCase() === "lunes-viernes") {
       diasAGuardar = ["lunes", "martes", "miercoles", "jueves", "viernes"];
-    } else if (diaSemana === "Diario") {
+    } else if (diaSemanaTexto.toLowerCase() === "diario") {
       diasAGuardar = [
         "lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"
       ];
@@ -150,17 +188,17 @@ router.post("/", protect, adminOnly, async (req, res) => {
       // Si viene un día individual (Ej: "Miércoles" o "Sabado")
       // Usamos un mapa para asegurar que coincida con el enum del modelo
       const mapaDias = {
-        "Lunes": "lunes",
-        "Martes": "martes",
-        "Miércoles": "miercoles", "Miercoles": "miercoles",
-        "Jueves": "jueves",
-        "Viernes": "viernes",
-        "Sábado": "sabado", "Sabado": "sabado",
-        "Domingo": "domingo"
+        "Lunes": "lunes", "lunes": "lunes",
+        "Martes": "martes", "martes": "martes",
+        "Miércoles": "miercoles", "Miercoles": "miercoles", "miércoles": "miercoles", "miercoles": "miercoles",
+        "Jueves": "jueves", "jueves": "jueves",
+        "Viernes": "viernes", "viernes": "viernes",
+        "Sábado": "sabado", "Sabado": "sabado", "sábado": "sabado", "sabado": "sabado",
+        "Domingo": "domingo", "domingo": "domingo"
       };
       
       // Si está en el mapa lo usamos, si no, pasamos a minúscula por seguridad
-      const diaLimpio = mapaDias[diaSemana] || diaSemana.toLowerCase();
+      const diaLimpio = mapaDias[diaSemanaTexto] || diaSemanaTexto.toLowerCase();
       diasAGuardar = [diaLimpio];
     }
 
@@ -183,13 +221,13 @@ router.post("/", protect, adminOnly, async (req, res) => {
 
       // Verificamos si esa HORA exacta ya existe para no duplicarla
       const salidaExiste = horarioBase.salidas.some(
-        (s) => s.hora === hora
+        (s) => s.hora === horaTexto
       );
 
       if (!salidaExiste) {
         // Agregamos la nueva salida al array
         horarioBase.salidas.push({
-          hora: hora,
+          hora: horaTexto,
           camionAsignado: camionAsignado || null,
           conductorAsignado: conductorAsignado || null,
         });
@@ -217,6 +255,9 @@ router.post("/", protect, adminOnly, async (req, res) => {
 router.delete("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
   try {
     const { id, salidaId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(salidaId)) {
+      return res.status(400).json({ message: "ID de horario o salida inválido" });
+    }
     const horario = await Horario.findById(id);
     if (!horario) return res.status(404).json({ message: "Horario no encontrado" });
 
@@ -241,7 +282,11 @@ router.delete("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => 
 // --- RUTA 4: Obtener un Horario por ID (Para editar) ---
 router.get("/:id", protect, async (req, res) => {
   try {
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: "ID de horario inválido" });
+      }
       const horario = await Horario.findById(req.params.id).populate("ruta");
+      if (!horario) return res.status(404).json({ message: "Horario no encontrado" });
       res.json(horario);
   } catch (error) {
       res.status(500).json({ message: "Error obteniendo horario" });
@@ -253,6 +298,25 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
     const { id, salidaId } = req.params;
     // AGREGADO: Recibir camion y conductor del body
     const { hora, ruta, diaSemana, camionAsignado, conductorAsignado } = req.body; 
+
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(salidaId)) {
+      return res.status(400).json({ message: "ID de horario o salida inválido" });
+    }
+    if (!ruta || !mongoose.Types.ObjectId.isValid(ruta)) {
+      return res.status(400).json({ message: "ID de ruta inválido" });
+    }
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(hora || ""))) {
+      return res.status(400).json({ message: "La hora debe tener formato HH:MM (24 h)" });
+    }
+    if (!diaSemana || !["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"].includes(String(diaSemana).toLowerCase())) {
+      return res.status(400).json({ message: "diaSemana no válido" });
+    }
+    if (camionAsignado && !mongoose.Types.ObjectId.isValid(camionAsignado)) {
+      return res.status(400).json({ message: "ID de camión inválido" });
+    }
+    if (conductorAsignado && !mongoose.Types.ObjectId.isValid(conductorAsignado)) {
+      return res.status(400).json({ message: "ID de conductor inválido" });
+    }
 
     try {
         const horarioOriginal = await Horario.findById(id);
@@ -334,80 +398,15 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
 });
 
 // --- RUTA 6: Obtener horarios públicos de UNA RUTA específica ---
-router.get("/publico/:rutaId", protect, async (req, res) => {
+router.get("/publico/:rutaId", async (req, res) => {
   try {
     const { rutaId } = req.params;
 
-    // Validar que sea un ID válido de Mongo
     if (!mongoose.Types.ObjectId.isValid(rutaId)) {
       return res.status(400).json({ message: "ID de ruta inválido" });
     }
 
-    const horarios = await Horario.aggregate([
-      // 1. Filtrar solo los documentos de ESTA ruta
-      { $match: { ruta: new mongoose.Types.ObjectId(rutaId) } },
-      { $unwind: "$salidas" },
-      {
-        $lookup: {
-          from: "rutas",
-          localField: "ruta",
-          foreignField: "_id",
-          as: "infoRuta",
-        },
-      },
-      {
-        $lookup: {
-          from: "camions",
-          localField: "salidas.camionAsignado",
-          foreignField: "_id",
-          as: "infoCamion",
-        },
-      },
-      // Ordenar días numéricamente
-      {
-        $addFields: {
-          ordenDia: {
-            $switch: {
-              branches: [
-                { case: { $eq: ["$diaSemana", "lunes"] }, then: 1 },
-                { case: { $eq: ["$diaSemana", "martes"] }, then: 2 },
-                { case: { $eq: ["$diaSemana", "miercoles"] }, then: 3 },
-                { case: { $eq: ["$diaSemana", "jueves"] }, then: 4 },
-                { case: { $eq: ["$diaSemana", "viernes"] }, then: 5 },
-                { case: { $eq: ["$diaSemana", "sabado"] }, then: 6 },
-                { case: { $eq: ["$diaSemana", "domingo"] }, then: 7 }
-              ],
-              default: 8
-            }
-          }
-        }
-      },
-      {
-        $project: {
-          diaSemana: "$diaSemana",
-          ordenDia: 1,
-          hora: "$salidas.hora",
-          rutaNombre: { $arrayElemAt: ["$infoRuta.nombre", 0] },
-          camionUnidad: { $arrayElemAt: ["$infoCamion.numeroUnidad", 0] },
-          camionId: { $arrayElemAt: ["$infoCamion._id", 0] },
-        },
-      },
-      { $sort: { ordenDia: 1, hora: 1 } }
-    ]);
-
-    // Formatear días para mostrar acentos
-    const mapaDiasDisplay = {
-      "lunes": "Lunes", "martes": "Martes", "miercoles": "Miércoles",
-      "jueves": "Jueves", "viernes": "Viernes", "sabado": "Sábado", "domingo": "Domingo"
-    };
-
-    const horariosFormateados = horarios.map(h => ({
-        ...h,
-        diaSemana: mapaDiasDisplay[h.diaSemana] || h.diaSemana
-    }));
-
-    res.json(horariosFormateados);
-
+    res.json(await obtenerHorariosAgregados({ rutaId, incluirConductor: false }));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error obteniendo horarios públicos" });

@@ -1,10 +1,20 @@
 // backend/routes/rutas.js
 
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const Ruta = require("../models/Ruta"); // Importamos el modelo de Ruta
 const { protect, adminOnly } = require("../middleware/authMiddleware"); // Reusamos el guardaespaldas
 const Horario = require("../models/Horario");
+
+const idValido = (id) => mongoose.Types.ObjectId.isValid(id);
+const coordenadasValidas = (p) =>
+  Array.isArray(p) &&
+  p.length === 2 &&
+  Number.isFinite(Number(p[0])) &&
+  Number.isFinite(Number(p[1])) &&
+  Number(p[0]) >= -180 && Number(p[0]) <= 180 &&
+  Number(p[1]) >= -90 && Number(p[1]) <= 90;
 
 // --- RUTA 1: Obtener TODAS las rutas ---
 // GET /api/rutas
@@ -24,6 +34,13 @@ router.post("/", protect, adminOnly, async (req, res) => {
     // Por ahora, solo creamos la ruta con nombre y descripción.
     // Las paradas se añadirán después con una UI más compleja.
     const { nombre, descripcion, tiempoEstimadoTotal } = req.body;
+
+    if (!String(nombre || "").trim()) {
+      return res.status(400).json({ message: "El nombre de la ruta es requerido" });
+    }
+    if (tiempoEstimadoTotal !== undefined && (!Number.isFinite(Number(tiempoEstimadoTotal)) || Number(tiempoEstimadoTotal) < 0)) {
+      return res.status(400).json({ message: "tiempoEstimadoTotal inválido" });
+    }
 
     const rutaExists = await Ruta.findOne({ nombre });
     if (rutaExists) {
@@ -51,6 +68,10 @@ router.post("/", protect, adminOnly, async (req, res) => {
 // PUT /api/rutas/:id
 router.put("/:id", protect, adminOnly, async (req, res) => {
   try {
+    if (!idValido(req.params.id)) {
+      return res.status(400).json({ message: "ID de ruta inválido" });
+    }
+
     const ruta = await Ruta.findById(req.params.id);
 
     if (ruta) {
@@ -74,6 +95,10 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
 // DELETE /api/rutas/:id
 router.delete("/:id", protect, adminOnly, async (req, res) => {
   try {
+    if (!idValido(req.params.id)) {
+      return res.status(400).json({ message: "ID de ruta inválido" });
+    }
+
     const ruta = await Ruta.findById(req.params.id);
 
     if (ruta) {
@@ -90,6 +115,10 @@ router.delete("/:id", protect, adminOnly, async (req, res) => {
 // GET /api/rutas/:id
 router.get("/:id", protect, async (req, res) => {
   try {
+    if (!idValido(req.params.id)) {
+      return res.status(400).json({ message: "ID de ruta inválido" });
+    }
+
     // Busca la ruta por su ID y solo selecciona el campo 'paradas'
     const ruta = await Ruta.findById(req.params.id).select("paradas nombre");
 
@@ -106,7 +135,29 @@ router.get("/:id", protect, async (req, res) => {
 // PUT /api/rutas/:id/paradas
 router.put("/:id/paradas", protect, adminOnly, async (req, res) => {
   try {
+    if (!idValido(req.params.id)) {
+      return res.status(400).json({ message: "ID de ruta inválido" });
+    }
+
     const { paradas } = req.body; // Recibimos el array de paradas
+
+    if (!Array.isArray(paradas)) {
+      return res.status(400).json({ message: "paradas debe ser un arreglo" });
+    }
+    for (const parada of paradas) {
+      if (!parada || typeof parada !== "object") {
+        return res.status(400).json({ message: "Parada inválida" });
+      }
+      if (parada.nombre !== undefined && String(parada.nombre).length > 120) {
+        return res.status(400).json({ message: "Nombre de parada demasiado largo" });
+      }
+      if (parada.ubicacion) {
+        const coords = parada.ubicacion.coordinates;
+        if (!coordenadasValidas(coords)) {
+          return res.status(400).json({ message: "Coordenadas de parada inválidas" });
+        }
+      }
+    }
 
     const ruta = await Ruta.findById(req.params.id);
     if (!ruta) {
@@ -127,6 +178,10 @@ router.put("/:id/paradas", protect, adminOnly, async (req, res) => {
 router.get("/:id/proximo-camion", async (req, res) => {
   try {
     const rutaId = req.params.id;
+
+    if (!idValido(rutaId)) {
+      return res.status(400).json({ message: "ID de ruta inválido" });
+    }
     
     // 1. Obtener día y hora actual
     const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
