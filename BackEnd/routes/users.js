@@ -100,20 +100,26 @@ router.get("/mi-camion", protect, async (req, res) => {
         
         // Calcular día de la semana en español
         const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-        const hoy = dias[new Date().getDay()];
+        const indiceDia = new Date().getDay();
+        const hoy = dias[indiceDia];
+        const diasBusqueda = [hoy, hoy.toLowerCase(), "Diario", "diario"];
 
-        // Buscar un horario donde este usuario sea el conductor hoy
+        if (indiceDia >= 1 && indiceDia <= 5) {
+            diasBusqueda.push("Lunes-Viernes", "lunes-viernes");
+        }
+
+        // La asignación vive dentro de salidas[], no en la raíz del horario.
         const horarioHoy = await Horario.findOne({
-            conductorAsignado: user._id,
-            $or: [
-                { diaSemana: hoy }, 
-                { diaSemana: "Diario" },
-                { diaSemana: "Lunes-Viernes" } // (Simplificado, idealmente validar si es L-V)
-            ]
-        }).populate("camionAsignado");
+            "salidas": { $elemMatch: { conductorAsignado: user._id } },
+            diaSemana: { $in: diasBusqueda }
+        }).populate("salidas.camionAsignado");
 
-        if (horarioHoy && horarioHoy.camionAsignado) {
-            camion = horarioHoy.camionAsignado;
+        const salidaHoy = horarioHoy?.salidas.find(
+            (salida) => salida.conductorAsignado?.toString() === user._id.toString()
+        );
+
+        if (salidaHoy && salidaHoy.camionAsignado) {
+            camion = salidaHoy.camionAsignado;
             console.log(`[DEBUG] ¡Camión encontrado por horario! Unidad: ${camion.numeroUnidad}`);
         }
     }
