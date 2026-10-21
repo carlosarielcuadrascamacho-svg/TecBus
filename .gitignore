@@ -1,3 +1,4 @@
 **/node_modules/
 **/.env
 **/SecretKeys.txt
+HALLAZGOS_AUDITORIA.txt
