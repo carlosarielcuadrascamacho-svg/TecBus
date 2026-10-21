@@ -126,13 +126,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
             console.log(`✅ Ubicación sincronizada: [${latDB}, ${lngDB}]`);
 
-            // 4. Mover el marcador
-            driverMarker.setLngLat([lngDB, latDB]);
+            // 4. Mover el marcador de forma continua entre muestras GPS
+            if (window.SmoothMarker) {
+              SmoothMarker.move(driverMarker, [lngDB, latDB], {
+                duration: 10000,
+                timestamp: data.timestamp,
+              });
+            } else {
+              driverMarker.setLngLat([lngDB, latDB]);
+            }
 
             // Actualizar Consola
             if (consoleSpeed) consoleSpeed.innerHTML = `${Math.round(velocidadDB)} <small>km/h</small>`;
             
-            map.panTo([lngDB, latDB]);
+            map.easeTo({ center: [lngDB, latDB], duration: 1000, essential: true });
             verificarLlegadaDestino(latDB, lngDB);
           } else {
             console.warn(

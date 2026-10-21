@@ -991,8 +991,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- SOCKETS ---
   socket.on("locationUpdate", (data) => {
     const marker = busMarkers[data.camionId];
-    if (marker) {
-      marker.setLngLat([data.location.lng, data.location.lat]);
+    if (marker && data.location) {
+      const destino = [data.location.lng, data.location.lat];
+      if (window.SmoothMarker) {
+        SmoothMarker.move(marker, destino, {
+          duration: 10000,
+          timestamp: data.timestamp,
+        });
+      } else {
+        marker.setLngLat(destino);
+      }
       // Si el bus que se movió es de la ruta actual, refrescar el ETA
       if (marker.rutaId === currentRouteId) {
         actualizarETAReal();
