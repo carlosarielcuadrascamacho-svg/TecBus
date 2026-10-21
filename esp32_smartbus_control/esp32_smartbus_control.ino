@@ -171,7 +171,8 @@ HardwareSerial gpsSerial(2);        // UART2 para GPS
 
 MFRC522 mfrc522(RFID_SS_PIN, RFID_RST_PIN);
 
-WiFiClientSecure clienteTLS;        // TLS para HTTPS
+WiFiClientSecure clienteTLS;        // TLS para HTTPS (global, conserva la sesión)
+HTTPClient httpCliente;             // Cliente HTTP global: evita cerrar TLS en cada envío
 
 DHT dht(DHT_PIN, DHT22);            // DHT22
 Adafruit_INA219 ina219(0x40);       // INA219 dirección I2C 0x40 (solo telemetría)
@@ -348,8 +349,9 @@ void setup() {
   // --- Serial Comandos ---
   Serial.println(F("[SERIAL] Comandos: 'r' = Reset pasajeros | 'e' = Estado general"));
 
-  // --- Cliente TLS ---
+  // --- Cliente TLS / HTTP persistente ---
   clienteTLS.setInsecure();
+  httpCliente.setReuse(true);       // Keep-Alive: reutiliza TCP+TLS entre peticiones
 
   // --- Contador de pasajeros ---
   pasajeros = 0;
@@ -433,11 +435,17 @@ void gestionarWiFi() {
 
 void prepararHTTP(HTTPClient& http, const String& url) {
   if (url.startsWith(F("https"))) {
-    clienteTLS.setInsecure();
     http.begin(clienteTLS, url);
   } else {
     http.begin(url);
   }
+}
+
+// Cierra TCP/TLS para forzar un handshake nuevo en el siguiente intento.
+// Se usa solo cuando la petición falla a nivel de red (httpCode < 0).
+void forzarReconexionHTTP() {
+  httpCliente.end();
+  clienteTLS.stop();
 }
 
 // =========================================================================
@@ -463,7 +471,7 @@ void gestionarTelemetria() {
 }
 
 void enviarTelemetria() {
-  HTTPClient http;
+  HTTPClient& http = httpCliente;
   String url = String(SERVER_URL) + F("/api/camiones/update-location");
 
   prepararHTTP(http, url);
@@ -484,6 +492,10 @@ void enviarTelemetria() {
   int httpCode = http.PUT(jsonData);
   String respuesta = http.getString();
   http.end();
+
+  if (httpCode < 0) {
+    forzarReconexionHTTP();
+  }
 
   if (httpCode == 200) {
     estadoLED = ENVIANDO_DATOS;
@@ -562,7 +574,7 @@ void procesarUID(const String& uid) {
 // =========================================================================
 
 int enviarPago(const String& uid, const String& rutaId, int cantidad) {
-  HTTPClient http;
+  HTTPClient& http = httpCliente;
   String url = String(SERVER_URL) + F("/api/pagos/procesar");
 
   prepararHTTP(http, url);
@@ -592,6 +604,10 @@ int enviarPago(const String& uid, const String& rutaId, int cantidad) {
   int httpCode = http.POST(jsonData);
   String respuesta = http.getString();
   http.end();
+
+  if (httpCode < 0) {
+    forzarReconexionHTTP();
+  }
 
   // Validar respuesta HTTP
   if (httpCode != 200 && httpCode != 201) {
@@ -667,7 +683,7 @@ void gestionarSync() {
 }
 
 bool sincronizarBuffer() {
-  HTTPClient http;
+  HTTPClient& http = httpCliente;
   String url = String(SERVER_URL) + F("/api/pagos/procesar");
 
   prepararHTTP(http, url);
@@ -700,6 +716,10 @@ bool sincronizarBuffer() {
   int httpCode = http.POST(jsonData);
   String respuesta = http.getString();
   http.end();
+
+  if (httpCode < 0) {
+    forzarReconexionHTTP();
+  }
 
   if (httpCode != 200 && httpCode != 201) {
     Serial.printf("[SYNC] HTTP %d: %s\n", httpCode,
