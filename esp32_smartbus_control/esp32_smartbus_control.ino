@@ -128,7 +128,7 @@ const char* WS_PATH = "/ws/telemetry";
 #include "secrets.h"
 
 // --- Identificador de Camión (debe coincidir con numeroUnidad en MongoDB) ---
-const char* BUS_ID = "U002";
+const char* BUS_ID = "U001";
 
 // =========================================================================
 //  INTERVALOS DE TIEMPO (milisegundos)
