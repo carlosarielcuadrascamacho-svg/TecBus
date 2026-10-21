@@ -10,9 +10,10 @@ const jwt = require('jsonwebtoken');
 router.post('/register', async (req, res) => {
     try {
         const { nombre, email, password } = req.body;
+        const emailNormalizado = String(email || "").trim().toLowerCase();
 
         // 1. Validar que los datos estén
-        if (!nombre || !email || !password) {
+        if (!nombre || !emailNormalizado || !password) {
             return res.status(400).json({ message: 'Por favor, introduce todos los campos.' });
         }
 
@@ -21,7 +22,7 @@ router.post('/register', async (req, res) => {
         }
         
         // 2. Revisar si el usuario ya existe (basado en tu PDF)
-        const userExists = await User.findOne({ email: email });
+        const userExists = await User.findOne({ email: emailNormalizado });
         if (userExists) {
             return res.status(400).json({ message: 'El correo electrónico ya está registrado.' });
         }
@@ -34,7 +35,7 @@ router.post('/register', async (req, res) => {
         // Usamos el Schema que definimos en tu PDF
         const newUser = new User({
             nombre: nombre,
-            email: email,
+            email: emailNormalizado,
             password: hashedPassword,
             tipo: 'estudiante', // Por defecto al registrarse
             estudiante: { // Llenamos los datos de estudiante
@@ -63,14 +64,22 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        const emailNormalizado = String(email || "").trim().toLowerCase();
 
-        // 1. Revisar si el usuario existe
-        const user = await User.findOne({ email: email });
+        if (!emailNormalizado || !password) {
+            return res.status(400).json({ message: 'Credenciales incorrectas.' });
+        }
+
+        // 1. Revisar si el usuario existe. El hash no se selecciona por defecto.
+        const user = await User.findOne({ email: emailNormalizado }).select('+password');
         if (!user) {
             return res.status(400).json({ message: 'Credenciales incorrectas.' });
         }
 
         // 2. Comparar la contraseña
+        if (!user.password) {
+            return res.status(400).json({ message: 'Esta cuenta no tiene contraseña local.' });
+        }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Credenciales incorrectas.' });

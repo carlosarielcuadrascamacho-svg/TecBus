@@ -6,13 +6,23 @@ const router = express.Router();
 const Camion = require("../models/Camion");
 const Horario = require('../models/Horario');
 const { protect, adminOnly } = require("../middleware/authMiddleware");
+const { apiKeyAuth } = require("../middleware/apiKeyMiddleware");
+const { rateLimit } = require("express-rate-limit");
 const EstadisticaDiaria = require("../models/EstadisticaDiaria");
 const { procesarPuntoTelemetria } = require("../services/telemetryService");
+
+const telemetryLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Demasiados reportes de telemetría. Intenta de nuevo en un minuto." },
+});
 
 // ==================================================================
 //  RUTA ESPECIAL ESP32 — DEBE IR PRIMERO
 // ==================================================================
-router.put("/update-location", async (req, res) => {
+router.put("/update-location", apiKeyAuth, telemetryLimiter, async (req, res) => {
   try {
     const resultado = await procesarPuntoTelemetria(req.body, req.app.get("io"));
     if (!resultado.ok) {
@@ -181,6 +191,16 @@ router.post("/", protect, adminOnly, async (req, res) => {
   try {
     const { numeroUnidad, placa, modelo, año, capacidad, rutaAsignada, conductorActual } = req.body;
 
+    if (!String(numeroUnidad || "").trim() || !String(placa || "").trim()) {
+      return res.status(400).json({ message: "numeroUnidad y placa son requeridos" });
+    }
+    if (rutaAsignada && !mongoose.Types.ObjectId.isValid(rutaAsignada)) {
+      return res.status(400).json({ message: "ID de ruta inválido" });
+    }
+    if (conductorActual && !mongoose.Types.ObjectId.isValid(conductorActual)) {
+      return res.status(400).json({ message: "ID de conductor inválido" });
+    }
+
     const camionExists = await Camion.findOne({ placa });
     if (camionExists)
       return res.status(400).json({ message: "La placa ya está registrada" });
@@ -206,6 +226,10 @@ router.post("/", protect, adminOnly, async (req, res) => {
 // --- Actualizar camión ---
 router.put("/:id", protect, adminOnly, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "ID de camión inválido" });
+    }
+
     const camion = await Camion.findById(req.params.id);
 
     if (camion) {
@@ -248,6 +272,10 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
 // --- Eliminar camión ---
 router.delete("/:id", protect, adminOnly, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "ID de camión inválido" });
+    }
+
     const camion = await Camion.findById(req.params.id);
 
     if (camion) {
@@ -265,6 +293,10 @@ router.delete("/:id", protect, adminOnly, async (req, res) => {
 // GET /api/camiones/:id
 router.get("/:id", protect, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "ID de camión inválido" });
+    }
+
     const camion = await Camion.findById(req.params.id)
       .populate("conductorActual", "nombre")
       .populate("rutaAsignada");

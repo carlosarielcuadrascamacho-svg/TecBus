@@ -9,13 +9,13 @@ const Horario = require("../models/Horario");
 const bcrypt = require("bcryptjs");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
 
-const estudianteSchema = new mongoose.Schema({
-  matricula: { type: String },
-  carrera: { type: String },
-  rutaPreferida: { type: String },
-  // ¡NUEVO! Guardamos la "dirección" para las notificaciones push
-  pushSubscription: { type: Object },
-});
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function usuarioPublico(user) {
+  const objeto = user.toObject ? user.toObject() : { ...user };
+  delete objeto.password;
+  return objeto;
+}
 
 // --- RUTA 1: Obtener TODOS los usuarios (para la tabla del admin) ---
 // GET /api/users
@@ -34,9 +34,14 @@ router.post("/", protect, adminOnly, async (req, res) => {
   try {
     const { nombre, email, password, tipo, licencia, matricula, carrera } =
       req.body;
+    const emailNormalizado = String(email || "").trim().toLowerCase();
 
-    if (!nombre || !email || !password || !tipo) {
+    if (!nombre || !emailNormalizado || !password || !tipo) {
       return res.status(400).json({ message: "nombre, email, password y tipo son requeridos" });
+    }
+
+    if (!EMAIL_REGEX.test(emailNormalizado)) {
+      return res.status(400).json({ message: "El correo electrónico no es válido." });
     }
 
     if (String(password).length < 8) {
@@ -48,7 +53,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
       return res.status(400).json({ message: "Rol no válido." });
     }
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: emailNormalizado });
     if (userExists) {
       return res.status(400).json({ message: "El correo ya está registrado" });
     }
@@ -58,7 +63,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
 
     const newUser = new User({
       nombre,
-      email,
+      email: emailNormalizado,
       password: hashedPassword,
       tipo,
     });
@@ -71,7 +76,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
     }
 
     const savedUser = await newUser.save();
-    res.status(201).json(savedUser);
+    res.status(201).json(usuarioPublico(savedUser));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error del servidor" });
@@ -141,6 +146,10 @@ router.get("/mi-camion", protect, async (req, res) => {
 // PUT /api/users/:id
 router.put("/:id", protect, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "ID de usuario inválido" });
+    }
+
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
@@ -169,14 +178,38 @@ router.put("/:id", protect, async (req, res) => {
       if (tipo && tipo !== user.tipo) {
         return res.status(403).json({ message: "Solo un administrador puede cambiar el rol de un usuario." });
       }
-      if (email && email !== user.email) {
+      if (email && String(email).trim().toLowerCase() !== user.email) {
         return res.status(403).json({ message: "Solo un administrador puede cambiar el correo de una cuenta." });
+      }
+    }
+
+    const rolesValidos = ["estudiante", "conductor", "administrador", "usuario"];
+    if (tipo && !rolesValidos.includes(tipo)) {
+      return res.status(400).json({ message: "Rol no válido." });
+    }
+
+    const estadosValidos = [
+      "activo", "inactivo", "Inactivo", "Inicio de Recorridos",
+      "En Servicio", "En Espera", "Fuera de Servicio",
+    ];
+    if (estado && !estadosValidos.includes(estado)) {
+      return res.status(400).json({ message: "Estado no válido." });
+    }
+
+    if (email) {
+      const emailNormalizado = String(email).trim().toLowerCase();
+      if (!EMAIL_REGEX.test(emailNormalizado)) {
+        return res.status(400).json({ message: "El correo electrónico no es válido." });
+      }
+      if (emailNormalizado !== user.email) {
+        const existe = await User.findOne({ email: emailNormalizado, _id: { $ne: user._id } });
+        if (existe) return res.status(400).json({ message: "El correo ya está registrado" });
+        user.email = emailNormalizado;
       }
     }
 
     // Actualiza campos comunes
     user.nombre = nombre || user.nombre;
-    user.email = email || user.email;
     user.tipo = tipo || user.tipo;
     user.estado = estado || user.estado;
 
@@ -197,7 +230,7 @@ router.put("/:id", protect, async (req, res) => {
     }
 
     const updatedUser = await user.save();
-    res.json(updatedUser);
+    res.json(usuarioPublico(updatedUser));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error del servidor" });
@@ -218,6 +251,10 @@ router.get("/conductores", protect, adminOnly, async (req, res) => {
 // DELETE /api/users/:id
 router.delete("/:id", protect, adminOnly, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "ID de usuario inválido" });
+    }
+
     const user = await User.findById(req.params.id);
 
     if (!user) {

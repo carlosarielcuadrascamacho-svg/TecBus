@@ -30,6 +30,12 @@ const transaccionSchema = new mongoose.Schema({
     timestamp: {
         type: Date,
         default: Date.now
+    },
+    eventoId: {
+        type: String,
+        unique: true,
+        sparse: true,
+        trim: true
     }
 }, {
     timestamps: true

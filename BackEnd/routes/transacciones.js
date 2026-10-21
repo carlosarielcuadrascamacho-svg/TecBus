@@ -81,12 +81,13 @@ router.get("/saldo", async (req, res) => {
 router.post("/recargar", async (req, res) => {
     try {
         const { monto } = req.body;
+        const montoNumero = Number(monto);
         
         // Validación de seguridad básica
-        if (!monto || monto < 10) {
+        if (!Number.isFinite(montoNumero) || montoNumero < 10) {
             return res.status(400).json({ message: "El monto mínimo es de $10 MXN" });
         }
-        if (monto > 10000) {
+        if (montoNumero > 10000) {
             return res.status(400).json({ message: "El monto máximo por recarga es de $10,000 MXN" });
         }
 
@@ -96,16 +97,15 @@ router.post("/recargar", async (req, res) => {
         if (!usuario) return res.status(404).json({ message: "Usuario no encontrado" });
 
         // 2. Sumar el dinero a su saldo
-        usuario.saldo = (parseFloat(usuario.saldo) || 0) + parseFloat(monto);
+        usuario.saldo = (parseFloat(usuario.saldo) || 0) + montoNumero;
         await usuario.save();
 
         // 3. Registrar el movimiento para que aparezca en el historial (Global y del Pasajero)
         const nuevaTransaccion = new Transaccion({
             usuarioId: usuario._id,
-            usuarioEmail: usuario.email,
-            monto: parseFloat(monto),
+            monto: montoNumero,
             tipo_tarifa: "Recarga", // Esta palabra clave hará que se pinte en verde (+)
-            saldo_despues: usuario.saldo
+            cantidad_boletos: 1
         });
         await nuevaTransaccion.save();
 
@@ -116,48 +116,6 @@ router.post("/recargar", async (req, res) => {
         });
     } catch (error) {
         console.error("Error en la pasarela de recarga:", error);
-        res.status(500).json({ message: "Error del servidor al procesar el pago" });
-    }
-});
-
-// POST /api/transacciones/recargar — Pasajero: Simular recarga de saldo
-router.post("/recargar", async (req, res) => {
-    try {
-        const { monto } = req.body;
-        
-        if (!monto || monto < 10) {
-            return res.status(400).json({ message: "El monto mínimo es de $10 MXN" });
-        }
-        if (monto > 10000) {
-            return res.status(400).json({ message: "El monto máximo por recarga es de $10,000 MXN" });
-        }
-
-        // 1. Encontrar al usuario actual
-        const User = require("../models/User");
-        const usuario = await User.findById(req.user._id);
-        if (!usuario) return res.status(404).json({ message: "Usuario no encontrado" });
-
-        // 2. Sumar el saldo matemático
-        usuario.saldo = (parseFloat(usuario.saldo) || 0) + parseFloat(monto);
-        await usuario.save();
-
-        // 3. Crear el "Ticket" del movimiento
-        const nuevaTransaccion = new Transaccion({
-            usuarioId: usuario._id,
-            usuarioEmail: usuario.email,
-            monto: parseFloat(monto),
-            tipo_tarifa: "Recarga", // Esta palabra clave le dice al panel que pinte esto de verde (+)
-            saldo_despues: usuario.saldo
-        });
-        await nuevaTransaccion.save();
-
-        // 4. Responder al frontend
-        res.json({ 
-            message: "Recarga procesada exitosamente", 
-            nuevoSaldo: usuario.saldo 
-        });
-    } catch (error) {
-        console.error("Error procesando recarga simulada:", error);
         res.status(500).json({ message: "Error del servidor al procesar el pago" });
     }
 });

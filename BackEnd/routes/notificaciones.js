@@ -5,64 +5,28 @@ const router = express.Router();
 const webpush = require("web-push");
 const User = require("../models/User");
 const Notificacion = require("../models/Notificacion"); // Para guardar historial
-const { protect } = require("../middleware/authMiddleware");
+const { protect, adminOnly } = require("../middleware/authMiddleware");
 
-// 1. Configurar web-push con tus llaves del .env
-webpush.setVapidDetails(
-  process.env.MAILTO || "mailto:admin@example.com",
-  process.env.PUBLIC_VAPID_KEY,
-  process.env.PRIVATE_VAPID_KEY
+// 1. Configurar web-push con las llaves del .env (sin romper el arranque si faltan)
+const VAPID_CONFIGURADO = Boolean(
+  process.env.PUBLIC_VAPID_KEY && process.env.PRIVATE_VAPID_KEY
 );
 
-// --- RUTA 1: SUSCRIBIRSE (POST /api/notificaciones/subscribe) ---
-// router.post("/subscribe", protect, async (req, res) => {
-//   const subscription = req.body;
-//   const userId = req.user._id;
+if (VAPID_CONFIGURADO) {
+  webpush.setVapidDetails(
+    process.env.MAILTO || "mailto:admin@example.com",
+    process.env.PUBLIC_VAPID_KEY,
+    process.env.PRIVATE_VAPID_KEY
+  );
+} else {
+  console.warn("⚠️  Web Push deshabilitado: faltan PUBLIC_VAPID_KEY/PRIVATE_VAPID_KEY.");
+}
 
-//   try {
-//     // Guardamos la suscripción en el Usuario
-//     await User.findByIdAndUpdate(userId, { pushSubscription: subscription });
-    
-//     console.log(`✅ Usuario ${req.user.nombre} suscrito a notificaciones.`);
-//     res.status(201).json({ message: "Suscripción guardada correctamente" });
-//   } catch (error) {
-//     console.error("Error guardando suscripción:", error);
-//     res.status(500).json({ message: "Error al suscribirse" });
-//   }
-// });
-
-
-
-// --- RUTA 2: PRUEBA DE PREDICCIÓN (GET /api/notificaciones/mi-prediccion) ---
-// Esta la llama el student_map.js al cargar para probar
-router.get("/mi-prediccion", protect, async (req, res) => {
-  const userId = req.user._id;
-
-  try {
-    
-    const user = await User.findById(userId);
-    if (!user || !user.pushSubscription) {
-      return res.status(404).json({ message: "No tienes suscripción activa" });
-    }
-    
-    // Creamos el mensaje (Payload)
-    const payload = JSON.stringify({
-      title: "🚍 Predicción SmartBus",
-      body: "Hola " + user.nombre.split(" ")[0] + ", tu camión habitual llegará en 5 mins (Prueba).",
-      icon: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png" // Icono de bus
-    });
-
-    // Enviamos la notificación
-    await webpush.sendNotification(user.pushSubscription, payload);
-    
-    res.json({ message: "Notificación de prueba enviada" });
-  } catch (error) {
-    console.error("Error enviando push:", error);
-    res.status(500).json({ message: "Error al enviar notificación" });
-  }
-});
-
+// --- RUTA 1: PRUEBA DE NOTIFICACIÓN (GET /api/notificaciones/mi-prediccion-prueba) ---
 router.get("/mi-prediccion-prueba", protect, async (req, res) => {
+  if (!VAPID_CONFIGURADO) {
+    return res.status(503).json({ message: "Las notificaciones push no están configuradas." });
+  }
   const userId = req.user._id;
 
   try {
@@ -91,9 +55,15 @@ router.get("/mi-prediccion-prueba", protect, async (req, res) => {
 
 // --- RUTA 3: ENVIAR ALERTA GENERAL (POST /api/notificaciones/send-all) ---
 // Para que el admin envíe avisos manuales
-router.post("/send-all", protect, async (req, res) => {
-  // Validar que sea admin... (puedes agregar adminOnly si quieres)
+router.post("/send-all", protect, adminOnly, async (req, res) => {
   const { titulo, mensaje } = req.body;
+
+  if (!titulo || !mensaje) {
+    return res.status(400).json({ message: "titulo y mensaje son requeridos" });
+  }
+  if (!VAPID_CONFIGURADO) {
+    return res.status(503).json({ message: "Las notificaciones push no están configuradas." });
+  }
 
   try {
     // 1. Guardar en historial
@@ -171,12 +141,6 @@ router.post("/suscribir", protect, async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Error al guardar suscripción." });
   }
-});
-
-// Ruta para enviar una notificación de prueba (para que verifiques)
-router.post("/enviar-test", protect, async (req, res) => {
-    const { userId, mensaje } = req.body;
-    // Lógica para buscar usuario y usar webpush.sendNotification...
 });
 
 module.exports = router;

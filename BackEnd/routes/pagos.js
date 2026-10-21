@@ -9,6 +9,18 @@ const { apiKeyAuth } = require("../middleware/apiKeyMiddleware");
 
 const PRECIO_GENERAL_DEFAULT = 18.00;
 const PRECIO_ESTUDIANTE_DEFAULT = 10.00;
+const MAX_BOLETOS_POR_EVENTO = 10;
+
+function fechaEvento(timestamp) {
+    const numero = Number(timestamp);
+    if (!Number.isFinite(numero) || numero <= 0) return new Date();
+    const milisegundos = numero > 1e12 ? numero : numero * 1000;
+    const fecha = new Date(milisegundos);
+    if (Number.isNaN(fecha.getTime()) || Math.abs(Date.now() - fecha.getTime()) > 24 * 60 * 60 * 1000) {
+        return new Date();
+    }
+    return fecha;
+}
 
 router.use(apiKeyAuth);
 
@@ -54,11 +66,24 @@ router.post("/procesar", async (req, res) => {
             try {
                 const { uid, rutaId, cantidad_boletos, camionId, timestamp } = item;
 
-                if (!uid || !camionId) {
+                if (!uid || !camionId || typeof camionId !== "string" || !camionId.trim()) {
                     resultados.push({ uid: uid || "?", estado: "error", motivo: "Datos incompletos" });
                     fallidas++;
                     continue;
                 }
+
+                const cantidad = cantidad_boletos === undefined ? 1 : Number(cantidad_boletos);
+                if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > MAX_BOLETOS_POR_EVENTO) {
+                    resultados.push({
+                        uid,
+                        estado: "error",
+                        motivo: `Cantidad de boletos inválida (1 a ${MAX_BOLETOS_POR_EVENTO})`
+                    });
+                    fallidas++;
+                    continue;
+                }
+
+                const eventoId = item.eventoId ? String(item.eventoId).trim() : null;
 
                 const cleanUid = String(uid).trim().toUpperCase();
                 const user = await User.findOne({
@@ -74,29 +99,64 @@ router.post("/procesar", async (req, res) => {
                     continue;
                 }
 
-                const { precio, tipo } = await obtenerPrecioUnitario(user.es_estudiante, rutaId);
-                const cantidad = Number(cantidad_boletos) || 1;
-                const total = parseFloat((precio * cantidad).toFixed(2));
+                // Idempotencia: si el mismo evento ya se procesó, no volver a cobrar.
+                if (eventoId) {
+                    const existente = await Transaccion.findOne({ eventoId });
+                    if (existente) {
+                        resultados.push({
+                            uid,
+                            estado: "ok",
+                            monto: existente.monto,
+                            saldo_restante: user.saldo,
+                            duplicado: true
+                        });
+                        procesadas++;
+                        continue;
+                    }
+                }
 
-                if ((user.saldo || 0) < total) {
+                const { precio, tipo } = await obtenerPrecioUnitario(user.es_estudiante, rutaId);
+                const precioNumero = Number(precio);
+                const total = Number((precioNumero * cantidad).toFixed(2));
+
+                if (!Number.isFinite(precioNumero) || precioNumero <= 0 || !Number.isFinite(total) || total <= 0) {
+                    resultados.push({ uid, estado: "error", motivo: "Tarifa inválida" });
+                    fallidas++;
+                    continue;
+                }
+
+                // Descuento atómico: la condición del saldo y el $inc se ejecutan
+                // en una sola operación, evitando el doble gasto por concurrencia.
+                const userActualizado = await User.findOneAndUpdate(
+                    { _id: user._id, saldo: { $gte: total } },
+                    { $inc: { saldo: -total } },
+                    { new: true }
+                );
+
+                if (!userActualizado) {
                     resultados.push({ uid, estado: "error", motivo: "Saldo insuficiente" });
                     fallidas++;
                     continue;
                 }
 
-                user.saldo = parseFloat(((user.saldo || 0) - total).toFixed(2));
-                await user.save();
-
-                const validRutaId = (rutaId && mongoose.Types.ObjectId.isValid(rutaId)) ? rutaId : undefined;
-                const nuevaTrans = await Transaccion.create({
-                    usuarioId: user._id,
-                    camionId,
-                    rutaId: validRutaId,
-                    monto: total,
-                    tipo_tarifa: tipo,
-                    cantidad_boletos: cantidad,
-                    timestamp: timestamp ? new Date(timestamp * 1000) : new Date()
-                });
+                let nuevaTrans;
+                try {
+                    const validRutaId = (rutaId && mongoose.Types.ObjectId.isValid(rutaId)) ? rutaId : undefined;
+                    nuevaTrans = await Transaccion.create({
+                        usuarioId: user._id,
+                        camionId: camionId.trim(),
+                        rutaId: validRutaId,
+                        monto: total,
+                        tipo_tarifa: tipo,
+                        cantidad_boletos: cantidad,
+                        timestamp: fechaEvento(timestamp),
+                        eventoId: eventoId || undefined
+                    });
+                } catch (errorCreacion) {
+                    // Revertir el descuento si no se pudo registrar la transacción.
+                    await User.updateOne({ _id: user._id }, { $inc: { saldo: total } });
+                    throw errorCreacion;
+                }
 
                 try {
                     const io = req.app.get("io");
@@ -123,7 +183,7 @@ router.post("/procesar", async (req, res) => {
                     uid,
                     estado: "ok",
                     monto: total,
-                    saldo_restante: user.saldo
+                    saldo_restante: userActualizado.saldo
                 });
                 procesadas++;
 

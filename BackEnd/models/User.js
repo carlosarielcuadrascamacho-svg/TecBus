@@ -34,11 +34,14 @@ const userSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
-        unique: true // Tu diseño especifica "Unique"
+        unique: true, // Tu diseño especifica "Unique"
+        lowercase: true,
+        trim: true
     },
     password: {
         type: String,
-        required: true // Tu diseño especifica "Hash"
+        required: true, // Tu diseño especifica "Hash"
+        select: false // Nunca se devuelve por accidente en consultas normales
     },
     tipo: {
         type: String,
