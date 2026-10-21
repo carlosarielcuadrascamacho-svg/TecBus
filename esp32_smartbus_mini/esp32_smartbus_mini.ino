@@ -77,7 +77,7 @@ const char* SERVER_URL = "https://tecbus-api.onrender.com";
 // const char* SERVER_URL = "http://192.168.1.100:5000";
 
 // API Key del backend (debe coincidir con API_KEY_ESP32 del .env)
-const char* API_KEY = "***REMOVED***";
+#include "secrets.h"
 
 // Identificador del camion: DEBE ser el "numeroUnidad" en MongoDB
 const char* BUS_ID = "U001";
@@ -468,7 +468,7 @@ void gestionarRFID() {
   Serial.printf("[RFID] Tarjeta detectada: %s\n", uidStr.c_str());
 
   mfrc522.PICC_HaltA();
-  mfrc522.PICC_StopCrypto1();
+  mfrc522.PCD_StopCrypto1();
   delay(50);  // Pequena espera de estabilidad recomendada por la libreria
 
   procesarUID(uidStr);
