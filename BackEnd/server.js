@@ -38,6 +38,7 @@ const taquillaRoutes = require("./routes/taquilla");
 const pagoRoutes = require("./routes/pagos");
 const transaccionRoutes = require("./routes/transacciones");
 const { startAnalyticsJobs } = require("./analytics/cronJobs");
+const { iniciarWebSocketTelemetria } = require("./realtime/telemetrySocket");
 
 // --- SEGURIDAD: orígenes permitidos (CORS) ---
 const ORIGENES_PERMITIDOS = (
@@ -63,6 +64,9 @@ const io = new Server(server, {
 
 // Compartir io con las rutas
 app.set("io", io);
+
+// Canal WebSocket persistente para la telemetría de los ESP32.
+iniciarWebSocketTelemetria(server, io);
 
 const PORT = process.env.PORT || 5000;
 

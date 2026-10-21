@@ -11,7 +11,7 @@
      - Mantener INTACTA la lógica base probada en camión (no bloqueante)
 
    QUE HACE ESTA VERSIÓN UNIFICADA:
-     - Envía la ubicación GPS al servidor cada 10 segundos (localizador).
+     - Envía 2 muestras GPS por WebSocket cada 10 segundos (resolución de 5 s).
      - Lee tarjetas RFID y procesa el pago contra /api/pagos/procesar.
      - Incrementa contador de pasajeros ÚNICAMENTE cuando el servidor responde
        detalle[0].estado == "ok". Nunca incrementa si rechaza o va a buffer.
@@ -74,9 +74,11 @@
      - MFRC522 (Miguel Balboa)
      - TinyGPSPlus (Mikal Hart)
      - ArduinoJson v6 (Benoit Blanchon)
+     - WebSockets (Markus Sattler) — canal persistente de telemetría
 
    ENDPOINTS:
      - Ubicación: PUT  /api/camiones/update-location  {busId, lat, lng, speed, pasajeros_actuales, luces_perifericos_encendidos}
+     - Telemetría: WSS  /ws/telemetry                 (header x-api-key, lote {busId, points:[...]})
      - Pagos:     POST /api/pagos/procesar            (header x-api-key, body = array)
 
    COMANDOS POR MONITOR SERIAL (115200 baudios):
@@ -88,6 +90,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
+#include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 #include <TinyGPSPlus.h>
 #include <SPI.h>
@@ -116,6 +119,11 @@ const char* WIFI_PASS = "SmartBus1";
 const char* SERVER_URL = "https://tecbus-api.onrender.com";
 // const char* SERVER_URL = "http://192.168.1.100:5000";
 
+// --- WebSocket de telemetría ---
+const char* WS_HOST = "tecbus-api.onrender.com";
+const uint16_t WS_PORT = 443;
+const char* WS_PATH = "/ws/telemetry";
+
 // --- API Key ---
 #include "secrets.h"
 
@@ -126,8 +134,10 @@ const char* BUS_ID = "U002";
 //  INTERVALOS DE TIEMPO (milisegundos)
 // =========================================================================
 
-const unsigned long INTERVALO_TELEMETRIA_MS    = 10000;  // Ubicación cada 10 s
+const unsigned long INTERVALO_TELEMETRIA_MS    = 10000;  // Enviar lote cada 10 s
+const unsigned long INTERVALO_MUESTRA_GPS_MS   = 5000;   // Tomar 2 muestras GPS por lote
 const unsigned long INTERVALO_RECONEXION_WIFI  = 15000;  // Reintento WiFi cada 15 s
+const unsigned long INTERVALO_RECONEXION_WS_MS = 15000;  // Reintento WebSocket cada 15 s
 const unsigned long DEBOUNCE_RFID_MS           = 3000;   // Ignorar mismo UID por 3 s
 const unsigned long INTERVALO_SYNC_MS          = 5000;   // Sincronizar buffer cada 5 s
 const unsigned long TIEMPO_MAX_WIFI_INICIAL_MS = 10000;  // Timeout conexión inicial
@@ -173,6 +183,22 @@ MFRC522 mfrc522(RFID_SS_PIN, RFID_RST_PIN);
 
 WiFiClientSecure clienteTLS;        // TLS para HTTPS (global, conserva la sesión)
 HTTPClient httpCliente;             // Cliente HTTP global: evita cerrar TLS en cada envío
+WebSocketsClient webSocket;         // Canal persistente para telemetría GPS
+bool wsIniciado   = false;
+bool wsConectado  = false;
+
+// Lote de puntos GPS: 2 muestras cada 10 segundos.
+struct PuntoGPS {
+  float lat;
+  float lng;
+  int   speed;
+  int   pasajeros;
+  bool  luces;
+  unsigned long timestamp;
+};
+static const size_t MAX_PUNTOS_LOTE = 2;
+PuntoGPS lotePuntos[MAX_PUNTOS_LOTE];
+size_t numPuntosLote = 0;
 
 DHT dht(DHT_PIN, DHT22);            // DHT22
 Adafruit_INA219 ina219(0x40);       // INA219 dirección I2C 0x40 (solo telemetría)
@@ -196,6 +222,7 @@ EstadoLED estadoLED = ESPERANDO_WIFI;
 
 // WiFi/GPS/Sync/RFID/LED
 unsigned long ultimoEnvioTelemetria = 0;
+unsigned long ultimaMuestraGPS      = 0;
 unsigned long ultimoIntentoWifi     = 0;
 unsigned long ultimoSync            = 0;
 unsigned long ultimoParpadeo        = 0;
@@ -247,8 +274,10 @@ void leerGPS();
 void conectarWiFi();
 void gestionarWiFi();
 void prepararHTTP(HTTPClient& http, const String& url);
+void iniciarWebSocket();
+void webSocketEvent(WStype_t type, uint8_t* payload, size_t length);
 void gestionarTelemetria();
-void enviarTelemetria();
+bool enviarLoteTelemetria();
 void gestionarRFID();
 void procesarUID(const String& uid);
 int  enviarPago(const String& uid, const String& rutaId, int cantidad);
@@ -359,6 +388,7 @@ void setup() {
 
   // --- WiFi Inicial ---
   conectarWiFi();
+  if (WiFi.status() == WL_CONNECTED) iniciarWebSocket();
 
   Serial.println(F("\n[SYSTEM] Sistema unificado listo. Entrando al bucle principal...\n"));
 }
@@ -370,9 +400,10 @@ void setup() {
 void loop() {
   leerGPS();                 // 1. GPS (UART2)
   gestionarWiFi();           // 2. WiFi + Reconexión automática
+  if (wsIniciado && WiFi.status() == WL_CONNECTED) webSocket.loop();
   gestionarRFID();           // 3. RFID + Pagos
   gestionarSync();           // 4. Store & Forward (Sincronización buffer)
-  gestionarTelemetria();     // 5. Telemetría GPS PUT cada 10s
+  gestionarTelemetria();     // 5. Muestreo GPS 5s + lote WebSocket cada 10s
   leerDHT22();               // 6. Clima DHT22 cada 3s
   leerINA219();              // 7. INA219 solo telemetría cada 2s
   evaluarReles();            // 8. Evaluar reglas Temp + Pasajeros
@@ -421,7 +452,17 @@ void conectarWiFi() {
 }
 
 void gestionarWiFi() {
-  if (WiFi.status() == WL_CONNECTED) return;
+  if (WiFi.status() == WL_CONNECTED) {
+    if (!wsIniciado) iniciarWebSocket();
+    return;
+  }
+
+  // Si se cae WiFi, cerramos también el WebSocket y lo reiniciamos al volver.
+  if (wsIniciado) {
+    webSocket.disconnect();
+    wsIniciado  = false;
+    wsConectado = false;
+  }
 
   unsigned long ahora = millis();
   if (ahora - ultimoIntentoWifi >= INTERVALO_RECONEXION_WIFI) {
@@ -449,15 +490,81 @@ void forzarReconexionHTTP() {
 }
 
 // =========================================================================
-//  TELEMETRÍA GPS (PUT /api/camiones/update-location)
+//  TELEMETRÍA GPS (WebSocket persistente, lote de 2 puntos cada 10 s)
 // =========================================================================
+
+void iniciarWebSocket() {
+  if (wsIniciado || WiFi.status() != WL_CONNECTED) return;
+
+  webSocket.beginSSL(WS_HOST, WS_PORT, WS_PATH, "", "tecbus-telemetry");
+  String headers = String(F("x-api-key: ")) + API_KEY;
+  webSocket.setExtraHeaders(headers.c_str());
+  webSocket.setReconnectInterval(INTERVALO_RECONEXION_WS_MS);
+  webSocket.enableHeartbeat(30000, 5000, 2);
+  webSocket.onEvent(webSocketEvent);
+
+  wsIniciado  = true;
+  wsConectado = false;
+  Serial.printf("[WS] Conectando a wss://%s%s...\n", WS_HOST, WS_PATH);
+}
+
+void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
+  switch (type) {
+    case WStype_CONNECTED:
+      wsConectado = true;
+      estadoLED   = ENVIANDO_DATOS;
+      Serial.printf("[WS] Conectado a %s\n", WS_PATH);
+      break;
+
+    case WStype_DISCONNECTED:
+      wsConectado = false;
+      estadoLED   = ERROR_CONEXION;
+      Serial.println(F("[WS] Desconectado. Se reintentará automáticamente..."));
+      break;
+
+    case WStype_TEXT:
+      Serial.printf("[WS] Servidor: %.*s\n", (int)length, (const char*)payload);
+      break;
+
+    case WStype_ERROR:
+      Serial.println(F("[WS] Error de conexión"));
+      break;
+
+    default:
+      break;
+  }
+}
 
 void gestionarTelemetria() {
   unsigned long ahora = millis();
+
+  // 1. Muestrear GPS cada 5 s: dos muestras forman un lote de 10 s.
+  if (ahora - ultimaMuestraGPS >= INTERVALO_MUESTRA_GPS_MS) {
+    ultimaMuestraGPS = ahora;
+
+    if (gps.location.isValid()) {
+      if (numPuntosLote >= MAX_PUNTOS_LOTE) {
+        for (size_t i = 1; i < MAX_PUNTOS_LOTE; i++) {
+          lotePuntos[i - 1] = lotePuntos[i];
+        }
+        numPuntosLote = MAX_PUNTOS_LOTE - 1;
+      }
+
+      PuntoGPS& p       = lotePuntos[numPuntosLote++];
+      p.lat             = gps.location.lat();
+      p.lng             = gps.location.lng();
+      p.speed           = (int)gps.speed.kmph();
+      p.pasajeros       = pasajeros;
+      p.luces           = releLUZ_Activo;
+      p.timestamp       = epochDesdeGps();
+    }
+  }
+
+  // 2. Enviar el lote cada 10 s.
   if (ahora - ultimoEnvioTelemetria < INTERVALO_TELEMETRIA_MS) return;
   ultimoEnvioTelemetria = ahora;
 
-  if (!gps.location.isValid()) {
+  if (numPuntosLote == 0) {
     estadoLED = ESPERANDO_GPS;
     static unsigned long ultimoAvisoFix = 0;
     if (ahora - ultimoAvisoFix > 30000) {
@@ -467,46 +574,52 @@ void gestionarTelemetria() {
     return;
   }
 
-  enviarTelemetria();
+  if (!wsConectado) {
+    estadoLED = ERROR_CONEXION;
+    static unsigned long ultimoAvisoSinWS = 0;
+    if (ahora - ultimoAvisoSinWS > 30000) {
+      ultimoAvisoSinWS = ahora;
+      Serial.println(F("[WS] Sin conexión; conservando el último lote para reenviar."));
+    }
+    return;
+  }
+
+  if (enviarLoteTelemetria()) {
+    numPuntosLote = 0;
+  }
 }
 
-void enviarTelemetria() {
-  HTTPClient& http = httpCliente;
-  String url = String(SERVER_URL) + F("/api/camiones/update-location");
+bool enviarLoteTelemetria() {
+  StaticJsonDocument<768> doc;
+  doc["busId"] = BUS_ID;
 
-  prepararHTTP(http, url);
-  http.addHeader(F("Content-Type"), F("application/json"));
-  http.setTimeout(10000);
+  JsonArray puntos = doc.createNestedArray("points");
 
-  StaticJsonDocument<256> doc;
-  doc[F("busId")]                        = BUS_ID;
-  doc[F("lat")]                          = gps.location.lat();
-  doc[F("lng")]                          = gps.location.lng();
-  doc[F("speed")]                        = (int)gps.speed.kmph();
-  doc[F("pasajeros_actuales")]           = pasajeros;
-  doc[F("luces_perifericos_encendidos")] = releLUZ_Activo;
+  for (size_t i = 0; i < numPuntosLote; i++) {
+    JsonObject p = puntos.createNestedObject();
+    p["lat"]                            = lotePuntos[i].lat;
+    p["lng"]                            = lotePuntos[i].lng;
+    p["speed"]                          = lotePuntos[i].speed;
+    p["pasajeros_actuales"]             = lotePuntos[i].pasajeros;
+    p["luces_perifericos_encendidos"]   = lotePuntos[i].luces;
+    if (lotePuntos[i].timestamp > 0) {
+      p["timestamp"] = lotePuntos[i].timestamp;
+    }
+  }
 
   String jsonData;
   serializeJson(doc, jsonData);
 
-  int httpCode = http.PUT(jsonData);
-  String respuesta = http.getString();
-  http.end();
-
-  if (httpCode < 0) {
-    forzarReconexionHTTP();
-  }
-
-  if (httpCode == 200) {
-    estadoLED = ENVIANDO_DATOS;
-    Serial.printf("[GPS] OK | Lat=%.6f Lng=%.6f Speed=%d km/h | Sat=%d | Pasajeros=%d | HTTP %d\n",
-                  gps.location.lat(), gps.location.lng(),
-                  (int)gps.speed.kmph(), gps.satellites.value(), pasajeros, httpCode);
-  } else {
+  if (!webSocket.sendTXT(jsonData)) {
     estadoLED = ERROR_CONEXION;
-    Serial.printf("[GPS] Error HTTP %d: %s\n", httpCode,
-                  respuesta.isEmpty() ? "sin respuesta" : respuesta.c_str());
+    Serial.println(F("[WS] No se pudo enviar el lote."));
+    return false;
   }
+
+  estadoLED = ENVIANDO_DATOS;
+  Serial.printf("[WS] Lote enviado: %u punto(s), %u bytes\n",
+                (unsigned)numPuntosLote, (unsigned)jsonData.length());
+  return true;
 }
 
 // =========================================================================

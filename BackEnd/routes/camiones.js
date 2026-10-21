@@ -5,195 +5,19 @@ const mongoose = require("mongoose");
 const router = express.Router();
 const Camion = require("../models/Camion");
 const Horario = require('../models/Horario');
-const User = require('../models/User');
 const { protect, adminOnly } = require("../middleware/authMiddleware");
-const HistorialBusqueda = require("../models/HistorialBusqueda");
-const Notificacion = require("../models/Notificacion");
-const UbicacionEnVivo = require("../models/UbicacionEnVivo");
-const HistorialUbicacion = require("../models/HistorialUbicacion");
 const EstadisticaDiaria = require("../models/EstadisticaDiaria");
+const { procesarPuntoTelemetria } = require("../services/telemetryService");
 
 // ==================================================================
 //  RUTA ESPECIAL ESP32 — DEBE IR PRIMERO
 // ==================================================================
 router.put("/update-location", async (req, res) => {
   try {
-    const { busId, lat, lng, speed, pasajeros_actuales, luces_perifericos_encendidos, minutos_ralenti } = req.body;
-    const ahora = new Date();
-
-    // 1. Validación básica
-    if (!busId || lat === undefined || lng === undefined) {
-      return res.status(400).json({ message: "Datos GPS incompletos" });
+    const resultado = await procesarPuntoTelemetria(req.body, req.app.get("io"));
+    if (!resultado.ok) {
+      return res.status(resultado.code).json({ message: resultado.message });
     }
-
-    // 2. Obtener y actualizar los datos en tiempo real del camión en la colección principal
-    const camion = await Camion.findOneAndUpdate(
-      { numeroUnidad: busId },
-      {
-        $set: {
-          ubicacionActual: {
-            type: "Point",
-            coordinates: [lng, lat],
-          },
-          velocidad: speed,
-          ultimaActualizacion: ahora,
-          estado: "activo"
-        }
-      },
-      { new: true }
-    ).populate("rutaAsignada");
-
-    if (!camion) {
-      return res.status(404).json({ message: "Camión no registrado en la flotilla" });
-    }
-
-    // 3. OBTENER UBICACIÓN ANTERIOR (Para calcular distancia recorrida)
-    const ubicacionAnterior = await UbicacionEnVivo.findOne({ numeroUnidad: busId });
-    
-    let distanciaRecorrida = 0;
-    
-    if (ubicacionAnterior && ubicacionAnterior.ubicacion) {
-        const coordsAnt = ubicacionAnterior.ubicacion.coordinates; // [lng, lat]
-        distanciaRecorrida = getDistanceFromLatLonInM(
-            coordsAnt[1], coordsAnt[0], // Lat, Lng anteriores
-            lat, lng                    // Lat, Lng actuales
-        );
-
-        // Filtro anti-ruido GPS: Si se movió más de 500m en segundos (teletransportación), ignorar distancia
-        // O si se movió menos de 3 metros (ruido estático), ignorar.
-        if (distanciaRecorrida > 1000 || distanciaRecorrida < 3) {
-            distanciaRecorrida = 0;
-        }
-    }
-
-    // 4. ACTUALIZAR "DATOS CALIENTES" (Live)
-    // Esto es lo que ve el mapa en tiempo real
-    const liveUpdate = await UbicacionEnVivo.findOneAndUpdate(
-      { numeroUnidad: busId },
-      {
-        $set: {
-            camionId: camion._id,
-            ubicacion: { type: "Point", coordinates: [lng, lat] },
-            velocidad: speed,
-            pasajeros_actuales: pasajeros_actuales !== undefined ? pasajeros_actuales : 0,
-            luces_perifericos_encendidos: luces_perifericos_encendidos !== undefined ? luces_perifericos_encendidos : false,
-            minutos_ralenti: minutos_ralenti !== undefined ? minutos_ralenti : 0,
-            ultimaActualizacion: ahora,
-            numeroUnidad: busId
-        }
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    // 5. GUARDAR HISTORIAL (Datos Fríos)
-    // Esto se guarda para siempre (o hasta que el TTL lo borre)
-    HistorialUbicacion.create({
-        camionId: camion._id,
-        numeroUnidad: busId,
-        ubicacion: { type: "Point", coordinates: [lng, lat] },
-        velocidad: speed,
-        pasajeros_actuales: pasajeros_actuales !== undefined ? pasajeros_actuales : 0,
-        luces_perifericos_encendidos: luces_perifericos_encendidos !== undefined ? luces_perifericos_encendidos : false,
-        minutos_ralenti: minutos_ralenti !== undefined ? minutos_ralenti : 0,
-        timestamp: ahora
-    }).catch(err => console.error("⚠️ Error guardando historial:", err.message));
-
-    // 6. ACTUALIZAR ESTADÍSTICAS DIARIAS (Optimizado)
-    const fechaLocal = new Date(ahora.getTime() - (7 * 60 * 60 * 1000)); 
-    const fechaString = fechaLocal.toISOString().split('T')[0]; // "YYYY-MM-DD"
-    const claveStats = `${busId}_${fechaString}`;
-
-    await EstadisticaDiaria.updateOne(
-        { claveDiaria: claveStats },
-        {
-            $setOnInsert: { 
-                numeroUnidad: busId,
-                fecha: new Date(fechaString) 
-            },
-            $inc: { 
-                distanciaTotal: distanciaRecorrida, 
-                totalPuntosReportados: 1 
-            },
-            $max: { 
-                velocidadMaxima: speed 
-            },
-            $set: { ultimaActualizacion: ahora }
-        },
-        { upsert: true }
-    ).catch(err => console.error("⚠️ Error guardando stats:", err.message));
-
-    // 7. ENVIAR SOCKET (Para el Frontend)
-    const io = req.app.get("io");
-    if (io) {
-      io.emit("locationUpdate", {
-        camionId: camion._id,
-        numeroUnidad: busId,
-        location: { lat, lng },
-        velocidad: speed,
-        pasajeros_actuales: pasajeros_actuales !== undefined ? pasajeros_actuales : 0,
-        luces_perifericos_encendidos: luces_perifericos_encendidos !== undefined ? luces_perifericos_encendidos : false,
-        minutos_ralenti: minutos_ralenti !== undefined ? minutos_ralenti : 0
-      });
-    }
-
-    // 8. ANÁLISIS PREDICTIVO
-    if (camion.rutaAsignada) {
-      const fecha = new Date();
-      const horaActual = fecha.getHours();
-
-      const historialRelevante = await HistorialBusqueda.aggregate([
-        { $match: { ruta: camion.rutaAsignada._id } },
-        {
-          $addFields: {
-            horaNum: { $toInt: { $substr: ["$horaBusqueda", 0, 2] } },
-          },
-        },
-        { $match: { horaNum: horaActual } },
-        {
-          $group: {
-            _id: "$usuario",
-            totalBusquedas: { $sum: 1 },
-            ultimoOrigen: { $last: "$ubicacionOrigen" },
-          },
-        },
-        { $match: { totalBusquedas: { $gte: 4 } } },
-      ]);
-
-      for (const patron of historialRelevante) {
-        const userOrigen = patron.ultimoOrigen;
-
-        if (userOrigen && userOrigen.lat && userOrigen.lng) {
-          const distancia = getDistanceFromLatLonInM(
-            lat,
-            lng,
-            userOrigen.lat,
-            userOrigen.lng
-          );
-
-          if (distancia <= 200) {
-            console.log(
-              `✨ PREDICCIÓN: Camión cerca de usuario ${
-                patron._id
-              } (${Math.round(distancia)}m)`
-            );
-
-            await Notificacion.create({
-              usuario: patron._id,
-              mensaje: `El camión de la ruta ${
-                camion.rutaAsignada.nombre
-              } está a ${Math.round(distancia)}m.`,
-              leida: false,
-            });
-
-            if (io)
-              io.to(patron._id.toString()).emit("smartAlert", {
-                mensaje: `🚍 Tu ruta habitual (${camion.rutaAsignada.nombre}) está llegando.`,
-              });
-          }
-        }
-      }
-    }
-
     res.status(200).send("Ubicacion actualizada y analisis completado");
   } catch (error) {
     console.error("❌ Error actualizando ubicación:", error);
@@ -436,27 +260,6 @@ router.delete("/:id", protect, adminOnly, async (req, res) => {
     res.status(500).json({ message: "Error del servidor" });
   }
 });
-
-// ==================================================================
-//  Funciones auxiliares
-// ==================================================================
-function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
-  var R = 6371;
-  var dLat = deg2rad(lat2 - lat1);
-  var dLon = deg2rad(lon2 - lon1);
-  var a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) *
-      Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c * 1000;
-}
-
-function deg2rad(deg) {
-  return deg * (Math.PI / 180);
-}
 
 // --- RUTA NUEVA: Obtener un camión por su ID ---
 // GET /api/camiones/:id
