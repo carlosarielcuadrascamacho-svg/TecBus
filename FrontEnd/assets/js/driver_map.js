@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   // CONEXIÓN SOCKET.IO Y LÓGICA DE ESCUCHA (ESP32)
   // ============================================================
-  const socket = io(SOCKET_URL);
+  const socket = io(SOCKET_URL, { auth: { token } });
   let geoWatchId = null;
 
   socket.on("connect", () => {

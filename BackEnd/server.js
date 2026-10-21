@@ -1,7 +1,7 @@
 // backend/server.js
 
 require("dotenv").config();
-const crypto = require("crypto");
+const path = require("path");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -9,22 +9,23 @@ const helmet = require("helmet");
 const { rateLimit } = require("express-rate-limit");
 const http = require("http");
 const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
 
 // --- SEGURIDAD: secreto JWT ---
-// Nunca usamos un secreto "de respaldo" compartido: si no está definido,
-// generamos uno aleatorio por proceso (las sesiones morirán en cada reinicio
-// hasta que se configure JWT_SECRET en Render).
+// Sin JWT_SECRET no se puede firmar ni verificar sesiones. Es mejor fallar
+// al arrancar que generar un secreto temporal que invalide sesiones en cada reinicio.
 if (!process.env.JWT_SECRET) {
-  process.env.JWT_SECRET = crypto.randomBytes(48).toString("hex");
-  console.warn(
-    "⚠️  JWT_SECRET no está definido. Se generó uno temporal. " +
-      "Configura la variable JWT_SECRET en Render (Environment) para que las sesiones no se pierdan al reiniciar."
+  console.error(
+    "❌ JWT_SECRET no está definido. Configúralo en el entorno (Render → Environment) antes de arrancar."
   );
+  process.exit(1);
 }
 
 // Importamos los Modelos
 const Camion = require("./models/Camion");
+const Horario = require("./models/Horario");
 const Notificacion = require("./models/Notificacion");
+const User = require("./models/User");
 
 // Importamos las rutas
 const authRoutes = require("./routes/auth");
@@ -41,10 +42,17 @@ const { startAnalyticsJobs } = require("./analytics/cronJobs");
 const { iniciarWebSocketTelemetria } = require("./realtime/telemetrySocket");
 
 // --- SEGURIDAD: orígenes permitidos (CORS) ---
-const ORIGENES_PERMITIDOS = (
+const origenesConfigurados =
   process.env.CORS_ORIGINS ||
-  "https://smartbus-mx.onrender.com,http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://127.0.0.1:3000"
-)
+  "https://smartbus-mx.onrender.com,https://tecbus-api.onrender.com,http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://127.0.0.1:3000";
+
+if (process.env.NODE_ENV === "production" && !process.env.CORS_ORIGINS) {
+  console.warn(
+    "⚠️  CORS_ORIGINS no está definido. Se usarán los dominios por defecto de TecBus."
+  );
+}
+
+const ORIGENES_PERMITIDOS = origenesConfigurados
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);
@@ -60,6 +68,28 @@ const io = new Server(server, {
     origin: ORIGENES_PERMITIDOS,
     methods: ["GET", "POST"],
   },
+});
+
+// --- SEGURIDAD: autenticación de Socket.io con el mismo JWT de la API ---
+io.use(async (socket, next) => {
+  try {
+    const authToken = socket.handshake.auth?.token;
+    const headerToken = String(socket.handshake.headers.authorization || "")
+      .replace(/^Bearer\s+/i, "");
+    const token = authToken || headerToken;
+
+    if (!token) return next(new Error("No autorizado"));
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("nombre tipo");
+
+    if (!user) return next(new Error("Usuario no autorizado"));
+
+    socket.data.user = user;
+    next();
+  } catch (error) {
+    next(new Error("No autorizado"));
+  }
 });
 
 // Compartir io con las rutas
@@ -95,6 +125,9 @@ app.use(
 );
 app.use(express.json({ limit: "100kb" }));
 
+// Servir el frontend estático cuando el backend se despliega como un solo servicio.
+app.use(express.static(path.join(__dirname, "..", "FrontEnd")));
+
 // Límite de peticiones contra fuerza bruta en login/registro
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -104,18 +137,50 @@ const authLimiter = rateLimit({
   message: { message: "Demasiados intentos. Intenta de nuevo en 15 minutos." },
 });
 
-// 4. Conectar a la Base de Datos
+// 4. Conectar a la Base de Datos y arrancar solo si la conexión es exitosa
 const MONGO_URI = process.env.MONGO_URI;
 
-mongoose
-  .connect(MONGO_URI)
-  .then(() => {
+async function iniciarServidor() {
+  try {
+    await mongoose.connect(MONGO_URI);
     console.log("✅ Conectado a MongoDB Atlas");
-    startAnalyticsJobs();
-  })
-  .catch((err) => {
+    startAnalyticsJobs(io);
+    server.listen(PORT, () => {
+      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+    });
+  } catch (err) {
     console.error("❌ Error al conectar a MongoDB:", err.message);
+    process.exit(1);
+  }
+}
+
+async function cerrarServidor(signal) {
+  console.log(`🛑 Recibida señal ${signal}. Cerrando servidor...`);
+  io.disconnectSockets(true);
+  server.close(async () => {
+    try {
+      await mongoose.disconnect();
+      console.log("✅ Conexiones cerradas correctamente.");
+      process.exit(0);
+    } catch (error) {
+      console.error("❌ Error cerrando MongoDB:", error.message);
+      process.exit(1);
+    }
   });
+
+  // Fuerza la salida si algo queda colgado.
+  setTimeout(() => process.exit(1), 10000).unref();
+}
+
+process.on("SIGTERM", () => cerrarServidor("SIGTERM"));
+process.on("SIGINT", () => cerrarServidor("SIGINT"));
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ Promesa rechazada sin manejar:", reason);
+});
+process.on("uncaughtException", (error) => {
+  console.error("❌ Excepción no controlada:", error);
+  process.exit(1);
+});
 
 // 5. Rutas
 app.get("/", (req, res) => res.send("¡Servidor TecBus Activo!"));
@@ -131,55 +196,82 @@ app.use("/api/pagos", pagoRoutes);
 app.use("/api/transacciones", transaccionRoutes);
 
 // 6. LÓGICA DE SOCKET.IO (TIEMPO REAL)
+function esAdministrador(user) {
+  return user?.tipo === "administrador";
+}
+
+async function puedeOperarUnidad(user, camion) {
+  if (!user || !camion) return false;
+  if (esAdministrador(user)) return true;
+  if (user.tipo !== "conductor") return false;
+
+  if (camion.conductorActual) {
+    return camion.conductorActual.toString() === user._id.toString();
+  }
+
+  // Algunos camiones se asignan solo desde el horario y no tienen
+  // conductorActual en su ficha. En ese caso validamos la salida programada.
+  const horario = await Horario.findOne({
+    "salidas.camionAsignado": camion._id,
+    "salidas.conductorAsignado": user._id,
+  }).select("_id");
+
+  return Boolean(horario);
+}
+
+async function buscarCamion(referencia) {
+  if (!referencia) return null;
+  if (mongoose.Types.ObjectId.isValid(referencia)) {
+    return Camion.findById(referencia);
+  }
+  return Camion.findOne({
+    $or: [{ numeroUnidad: referencia }, { placa: referencia }],
+  });
+}
+
 io.on("connection", (socket) => {
   console.log(`🔌 Nuevo cliente conectado: ${socket.id}`);
 
   // --- A. Actualización de Ubicación (Conductor -> Mapa) ---
-  socket.on("driverLocationUpdate", async (data) => {
+  socket.on("driverLocationUpdate", async (data = {}) => {
     try {
-      let idParaActualizar = null;
+      const usuario = socket.data.user;
+      if (!esAdministrador(usuario) && usuario?.tipo !== "conductor") return;
 
-      if (mongoose.Types.ObjectId.isValid(data.camionId)) {
-        idParaActualizar = data.camionId;
-      } else {
-        const camionEncontrado = await Camion.findOne({ numeroUnidad: data.camionId });
-        if (camionEncontrado) idParaActualizar = camionEncontrado._id;
+      const camion = await buscarCamion(data.camionId);
+      if (!camion) return;
+
+      if (!(await puedeOperarUnidad(usuario, camion))) {
+        socket.emit("operationError", { message: "No puedes actualizar una unidad que no tienes asignada." });
+        return;
       }
 
-      if (idParaActualizar) {
-        // 1. GUARDAR EN BD
-        const camion = await Camion.findByIdAndUpdate(
-          idParaActualizar,
-          {
-            ubicacionActual: {
-              type: "Point",
-              coordinates: [data.location.lng, data.location.lat],
-            },
-            ultimaActualizacion: Date.now(),
-            estado: "activo"
-          },
-          { new: true } // Importante: devuelve el documento actualizado
-        );
-
-        // 2. ENVIAR AL MAPA (Solo si se guardó)
-        if (camion && camion.ubicacionActual && camion.ubicacionActual.coordinates) {
-          
-          // Extraemos coordenadas EXCLUSIVAMENTE de la base de datos
-          const [lngBD, latBD] = camion.ubicacionActual.coordinates;
-
-          io.emit("locationUpdate", {
-            camionId: camion._id,
-            numeroUnidad: camion.numeroUnidad,
-            location: { 
-                lat: latBD, 
-                lng: lngBD 
-            },
-            heading: data.heading || 0
-          });
-          
-          console.log(`📡 Ubicación actualizada desde BD para ${camion.numeroUnidad}: [${latBD}, ${lngBD}]`);
-        }
+      const lat = Number(data.location?.lat);
+      const lng = Number(data.location?.lng);
+      if (
+        !Number.isFinite(lat) || !Number.isFinite(lng) ||
+        lat < -90 || lat > 90 || lng < -180 || lng > 180
+      ) {
+        return;
       }
+
+      camion.ubicacionActual = {
+        type: "Point",
+        coordinates: [lng, lat],
+      };
+      camion.ultimaActualizacion = new Date();
+      camion.estado = "activo";
+      await camion.save();
+
+      const [lngBD, latBD] = camion.ubicacionActual.coordinates;
+      io.emit("locationUpdate", {
+        camionId: camion._id,
+        numeroUnidad: camion.numeroUnidad,
+        location: { lat: latBD, lng: lngBD },
+        heading: Number(data.heading) || 0
+      });
+
+      console.log(`📡 Ubicación actualizada desde BD para ${camion.numeroUnidad}: [${latBD}, ${lngBD}]`);
     } catch (error) {
       console.error("❌ Error actualizando ubicación:", error.message);
     }
@@ -187,10 +279,13 @@ io.on("connection", (socket) => {
 
   // --- B. Reporte de Incidente (Conductor -> Admin) ---
   // ESTA ES LA PARTE CRÍTICA QUE CORREGIMOS
-  socket.on("incidentReport", async (data) => {
+  socket.on("incidentReport", async (data = {}) => {
     console.log("🔍 [DEBUG] Procesando incidente:", data);
 
     try {
+      const usuario = socket.data.user;
+      if (!esAdministrador(usuario) && usuario?.tipo !== "conductor") return;
+      if (!data.tipo || String(data.tipo).length > 100) return;
       let camionEncontrado = null;
       let idParaGuardar = null;
       let nombreParaMostrar = data.camionId; // Por defecto usamos lo que manden
@@ -212,10 +307,15 @@ io.on("connection", (socket) => {
 
       // PASO 2: Preparar datos según lo encontrado
       if (camionEncontrado) {
+          if (!(await puedeOperarUnidad(usuario, camionEncontrado))) {
+            socket.emit("operationError", { message: "No puedes reportar incidentes de una unidad que no tienes asignada." });
+            return;
+          }
           console.log("✅ [DEBUG] Camión identificado:", camionEncontrado.numeroUnidad);
           idParaGuardar = camionEncontrado._id; // El ID hexadecimal para la BD
           nombreParaMostrar = camionEncontrado.numeroUnidad; // El nombre corto para la Alerta
       } else {
+          if (!esAdministrador(usuario)) return;
           console.warn("⚠️ [DEBUG] Camión no encontrado en BD. Se guardará sin vínculo.");
           // No asignamos idParaGuardar para evitar el CastError
       }
@@ -252,52 +352,93 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("studentAtStop", (data) => {
-    console.log("📍 Estudiante esperando:", data);
-    
-    // IMPORTANTE: Usar io.emit para que le llegue a TODOS (Conductores, Admins y el mismo estudiante)
-    // O socket.broadcast.emit para que le llegue a todos MENOS al que lo envió.
-      io.emit("studentWaiting", {
-          userId: data.userId,
-          rutaId: data.rutaId,
-          location: data.location,
-          timestamp: new Date()
-      });
+  socket.on("studentAtStop", (data = {}) => {
+    const usuario = socket.data.user;
+    if (!usuario) return;
+
+    const lat = Number(data.location?.lat);
+    const lng = Number(data.location?.lng);
+    const rutaId = data.rutaId && mongoose.Types.ObjectId.isValid(data.rutaId)
+      ? data.rutaId
+      : null;
+
+    if (
+      !Number.isFinite(lat) || !Number.isFinite(lng) ||
+      lat < -90 || lat > 90 || lng < -180 || lng > 180
+    ) {
+      return;
+    }
+
+    console.log("📍 Estudiante esperando:", usuario._id.toString());
+    io.emit("studentWaiting", {
+      userId: usuario._id,
+      rutaId,
+      location: { lat, lng },
+      timestamp: new Date()
+    });
   });
 
   // --- C. Cobro Manual (Conductor) — precio calculado del lado servidor ---
-  socket.on("cobroManual", async (data, callback) => {
+  socket.on("cobroManual", async (data = {}, callback) => {
     try {
       const Transaccion = require("./models/Transaccion");
       const Tarifa = require("./models/Tarifa");
       const Ruta = require("./models/Ruta");
 
+      const usuario = socket.data.user;
+      if (!esAdministrador(usuario) && usuario?.tipo !== "conductor") {
+        if (typeof callback === "function") callback({ ok: false, error: "No autorizado" });
+        return;
+      }
+
+      const camion = await buscarCamion(data.camionId);
+      if (!camion || !(await puedeOperarUnidad(usuario, camion))) {
+        if (typeof callback === "function") callback({ ok: false, error: "Unidad no asignada" });
+        return;
+      }
+
+      const tipoTarifa = data.tipo_tarifa === "Estudiante" ? "Estudiante" : "General";
+      const cantidad = data.cantidad_boletos === undefined ? 1 : Number(data.cantidad_boletos);
+      if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 10) {
+        if (typeof callback === "function") callback({ ok: false, error: "Cantidad de boletos inválida" });
+        return;
+      }
+
       const PRECIO_GENERAL_DEFAULT = 18.00;
       const PRECIO_ESTUDIANTE_DEFAULT = 10.00;
 
       // Resolver rutaId si se envió nombre
-      let rutaId = data.rutaId || null;
+      let rutaId = data.rutaId && mongoose.Types.ObjectId.isValid(data.rutaId) ? data.rutaId : null;
       if (!rutaId && data.rutaNombre) {
         const ruta = await Ruta.findOne({ nombre: data.rutaNombre }).select("_id");
         if (ruta) rutaId = ruta._id;
       }
 
       // Calcular precio (lógica idéntica a pagos.js)
-      const esEstudiante = data.tipo_tarifa === "Estudiante";
+      const esEstudiante = tipoTarifa === "Estudiante";
       let tarifa = await Tarifa.findOne({ rutaId, activa: true });
       if (!tarifa) tarifa = await Tarifa.findOne({ rutaId: null, activa: true });
-      const precio = tarifa
-        ? (esEstudiante ? tarifa.precioEstudiante : tarifa.precioGeneral)
-        : (esEstudiante ? PRECIO_ESTUDIANTE_DEFAULT : PRECIO_GENERAL_DEFAULT);
+      const precioUnitario = Number(
+        tarifa
+          ? (esEstudiante ? tarifa.precioEstudiante : tarifa.precioGeneral)
+          : (esEstudiante ? PRECIO_ESTUDIANTE_DEFAULT : PRECIO_GENERAL_DEFAULT)
+      );
+
+      if (!Number.isFinite(precioUnitario) || precioUnitario <= 0) {
+        if (typeof callback === "function") callback({ ok: false, error: "Tarifa inválida" });
+        return;
+      }
+
+      const total = Number((precioUnitario * cantidad).toFixed(2));
 
       const transaccion = await Transaccion.create({
-        usuarioId: data.conductorId,
-        camionId: data.camionId,
-        monto: precio,
-        tipo_tarifa: data.tipo_tarifa,
-        cantidad_boletos: 1,
+        usuarioId: usuario._id,
+        camionId: camion._id.toString(),
+        monto: total,
+        tipo_tarifa: tipoTarifa,
+        cantidad_boletos: cantidad,
         rutaId: rutaId || undefined,
-        timestamp: new Date(data.timestamp)
+        timestamp: new Date()
       });
 
       const transaccionCompleta = await Transaccion.findById(transaccion._id)
@@ -306,10 +447,10 @@ io.on("connection", (socket) => {
 
       io.emit("nuevaTransaccion", {
         _id: transaccionCompleta._id,
-        camionId: data.camionId,
-        monto: precio,
-        tipo_tarifa: data.tipo_tarifa,
-        cantidad_boletos: 1,
+        camionId: camion._id.toString(),
+        monto: total,
+        tipo_tarifa: tipoTarifa,
+        cantidad_boletos: cantidad,
         timestamp: transaccionCompleta.timestamp,
         usuarioId: { nombre: transaccionCompleta.usuarioId?.nombre || "Manual" },
         rutaId: transaccionCompleta.rutaId ? { nombre: transaccionCompleta.rutaId.nombre } : null
@@ -317,10 +458,10 @@ io.on("connection", (socket) => {
 
       // Confirmar al conductor que el cobro fue exitoso
       if (typeof callback === "function") {
-        callback({ ok: true, monto: precio, tipo_tarifa: data.tipo_tarifa });
+        callback({ ok: true, monto: total, tipo_tarifa: tipoTarifa, cantidad_boletos: cantidad });
       }
 
-      console.log(`💰 Cobro manual registrado: $${precio.toFixed(2)} en camión ${data.camionId}`);
+      console.log(`💰 Cobro manual registrado: $${total.toFixed(2)} en camión ${camion.numeroUnidad}`);
     } catch (error) {
       console.error("Error en cobro manual:", error.message);
       // Notificar al conductor que falló el cobro
@@ -337,7 +478,5 @@ io.on("connection", (socket) => {
 
 
 
-// 7. Arrancar servidor
-server.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-});
+// 7. Arrancar servidor (después de conectar a MongoDB)
+iniciarServidor();

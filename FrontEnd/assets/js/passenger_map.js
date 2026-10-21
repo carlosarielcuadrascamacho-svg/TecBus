@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const initialZoom = 13;
 
   // Conexión Socket.IO
-  const socket = io(SOCKET_URL);
+  const socket = io(SOCKET_URL, { auth: { token } });
 
   let busMarkers = {};
   let rutaPolyline = null;

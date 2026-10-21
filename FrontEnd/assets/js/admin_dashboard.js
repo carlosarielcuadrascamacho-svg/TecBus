@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
   ];
 
   // Conexión Socket
-  const socket = io(SOCKET_URL);
+  const socket = io(SOCKET_URL, { auth: { token } });
   socket.on("connect", () =>
     console.log("🔌 Admin Dashboard conectado a Socket.io:", socket.id)
   );
