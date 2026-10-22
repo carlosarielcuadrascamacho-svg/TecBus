@@ -26,10 +26,7 @@ const NOMBRE_RUTA_2 = process.env.SIM_RUTA_2_NOMBRE || "Ruta Tec-La Brecha";
 
 let ID_CAMION = process.env.SIM_CAMION_ID || null;
 
-const socket = io(SOCKET_URL, {
-  auth: { token: process.env.SIM_TOKEN || "" },
-  transports: ["websocket"],
-});
+let socket = null;
 
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -37,6 +34,10 @@ function esperar(ms) {
 
 function conectarSocket() {
   return new Promise((resolve, reject) => {
+    if (!socket) {
+      reject(new Error("Socket no inicializado."));
+      return;
+    }
     socket.once("connect", resolve);
     socket.once("connect_error", (error) => {
       reject(new Error(`No se pudo conectar al servidor: ${error.message}`));
@@ -61,6 +62,11 @@ async function iniciarSimulacion() {
   console.log("✅ BD Conectada.");
 
   try {
+    socket = io(SOCKET_URL, {
+      auth: { token: process.env.SIM_TOKEN || "" },
+      transports: ["websocket"],
+    });
+
     const r1 = await buscarRuta(process.env.SIM_RUTA_1_ID, NOMBRE_RUTA_1);
     const r2 = await buscarRuta(process.env.SIM_RUTA_2_ID, NOMBRE_RUTA_2);
 
@@ -120,7 +126,7 @@ async function iniciarSimulacion() {
 
     console.log("\n✅ DEMOSTRACIÓN FINALIZADA.");
   } finally {
-    socket.close();
+    if (socket) socket.close();
     await mongoose.disconnect();
   }
 }

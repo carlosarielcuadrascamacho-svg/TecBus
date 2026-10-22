@@ -5,8 +5,7 @@ const router = express.Router();
 const Horario = require("../models/Horario");
 const Camion = require("../models/Camion");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
-
-
+const { normalizarDia, expandirDia } = require("../utils/dias");
 
 const MAPA_DIAS_DISPLAY = {
   "lunes": "Lunes",
@@ -48,13 +47,13 @@ async function obtenerHorariosAgregados({ rutaId = null, incluirConductor = fals
         ordenDia: {
           $switch: {
             branches: [
-              { case: { $eq: ["$diaSemana", "lunes"] }, then: 1 },
-              { case: { $eq: ["$diaSemana", "martes"] }, then: 2 },
-              { case: { $eq: ["$diaSemana", "miercoles"] }, then: 3 },
-              { case: { $eq: ["$diaSemana", "jueves"] }, then: 4 },
-              { case: { $eq: ["$diaSemana", "viernes"] }, then: 5 },
-              { case: { $eq: ["$diaSemana", "sabado"] }, then: 6 },
-              { case: { $eq: ["$diaSemana", "domingo"] }, then: 7 },
+              { case: { $in: ["$diaSemana", ["lunes", "Lunes"]] }, then: 1 },
+              { case: { $in: ["$diaSemana", ["martes", "Martes"]] }, then: 2 },
+              { case: { $in: ["$diaSemana", ["miercoles", "miércoles", "Miercoles", "Miércoles"]] }, then: 3 },
+              { case: { $in: ["$diaSemana", ["jueves", "Jueves"]] }, then: 4 },
+              { case: { $in: ["$diaSemana", ["viernes", "Viernes"]] }, then: 5 },
+              { case: { $in: ["$diaSemana", ["sabado", "sábado", "Sabado", "Sábado"]] }, then: 6 },
+              { case: { $in: ["$diaSemana", ["domingo", "Domingo"]] }, then: 7 },
             ],
             default: 8,
           },
@@ -155,11 +154,8 @@ router.post("/", protect, adminOnly, async (req, res) => {
     return res.status(400).json({ message: "La hora debe tener formato HH:MM (24 h)" });
   }
 
-  const diasPermitidos = [
-    "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes",
-    "sábado", "sabado", "domingo", "diario", "lunes-viernes",
-  ];
-  if (!diasPermitidos.includes(diaSemanaTexto.toLowerCase())) {
+  const diasAGuardar = expandirDia(diaSemanaTexto);
+  if (diasAGuardar.length === 0) {
     return res.status(400).json({ message: "diaSemana no válido" });
   }
   if (!camionAsignado || !conductorAsignado) {
@@ -173,36 +169,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
   }
 
   try {
-    let diasAGuardar = [];
-
-    // 1. TRADUCCIÓN EXACTA: Convertimos opciones de usuario a valores del Modelo
-    // El modelo pide: "lunes", "martes", "miercoles" (sin tilde), etc.
-    
-    if (diaSemanaTexto.toLowerCase() === "lunes-viernes") {
-      diasAGuardar = ["lunes", "martes", "miercoles", "jueves", "viernes"];
-    } else if (diaSemanaTexto.toLowerCase() === "diario") {
-      diasAGuardar = [
-        "lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"
-      ];
-    } else {
-      // Si viene un día individual (Ej: "Miércoles" o "Sabado")
-      // Usamos un mapa para asegurar que coincida con el enum del modelo
-      const mapaDias = {
-        "Lunes": "lunes", "lunes": "lunes",
-        "Martes": "martes", "martes": "martes",
-        "Miércoles": "miercoles", "Miercoles": "miercoles", "miércoles": "miercoles", "miercoles": "miercoles",
-        "Jueves": "jueves", "jueves": "jueves",
-        "Viernes": "viernes", "viernes": "viernes",
-        "Sábado": "sabado", "Sabado": "sabado", "sábado": "sabado", "sabado": "sabado",
-        "Domingo": "domingo", "domingo": "domingo"
-      };
-      
-      // Si está en el mapa lo usamos, si no, pasamos a minúscula por seguridad
-      const diaLimpio = mapaDias[diaSemanaTexto] || diaSemanaTexto.toLowerCase();
-      diasAGuardar = [diaLimpio];
-    }
-
-    // 2. Procesamos cada día
+    // Procesamos cada día
     const promesas = diasAGuardar.map(async (diaIndividual) => {
       // Buscamos si ya existe el documento base (Ruta + Día)
       let horarioBase = await Horario.findOne({
@@ -279,7 +246,25 @@ router.delete("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => 
   }
 });
 
-// --- RUTA 4: Obtener un Horario por ID (Para editar) ---
+// --- RUTA 4: Obtener horarios públicos de UNA RUTA específica ---
+// Debe ir antes de "/:id" para que Express no interprete "publico" como un ID.
+router.get("/publico/:rutaId", async (req, res) => {
+  try {
+    const { rutaId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(rutaId)) {
+      return res.status(400).json({ message: "ID de ruta inválido" });
+    }
+
+    const horarios = await obtenerHorariosAgregados({ rutaId, incluirConductor: false });
+    res.json(horarios.map(({ camionId, ...rest }) => rest));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error obteniendo horarios públicos" });
+  }
+});
+
+// --- RUTA 5: Obtener un Horario por ID (Para editar) ---
 router.get("/:id", protect, async (req, res) => {
   try {
       if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -308,7 +293,8 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(hora || ""))) {
       return res.status(400).json({ message: "La hora debe tener formato HH:MM (24 h)" });
     }
-    if (!diaSemana || !["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"].includes(String(diaSemana).toLowerCase())) {
+    const diasDestino = expandirDia(diaSemana);
+    if (diasDestino.length === 0) {
       return res.status(400).json({ message: "diaSemana no válido" });
     }
     if (camionAsignado && !mongoose.Types.ObjectId.isValid(camionAsignado)) {
@@ -326,7 +312,8 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
         if (!salidaOriginal) return res.status(404).json({ message: "Salida no encontrada" });
 
         const rutaCambio = horarioOriginal.ruta.toString() !== ruta;
-        const diaCambio = horarioOriginal.diaSemana !== diaSemana;
+        const diaCambio = diasDestino.length !== 1
+            || normalizarDia(horarioOriginal.diaSemana) !== diasDestino[0];
 
         if (!rutaCambio && !diaCambio) {
             // CASO A: Solo cambiaron datos de la salida (hora, camión, conductor)
@@ -354,7 +341,7 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
             return res.json({ message: "Salida actualizada correctamente" });
 
         } else {
-            // CASO B: Cambió ruta o día (Mover salida)
+            // CASO B: Cambió ruta o día (mover la salida, incluso a varios días)
             const oldCamionId = salidaOriginal.camionAsignado;
 
             await Horario.updateOne(
@@ -362,24 +349,31 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
                 { $pull: { salidas: { _id: salidaId } } }
             );
 
-            let horarioDestino = await Horario.findOne({ ruta: ruta, diaSemana: diaSemana });
+            for (const diaDestino of diasDestino) {
+                let horarioDestino = await Horario.findOne({ ruta: ruta, diaSemana: diaDestino });
 
-            if (!horarioDestino) {
-                horarioDestino = new Horario({
-                    ruta: ruta,
-                    diaSemana: diaSemana,
-                    salidas: []
-                });
+                if (!horarioDestino) {
+                    horarioDestino = new Horario({
+                        ruta: ruta,
+                        diaSemana: diaDestino,
+                        salidas: []
+                    });
+                }
+
+                const yaExiste = horarioDestino.salidas.some(
+                    (salida) => salida.hora === hora
+                        && String(salida.camionAsignado || "") === String(camionAsignado || "")
+                );
+
+                if (!yaExiste) {
+                    horarioDestino.salidas.push({
+                        hora: hora,
+                        camionAsignado: camionAsignado || null,
+                        conductorAsignado: conductorAsignado || null
+                    });
+                    await horarioDestino.save();
+                }
             }
-
-            // Insertamos en el nuevo destino con los datos nuevos
-            horarioDestino.salidas.push({
-                hora: hora,
-                camionAsignado: camionAsignado || null,     // Usar el nuevo si viene, o null
-                conductorAsignado: conductorAsignado || null
-            });
-
-            await horarioDestino.save();
 
             if (oldCamionId && oldCamionId.toString() !== camionAsignado) {
                 await rellenarCamionDesdeHorario(oldCamionId);
@@ -395,22 +389,6 @@ router.put("/:id/salidas/:salidaId", protect, adminOnly, async (req, res) => {
         console.error("Error en migración:", error);
         res.status(500).json({ message: "Error crítico al actualizar horario" });
     }
-});
-
-// --- RUTA 6: Obtener horarios públicos de UNA RUTA específica ---
-router.get("/publico/:rutaId", async (req, res) => {
-  try {
-    const { rutaId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(rutaId)) {
-      return res.status(400).json({ message: "ID de ruta inválido" });
-    }
-
-    res.json(await obtenerHorariosAgregados({ rutaId, incluirConductor: false }));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error obteniendo horarios públicos" });
-  }
 });
 
 module.exports = router;

@@ -56,7 +56,7 @@ Conecta a **estudiantes, conductores y administradores** en una sola plataforma,
 ## 🚀 Instalación y Puesta en Marcha
 
 ### 📋 Requisitos
-- Node.js v14 o superior  
+- Node.js v18 o superior
 - MongoDB (local o MongoDB Atlas)
 
 ---
@@ -68,12 +68,26 @@ cd BackEnd
 npm install
 ```
 
-Crear el archivo .env:
+Crear el archivo .env (puedes partir de `BackEnd/.env.example`):
 ```env
-PORT=3000
+PORT=5000
+NODE_ENV=development
 MONGO_URI=tu_cadena_de_conexion
-JWT_SECRET=tu_secreto
+JWT_SECRET=tu_secreto_largo_y_aleatorio
+API_KEY_ESP32=la_misma_clave_que_usa_el_esp32_control
+
+# Dominios autorizados para CORS y Socket.io, separados por coma.
+CORS_ORIGINS=http://localhost:5500,http://127.0.0.1:5500
+
+# Web Push (opcional si no vas a enviar notificaciones)
+MAILTO=mailto:admin@example.com
+PUBLIC_VAPID_KEY=
+PRIVATE_VAPID_KEY=
 ```
+
+`API_KEY_ESP32` debe coincidir exactamente con la `API_KEY` de
+`esp32_smartbus_control/secrets.h`; si no coincide, la telemetría del ESP32
+responde `401`. `JWT_SECRET` es obligatorio: sin él el servidor no arranca.
 
 Ejecutar el servidor:
 ```Terminal

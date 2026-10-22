@@ -22,8 +22,8 @@ if (VAPID_CONFIGURADO) {
   console.warn("⚠️  Web Push deshabilitado: faltan PUBLIC_VAPID_KEY/PRIVATE_VAPID_KEY.");
 }
 
-// --- RUTA 1: PRUEBA DE NOTIFICACIÓN (GET /api/notificaciones/mi-prediccion-prueba) ---
-router.get("/mi-prediccion-prueba", protect, async (req, res) => {
+// --- RUTA 1: PRUEBA DE NOTIFICACIÓN (se conserva el alias anterior) ---
+router.get(["/mi-prediccion", "/mi-prediccion-prueba"], protect, async (req, res) => {
   if (!VAPID_CONFIGURADO) {
     return res.status(503).json({ message: "Las notificaciones push no están configuradas." });
   }

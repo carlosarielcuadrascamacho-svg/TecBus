@@ -8,6 +8,7 @@ const Camion = require("../models/Camion");
 const Horario = require("../models/Horario");
 const bcrypt = require("bcryptjs");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
+const { diasBusquedaHoy } = require("../utils/dias");
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -98,24 +99,19 @@ router.get("/mi-camion", protect, async (req, res) => {
     if (!camion) {
         console.log(`[DEBUG] Conductor ${user.nombre} sin vehículo fijo. Buscando en horarios...`);
         
-        // Calcular día de la semana en español
-        const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-        const indiceDia = new Date().getDay();
-        const hoy = dias[indiceDia];
-        const diasBusqueda = [hoy, hoy.toLowerCase(), "Diario", "diario"];
-
-        if (indiceDia >= 1 && indiceDia <= 5) {
-            diasBusqueda.push("Lunes-Viernes", "lunes-viernes");
-        }
+        // Calcular el día actual en la zona horaria de Guasave.
+        const diasBusqueda = diasBusquedaHoy();
 
         // La asignación vive dentro de salidas[], no en la raíz del horario.
-        const horarioHoy = await Horario.findOne({
+        const horariosHoy = await Horario.find({
             "salidas": { $elemMatch: { conductorAsignado: user._id } },
             diaSemana: { $in: diasBusqueda }
         }).populate("salidas.camionAsignado");
 
-        const salidaHoy = horarioHoy?.salidas.find(
+        const salidasHoy = horariosHoy.flatMap((horario) => horario.salidas || []);
+        const salidaHoy = salidasHoy.find(
             (salida) => salida.conductorAsignado?.toString() === user._id.toString()
+                && salida.camionAsignado
         );
 
         if (salidaHoy && salidaHoy.camionAsignado) {

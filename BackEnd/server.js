@@ -38,8 +38,10 @@ const historialRoutes = require("./routes/historial");
 const taquillaRoutes = require("./routes/taquilla");
 const pagoRoutes = require("./routes/pagos");
 const transaccionRoutes = require("./routes/transacciones");
-const { startAnalyticsJobs } = require("./analytics/cronJobs");
+const { startAnalyticsJobs, detenerAnalyticsJobs } = require("./analytics/cronJobs");
 const { iniciarWebSocketTelemetria } = require("./realtime/telemetrySocket");
+const { buscarCamion, puedeOperarUnidad } = require("./utils/unidad");
+const { diasBusquedaHoy } = require("./utils/dias");
 
 // --- SEGURIDAD: orígenes permitidos (CORS) ---
 const origenesConfigurados =
@@ -96,9 +98,10 @@ io.use(async (socket, next) => {
 app.set("io", io);
 
 // Canal WebSocket persistente para la telemetría de los ESP32.
-iniciarWebSocketTelemetria(server, io);
+const telemetryWss = iniciarWebSocketTelemetria(server, io);
 
 const PORT = process.env.PORT || 5000;
+let cerrando = false;
 
 // 3. Middlewares de seguridad
 app.set("trust proxy", 1); // Render está detrás de 1 proxy (necesario para contar IPs en el rate limit)
@@ -124,6 +127,16 @@ app.use(
   })
 );
 app.use(express.json({ limit: "100kb" }));
+
+// Health check para Render: refleja también el estado de MongoDB.
+app.get("/health", (req, res) => {
+  const mongoConectado = mongoose.connection.readyState === 1;
+  res.status(mongoConectado ? 200 : 503).json({
+    status: mongoConectado ? "ok" : "degraded",
+    mongo: mongoConectado ? "connected" : "disconnected",
+    uptime: process.uptime(),
+  });
+});
 
 // Servir el frontend estático cuando el backend se despliega como un solo servicio.
 app.use(express.static(path.join(__dirname, "..", "FrontEnd")));
@@ -154,28 +167,53 @@ async function iniciarServidor() {
   }
 }
 
-async function cerrarServidor(signal) {
+async function cerrarServidor(signal, codigoSalida = 0) {
+  if (cerrando) return;
+  cerrando = true;
   console.log(`🛑 Recibida señal ${signal}. Cerrando servidor...`);
-  io.disconnectSockets(true);
-  server.close(async () => {
-    try {
-      await mongoose.disconnect();
-      console.log("✅ Conexiones cerradas correctamente.");
-      process.exit(0);
-    } catch (error) {
-      console.error("❌ Error cerrando MongoDB:", error.message);
-      process.exit(1);
-    }
-  });
 
-  // Fuerza la salida si algo queda colgado.
-  setTimeout(() => process.exit(1), 10000).unref();
+  const timeout = setTimeout(() => {
+    console.error("❌ El cierre no terminó a tiempo.");
+    process.exit(1);
+  }, 15000);
+  timeout.unref();
+
+  try {
+    detenerAnalyticsJobs();
+
+    if (telemetryWss) {
+      for (const cliente of telemetryWss.clients) {
+        cliente.close(1001, "Servidor cerrando");
+      }
+      await new Promise((resolve) => telemetryWss.close(() => resolve()));
+    }
+
+    io.disconnectSockets(true);
+
+    const cierreHttp = new Promise((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+    if (typeof server.closeAllConnections === "function") {
+      server.closeAllConnections();
+    }
+    await cierreHttp;
+
+    await mongoose.disconnect();
+    clearTimeout(timeout);
+    console.log("✅ Conexiones cerradas correctamente.");
+    process.exit(codigoSalida);
+  } catch (error) {
+    clearTimeout(timeout);
+    console.error("❌ Error cerrando el servidor:", error.message);
+    process.exit(1);
+  }
 }
 
-process.on("SIGTERM", () => cerrarServidor("SIGTERM"));
-process.on("SIGINT", () => cerrarServidor("SIGINT"));
+process.on("SIGTERM", () => cerrarServidor("SIGTERM", 0));
+process.on("SIGINT", () => cerrarServidor("SIGINT", 0));
 process.on("unhandledRejection", (reason) => {
   console.error("❌ Promesa rechazada sin manejar:", reason);
+  cerrarServidor("unhandledRejection", 1);
 });
 process.on("uncaughtException", (error) => {
   console.error("❌ Excepción no controlada:", error);
@@ -183,7 +221,6 @@ process.on("uncaughtException", (error) => {
 });
 
 // 5. Rutas
-app.get("/", (req, res) => res.send("¡Servidor TecBus Activo!"));
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/camiones", camionRoutes);
 app.use("/api/rutas", rutaRoutes);
@@ -200,37 +237,35 @@ function esAdministrador(user) {
   return user?.tipo === "administrador";
 }
 
-async function puedeOperarUnidad(user, camion) {
-  if (!user || !camion) return false;
-  if (esAdministrador(user)) return true;
-  if (user.tipo !== "conductor") return false;
+async function obtenerConductoresDeRuta(rutaId) {
+  const ids = new Set();
 
-  if (camion.conductorActual) {
-    return camion.conductorActual.toString() === user._id.toString();
-  }
+  const [camiones, horarios] = await Promise.all([
+    Camion.find({ rutaAsignada: rutaId }).select("conductorActual"),
+    Horario.find({ ruta: rutaId, diaSemana: { $in: diasBusquedaHoy() } }).select(
+      "salidas.conductorAsignado"
+    ),
+  ]);
 
-  // Algunos camiones se asignan solo desde el horario y no tienen
-  // conductorActual en su ficha. En ese caso validamos la salida programada.
-  const horario = await Horario.findOne({
-    "salidas.camionAsignado": camion._id,
-    "salidas.conductorAsignado": user._id,
-  }).select("_id");
-
-  return Boolean(horario);
-}
-
-async function buscarCamion(referencia) {
-  if (!referencia) return null;
-  if (mongoose.Types.ObjectId.isValid(referencia)) {
-    return Camion.findById(referencia);
-  }
-  return Camion.findOne({
-    $or: [{ numeroUnidad: referencia }, { placa: referencia }],
+  camiones.forEach((camion) => {
+    if (camion.conductorActual) ids.add(camion.conductorActual.toString());
   });
+
+  horarios.forEach((horario) => {
+    (horario.salidas || []).forEach((salida) => {
+      if (salida.conductorAsignado) ids.add(salida.conductorAsignado.toString());
+    });
+  });
+
+  return [...ids];
 }
 
 io.on("connection", (socket) => {
   console.log(`🔌 Nuevo cliente conectado: ${socket.id}`);
+
+  // Salas para enviar eventos solo a sus destinatarios.
+  socket.join(`user:${socket.data.user._id}`);
+  if (esAdministrador(socket.data.user)) socket.join("admins");
 
   // --- A. Actualización de Ubicación (Conductor -> Mapa) ---
   socket.on("driverLocationUpdate", async (data = {}) => {
@@ -352,30 +387,47 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("studentAtStop", (data = {}) => {
-    const usuario = socket.data.user;
-    if (!usuario) return;
+  socket.on("studentAtStop", async (data = {}) => {
+    try {
+      const usuario = socket.data.user;
+      if (!usuario) return;
 
-    const lat = Number(data.location?.lat);
-    const lng = Number(data.location?.lng);
-    const rutaId = data.rutaId && mongoose.Types.ObjectId.isValid(data.rutaId)
-      ? data.rutaId
-      : null;
+      const lat = Number(data.location?.lat);
+      const lng = Number(data.location?.lng);
+      const rutaId = data.rutaId && mongoose.Types.ObjectId.isValid(data.rutaId)
+        ? data.rutaId
+        : null;
 
-    if (
-      !Number.isFinite(lat) || !Number.isFinite(lng) ||
-      lat < -90 || lat > 90 || lng < -180 || lng > 180
-    ) {
-      return;
+      if (
+        !Number.isFinite(lat) || !Number.isFinite(lng) ||
+        lat < -90 || lat > 90 || lng < -180 || lng > 180
+      ) {
+        return;
+      }
+
+      // Solo el propio pasajero, los administradores y los conductores
+      // autorizados para esa ruta deben recibir la ubicación del estudiante.
+      const destinatarios = new Set([`user:${usuario._id}`, "admins"]);
+      if (rutaId) {
+        const conductores = await obtenerConductoresDeRuta(rutaId);
+        conductores.forEach((id) => destinatarios.add(`user:${id}`));
+      }
+
+      let emisor = io;
+      destinatarios.forEach((sala) => {
+        emisor = emisor.to(sala);
+      });
+
+      console.log("📍 Estudiante esperando:", usuario._id.toString());
+      emisor.emit("studentWaiting", {
+        userId: usuario._id,
+        rutaId,
+        location: { lat, lng },
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Error procesando studentAtStop:", error.message);
     }
-
-    console.log("📍 Estudiante esperando:", usuario._id.toString());
-    io.emit("studentWaiting", {
-      userId: usuario._id,
-      rutaId,
-      location: { lat, lng },
-      timestamp: new Date()
-    });
   });
 
   // --- C. Cobro Manual (Conductor) — precio calculado del lado servidor ---

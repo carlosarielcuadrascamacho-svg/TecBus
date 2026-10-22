@@ -6,6 +6,8 @@ const User = require('../models/User'); // Importamos nuestro Modelo de Usuario
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // --- RUTA DE REGISTRO (POST /api/auth/register) ---
 router.post('/register', async (req, res) => {
     try {
@@ -17,12 +19,17 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ message: 'Por favor, introduce todos los campos.' });
         }
 
+        if (!EMAIL_REGEX.test(emailNormalizado)) {
+            return res.status(400).json({ message: 'El correo electrónico no es válido.' });
+        }
+
         if (String(password).length < 8) {
             return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres.' });
         }
         
         // 2. Revisar si el usuario ya existe (basado en tu PDF)
-        const userExists = await User.findOne({ email: emailNormalizado });
+        const userExists = await User.findOne({ email: emailNormalizado })
+            .collation({ locale: 'en', strength: 2 });
         if (userExists) {
             return res.status(400).json({ message: 'El correo electrónico ya está registrado.' });
         }
@@ -71,7 +78,9 @@ router.post('/login', async (req, res) => {
         }
 
         // 1. Revisar si el usuario existe. El hash no se selecciona por defecto.
-        const user = await User.findOne({ email: emailNormalizado }).select('+password');
+        const user = await User.findOne({ email: emailNormalizado })
+            .collation({ locale: 'en', strength: 2 })
+            .select('+password');
         if (!user) {
             return res.status(400).json({ message: 'Credenciales incorrectas.' });
         }

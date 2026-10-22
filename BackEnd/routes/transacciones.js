@@ -1,7 +1,9 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const Transaccion = require("../models/Transaccion");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
+const { buscarCamion, puedeOperarUnidad } = require("../utils/unidad");
 
 router.use(protect);
 
@@ -24,6 +26,9 @@ router.get("/", adminOnly, async (req, res) => {
 // GET /api/transacciones/admin/user/:userId — Admin: ver transacciones de cualquier usuario
 router.get("/admin/user/:userId", adminOnly, async (req, res) => {
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.userId)) {
+            return res.status(400).json({ message: "ID de usuario inválido" });
+        }
         const transacciones = await Transaccion.find({ usuarioId: req.params.userId })
             .populate("rutaId", "nombre")
             .sort({ timestamp: -1 })
@@ -52,8 +57,21 @@ router.get("/mias", async (req, res) => {
 // GET /api/transacciones/camion/:camionId — Últimas transacciones de un camión
 router.get("/camion/:camionId", async (req, res) => {
     try {
-        const transacciones = await Transaccion.find({ camionId: req.params.camionId })
-            .populate("usuarioId", "nombre email es_estudiante")
+        const camion = await buscarCamion(req.params.camionId);
+        if (!camion) {
+            return res.status(404).json({ message: "Camión no encontrado" });
+        }
+        if (!(await puedeOperarUnidad(req.user, camion))) {
+            return res.status(403).json({ message: "No autorizado para ver esta unidad" });
+        }
+
+        const transacciones = await Transaccion.find({
+            $or: [
+                { camionId: req.params.camionId },
+                { camionId: camion._id.toString() }
+            ]
+        })
+            .populate("usuarioId", "nombre es_estudiante")
             .populate("rutaId", "nombre")
             .sort({ timestamp: -1 })
             .limit(30);

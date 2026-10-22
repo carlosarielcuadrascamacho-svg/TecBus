@@ -165,6 +165,10 @@ const actualizarEstadoConductores = async () => {
 
     const diaIngles = getVal('weekday');
     const diaHoy = traduccionDias[diaIngles];
+    const diaNormalizado = diaHoy
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
     
     // Convertimos la hora actual de Sinaloa a minutos totales (ej: 07:30 = 450)
     const horaActual = parseInt(getVal('hour'));
@@ -174,34 +178,34 @@ const actualizarEstadoConductores = async () => {
     console.log(`--- 📍 Tiempo Guasave: ${diaHoy} ${horaActual}:${minutoActual} (Minutos: ${minutosActuales}) ---`);
 
     // 2. OBTENER HORARIOS DE HOY
+    // El modelo guarda días como "Lunes" o "lunes", pero también aceptamos
+    // variantes con/sin tilde y datos legados "Diario"/"Lunes-Viernes".
+    const diasBusqueda = [diaHoy, diaHoy.toLowerCase(), diaNormalizado, "Diario", "diario"];
+    if (diaIngles !== "Saturday" && diaIngles !== "Sunday") {
+      diasBusqueda.push("Lunes-Viernes", "lunes-viernes");
+    }
+
     const horariosHoy = await Horario.find({
-      $or: [
-        { diaSemana: diaHoy },
-        { diaSemana: "Diario" },
-        // Lógica para Lunes-Viernes
-        { diaSemana: "Lunes-Viernes", $expr: { 
-            $and: [
-               // En JS Sunday=0, Monday=1... Friday=5. 
-               // Si hoy es domingo (0) o sábado (6), no entra aquí.
-               { $ne: [new Date().getDay(), 0] }, 
-               { $ne: [new Date().getDay(), 6] }
-            ]
-        }} 
-      ]
+      diaSemana: { $in: diasBusqueda },
     });
 
     // 3. AGRUPAR HORARIOS POR CONDUCTOR
+    // La asignación vive dentro de salidas[]; leerla en la raíz dejaba
+    // la agenda vacía y ponía a todos los conductores "Fuera de Servicio".
     const agenda = {}; 
 
     horariosHoy.forEach(h => {
-        if (h.conductorAsignado) {
-            const id = h.conductorAsignado.toString();
+        (h.salidas || []).forEach(salida => {
+            if (!salida.conductorAsignado || !salida.hora) return;
+
+            const id = salida.conductorAsignado.toString();
             if (!agenda[id]) agenda[id] = [];
             
-            const [hh, mm] = h.hora.split(':').map(Number);
+            const [hh, mm] = String(salida.hora).split(':').map(Number);
+            if (!Number.isInteger(hh) || !Number.isInteger(mm)) return;
             const minutosSalida = hh * 60 + mm;
             agenda[id].push(minutosSalida);
-        }
+        });
     });
 
     // 4. EVALUAR CADA CONDUCTOR
@@ -286,9 +290,9 @@ const notificarPredicciones = async (io) => {
             if (p.prediccion && p.prediccion.ruta) {
                 const nombreRuta = p.prediccion.ruta.nombre;
                 
-                // Emitimos evento global, pero con el ID del usuario objetivo
-                // El frontend filtrará si el mensaje es para él.
-                io.emit("smartAlert", {
+                // Solo el estudiante destinatario debe recibir su alerta.
+                // El socket se une a la sala "user:<id>" al autenticarse.
+                io.to(`user:${p._id}`).emit("smartAlert", {
                     userId: p._id.toString(), // ID del estudiante
                     mensaje: `Hola ${p.nombreEstudiante}, el camión de la ruta "${nombreRuta}" de esta hora esta por llegar. ¡Preparate para abordar el camión!`,
                     rutaId: p.prediccion.ruta._id
@@ -306,21 +310,34 @@ const notificarPredicciones = async (io) => {
 // --- Tareas Programadas (cron) ---
 // Se programan únicamente desde startAnalyticsJobs() para evitar jobs duplicados.
 
-// --- Función de Inicio ---
+let tareasCron = [];
+let trabajosIniciados = false;
 
 const startAnalyticsJobs = (io) => {
+  if (trabajosIniciados) {
+    console.warn("⚠️ Los jobs de analítica ya estaban iniciados; no se duplican.");
+    return;
+  }
+  trabajosIniciados = true;
   console.log("⏰ Iniciando programador de tareas nocturnas...");
 
   // 1. Análisis Pesados (Madrugada)
-  cron.schedule("0 3 * * *", ejecutarAnalisisVelocidad).start();
-  cron.schedule("0 4 * * *", ejecutarAnalisisHabitos).start();
+  tareasCron.push(cron.schedule("0 3 * * *", ejecutarAnalisisVelocidad));
+  tareasCron.push(cron.schedule("0 4 * * *", ejecutarAnalisisHabitos));
 
   // 2. Control de Estado Conductores (cada 10 minutos)
-  cron.schedule("*/10 * * * *", actualizarEstadoConductores).start();
+  tareasCron.push(cron.schedule("*/10 * * * *", actualizarEstadoConductores));
 
   // 3. 🤖 Notificaciones Inteligentes (cada minuto)
   // Revisa si la hora actual coincide con la hora favorita de alguien
-  cron.schedule("* * * * *", () => notificarPredicciones(io)).start();
+  tareasCron.push(cron.schedule("* * * * *", () => notificarPredicciones(io)));
 };
 
-module.exports = { startAnalyticsJobs };
+const detenerAnalyticsJobs = () => {
+  tareasCron.forEach((tarea) => tarea.stop());
+  tareasCron = [];
+  trabajosIniciados = false;
+  console.log("⏹️ Jobs de analítica detenidos.");
+};
+
+module.exports = { startAnalyticsJobs, detenerAnalyticsJobs };

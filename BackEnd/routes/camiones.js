@@ -10,6 +10,7 @@ const { apiKeyAuth } = require("../middleware/apiKeyMiddleware");
 const { rateLimit } = require("express-rate-limit");
 const EstadisticaDiaria = require("../models/EstadisticaDiaria");
 const { procesarPuntoTelemetria } = require("../services/telemetryService");
+const { diasBusquedaHoy, minutosActualesGuasave } = require("../utils/dias");
 
 const telemetryLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -41,21 +42,14 @@ router.put("/update-location", apiKeyAuth, telemetryLimiter, async (req, res) =>
 //  El horario ya NO decide si el conductor ve su unidad ni su ruta.
 //  Solo se devuelve como dato informativo del próximo recorrido.
 // ==================================================================
-const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-
-function diaActualSegura() {
-    return DIAS_SEMANA[new Date().getDay()];
-}
-
 // Próximo horario del conductor para HOY. Es solo informativo:
 // aunque no exista ninguno, el conductor sigue viendo su unidad y su ruta.
-async function obtenerProximoViaje(conductorId, diaActual) {
+async function obtenerProximoViaje(conductorId) {
     try {
-        const ahora = new Date();
-        const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes();
+        const minutosActuales = minutosActualesGuasave();
 
         const horarios = await Horario.find({
-            $or: [{ diaSemana: diaActual }, { diaSemana: diaActual.toLowerCase() }],
+            diaSemana: { $in: diasBusquedaHoy() },
             "salidas.conductorAsignado": conductorId
         }).select("salidas");
 
@@ -96,15 +90,15 @@ router.get('/mi-unidad', protect, async (req, res) => {
         // 2. Respaldo: si aún no hay asignación directa, se toma el camión de
         //    un horario suyo para que el conductor no quede sin unidad.
         if (!camion) {
-            const diaActual = diaActualSegura();
             const horarios = await Horario.find({
-                $or: [{ diaSemana: diaActual }, { diaSemana: diaActual.toLowerCase() }],
+                diaSemana: { $in: diasBusquedaHoy() },
                 "salidas.conductorAsignado": idConductor
             }).populate("salidas.camionAsignado");
 
             for (const h of horarios) {
                 const salida = h.salidas.find(
                     s => s.conductorAsignado?.toString() === idConductor.toString()
+                        && s.camionAsignado
                 );
                 if (salida?.camionAsignado) {
                     camion = await Camion.findById(salida.camionAsignado._id)
@@ -123,7 +117,7 @@ router.get('/mi-unidad', protect, async (req, res) => {
         }
 
         // 3. Próximo horario (informativo, nunca condiciona la respuesta)
-        const viaje = await obtenerProximoViaje(idConductor, diaActualSegura());
+        const viaje = await obtenerProximoViaje(idConductor);
 
         // 4. La unidad y su ruta se devuelven siempre juntas
         return res.json({

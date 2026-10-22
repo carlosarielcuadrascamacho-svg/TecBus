@@ -224,7 +224,8 @@ async function procesarPuntoTelemetria(datos, io, opciones = {}) {
         });
 
         if (io) {
-          io.to(patron._id.toString()).emit("smartAlert", {
+          // El socket se une a la sala "user:<id>" al autenticarse.
+          io.to(`user:${patron._id}`).emit("smartAlert", {
             mensaje: `🚍 Tu ruta habitual (${camion.rutaAsignada.nombre}) está llegando.`,
           });
         }
