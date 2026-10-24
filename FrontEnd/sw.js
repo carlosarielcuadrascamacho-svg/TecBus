@@ -2,7 +2,7 @@
 
 // Subir la versión cuando cambie un asset: el fetch de nuestros JS/CSS es
 // cache-first, así que sin bump los navegadores siguen usando el archivo viejo.
-const CACHE_NAME = 'tecbus-v13';
+const CACHE_NAME = 'tecbus-v14';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -22,7 +22,7 @@ const STATIC_ASSETS = [
   '/assets/js/api_client.js?v=1',
   '/assets/js/pwa.js?v=1',
   '/assets/js/password_toggle.js?v=1',
-  '/assets/js/landing.js?v=1',
+  '/assets/js/landing.js?v=3',
   '/assets/js/login.js?v=2',
   '/assets/js/registro.js',
   '/assets/js/smooth_marker.js?v=1',
@@ -31,7 +31,7 @@ const STATIC_ASSETS = [
   '/assets/js/admin_dashboard.js?v=4',
   '/assets/js/admin_sidebar.js?v=3',
   '/assets/js/simulador_roi.js?v=3',
-  '/assets/js/pwa-install.js',
+  '/assets/js/pwa-install.js?v=2',
   '/assets/img/icons/icon-192x192.png',
   '/assets/img/icons/icon-512x512.png',
   '/assets/img/icons/icon-512x512-maskable.png',

@@ -30,16 +30,13 @@
     banner.id = 'pwa-install-banner';
     banner.innerHTML = `
       <div class="pwa-banner-content">
-        <div class="pwa-banner-icon">
-          <i class="fas fa-download"></i>
-        </div>
         <div class="pwa-banner-text">
           <strong>Instala SmartBus</strong>
-          <span>Accede más rápido desde tu pantalla de inicio</span>
+          <span>Accede más rápido desde tu pantalla de inicio.</span>
         </div>
         <div class="pwa-banner-actions">
           <button id="pwa-install-btn" class="pwa-banner-btn">Instalar</button>
-          <button id="pwa-dismiss-btn" class="pwa-banner-btn-dismiss">✕</button>
+          <button id="pwa-dismiss-btn" class="pwa-banner-btn-dismiss">Cerrar</button>
         </div>
       </div>
     `;
@@ -97,15 +94,12 @@
     banner.classList.add('pwa-ios-banner');
     banner.innerHTML = `
       <div class="pwa-banner-content">
-        <div class="pwa-banner-icon" style="color: #fff; background: #333;">
-          <i class="fab fa-apple"></i>
-        </div>
         <div class="pwa-banner-text">
-          <strong>Agregar a Inicio</strong>
-          <span>Toca <i class="fas fa-share-square"></i> y luego "Agregar a pantalla de inicio"</span>
+          <strong>Agregar a inicio</strong>
+          <span>Toca Compartir y luego "Agregar a pantalla de inicio".</span>
         </div>
         <div class="pwa-banner-actions">
-          <button id="pwa-dismiss-btn" class="pwa-banner-btn-dismiss">✕</button>
+          <button id="pwa-dismiss-btn" class="pwa-banner-btn-dismiss">Cerrar</button>
         </div>
       </div>
     `;

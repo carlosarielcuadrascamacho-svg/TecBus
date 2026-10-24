@@ -27,13 +27,14 @@
 
 /* --- BARRA LATERAL (SIDEBAR PREMIUM) --- */
 .sidebar {
-  background: rgba(30, 30, 45, 0.95);
+  background: rgba(11, 17, 32, 0.95);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   flex-direction: column;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 3000;
-  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
   position: fixed; 
   top: 0;
   left: 0;
@@ -41,7 +42,7 @@
   width: var(--sidebar-width, 260px);
   transform: translateX(-100%);
   overflow: visible; /* Importante para el botón flotante */
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Estado Colapsado */
@@ -375,11 +376,17 @@
   }
 }
 .card {
-  background-color: var(--color-superficie);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--color-secundario);
+  background-color: var(--color-superficie-card, rgba(15, 23, 42, 0.75));
+  padding: 22px;
+  border-radius: var(--radius-md, 14px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--color-borde, rgba(255, 255, 255, 0.08));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform var(--dur-motion, 280ms) var(--ease-out, ease), border-color var(--dur-hover, 200ms) var(--ease-out, ease);
+}
+.card:hover {
+  border-color: rgba(14, 165, 233, 0.3);
 }
 .card-icon {
   font-size: 1.8rem; 
@@ -396,9 +403,11 @@
   margin-bottom: 5px;
 }
 .card-value {
-  font-size: 2rem; 
-  font-weight: 600;
+  font-family: var(--font-mono, monospace);
+  font-size: 2.1rem; 
+  font-weight: 700;
   color: var(--color-texto-claro);
+  letter-spacing: -0.02em;
 }
 @keyframes pulse {
   0% {

@@ -1821,3 +1821,166 @@ header {
     top: 135px;
   }
 }
+
+
+/* ==========================================================================
+   ESTILOS PREMIUM DE AUTENTICACIÓN (LOGIN & REGISTRO)
+   ========================================================================== */
+.auth-page {
+  background-color: var(--color-fondo);
+  background-image: 
+    radial-gradient(circle at 50% 10%, rgba(14, 165, 233, 0.14) 0%, transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px, 40px 40px;
+  min-height: 100vh;
+}
+
+.auth-top-bar {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.auth-back-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radius-full);
+  color: var(--color-texto-gris);
+  font-size: 0.86rem;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-hover) var(--ease-out), color var(--dur-hover) var(--ease-out);
+}
+.auth-back-btn:hover {
+  background: rgba(24, 34, 60, 0.9);
+  color: var(--color-texto-claro);
+  border-color: rgba(14, 165, 233, 0.35);
+}
+.auth-back-btn:active {
+  transform: scale(0.97);
+}
+
+.auth-card {
+  background: rgba(11, 17, 32, 0.88) !important;
+  border: 1px solid rgba(14, 165, 233, 0.28) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.8), var(--shadow-glow) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.7), transparent);
+}
+
+.auth-brand-symbol {
+  display: inline-flex;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+}
+
+.auth-title {
+  font-size: clamp(1.45rem, 2.5vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.auth-subtitle {
+  font-size: 0.92rem;
+  color: var(--color-texto-gris);
+  margin-bottom: 0;
+}
+
+.auth-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin-bottom: 6px;
+}
+
+.auth-step-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-texto-gris);
+}
+
+.auth-step-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(14, 165, 233, 0.15);
+  color: var(--color-primario-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.auth-progress-bar {
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.auth-progress-bar .progress-bar {
+  background: linear-gradient(90deg, var(--color-primario), var(--color-acento));
+}
+
+.auth-hint {
+  font-size: 0.78rem;
+  color: var(--color-texto-apagado);
+}
+
+.auth-submit-btn {
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 0.98rem !important;
+  padding: 12px !important;
+  box-shadow: 0 4px 18px rgba(14, 165, 233, 0.35) !important;
+  transition: transform var(--dur-press) var(--ease-out), box-shadow var(--dur-hover) var(--ease-out) !important;
+}
+.auth-submit-btn:hover {
+  box-shadow: 0 6px 24px rgba(14, 165, 233, 0.5) !important;
+  transform: translateY(-1px);
+}
+.auth-submit-btn:active {
+  transform: scale(0.97) translateY(0) !important;
+}
+
+.auth-footer-text {
+  font-size: 0.9rem;
+  color: var(--color-texto-gris);
+}
+
+.auth-link {
+  color: var(--color-primario-light) !important;
+  transition: color var(--dur-hover) var(--ease-out);
+}
+.auth-link:hover {
+  color: #ffffff !important;
+  text-decoration: underline !important;
+}
+
+.auth-message {
+  font-size: 0.88rem;
+  min-height: 20px;
+  font-weight: 500;
+}

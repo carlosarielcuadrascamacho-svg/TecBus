@@ -6,11 +6,12 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://mt1.google.com https://ui-avatars.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://tecbus-api.onrender.com wss://tecbus-api.onrender.com https://smartbus-mx.onrender.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://wttr.in https://mt1.google.com https://*.tile.openstreetmap.org http://localhost:5099 ws://localhost:5099 http://127.0.0.1:5099 ws://127.0.0.1:5099; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:;" />
     <script src="assets/js/config.js?v=1"></script>
     <script src="assets/js/api_client.js?v=1"></script>
-    <title>SmartBus | Sistema de Transporte</title>
-    <meta name="description" content="SmartBus - Plataforma de gestión y optimización de transporte público con rastreo GPS en tiempo real.">
+
+    <title>SmartBus | Movilidad Inteligente en Tiempo Real</title>
+    <meta name="description" content="Plataforma tecnológica de transporte público en Guamúchil, Sinaloa. Monitoreo GPS en vivo, rutas oficiales y tiempos de llegada precisos.">
     <meta name="author" content="SmartBus">
-    <meta property="og:title" content="SmartBus | Sistema de Transporte">
-    <meta property="og:description" content="Plataforma de gestión y optimización de transporte público con rastreo GPS en tiempo real.">
+    <meta property="og:title" content="SmartBus | Movilidad Inteligente en Tiempo Real">
+    <meta property="og:description" content="Rutas oficiales, telemetría y tiempos de llegada del transporte público de Guamúchil en tiempo real.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://smartbus-mx.onrender.com/">
     <meta property="og:image" content="https://smartbus-mx.onrender.com/assets/img/icons/icon-192x192.png">
@@ -18,20 +19,21 @@
 
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="theme-color" content="#007bff">
+    <meta name="theme-color" content="#050811">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="SmartBus">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="msapplication-TileColor" content="#0a0a0a">
+    <meta name="msapplication-TileColor" content="#050811">
     <meta name="msapplication-TileImage" content="/assets/img/icons/msapplication-icon-144x144.png">
     <link rel="apple-touch-icon" href="/assets/img/icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/img/icons/icon-512x512.png">
 
+    <!-- Tipografía optimizada y FontAwesome -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <link rel="stylesheet" href="assets/css/landing_style.css">
@@ -40,272 +42,487 @@
     <script src="assets/js/pwa.js?v=1"></script>
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
 
-    <nav class="navbar">
-        <div class="container nav-container">
-            <div class="logo-area">
-                <img src="assets/img/icons/icon-192x192.png" alt="SmartBus" class="logo-symbol-img">
-                <div class="logo-text">
-                    <span class="brand-name">SmartBus</span>
-                    <span class="brand-subtitle">Plataforma de Transporte</span>
+    <!-- Barra de Navegación -->
+    <header class="site-header" id="navbar">
+        <div class="nav-container">
+            <a class="brand" href="#inicio" aria-label="SmartBus Inicio">
+                <div class="brand-logo-wrap">
+                    <img src="assets/img/icons/icon-192x192.png" alt="Logo SmartBus" class="brand-logo" width="34" height="34">
+                    <div class="brand-glow" aria-hidden="true"></div>
                 </div>
-            </div>
-
-            <div class="mobile-toggle" id="mobile-toggle">
-                <i class="fas fa-bars"></i>
-            </div>
-
-            <ul class="nav-menu" id="nav-menu">
-                <li><a href="#inicio" class="nav-link active">Inicio</a></li>
-                <li><a href="#funcionalidades" class="nav-link">Funcionalidades</a></li>
-                <li><a href="#equipo" class="nav-link">Equipo</a></li>
-                <li><a href="#faq" class="nav-link">Ayuda</a></li>
-                <li class="mobile-only"><a href="login.html" class="btn btn-primary">Acceder</a></li>
-            </ul>
-
-            <div class="nav-actions desktop-only">
-                <a href="login.html" class="btn btn-primary">Acceso a Plataforma</a>
-            </div>
-        </div>
-    </nav>
-
-    <header id="inicio" class="hero">
-        <div class="container hero-content">
-            <div class="hero-text">
-                <span class="tagline">Innovación en Movilidad Urbana</span>
-                <h1>Gestión inteligente del transporte.</h1>
-                <p class="hero-description">
-                    SmartBus es una innovadora plataforma tecnológica diseñada para la gestión y optimización de recursos en el transporte público. Su objetivo principal es maximizar la eficiencia en el uso de combustible y recursos mediante logística avanzada
-                </p>
-                <div class="cta-group">
-                    <a href="login.html" class="btn btn-primary btn-lg">Ingresar al Sistema</a>
-                    <a href="#funcionalidades" class="btn btn-secondary btn-lg">Conocer Más</a>
+                <div class="brand-meta">
+                    <span class="brand-title">SmartBus</span>
+                    <span class="brand-badge">Guamúchil</span>
                 </div>
+            </a>
 
-                <div class="trust-badges">
-                    <div class="badge-item"><i class="fas fa-check-circle"></i> Datos en Tiempo Real</div>
-                    <div class="badge-item"><i class="fas fa-check-circle"></i> Acceso Seguro</div>
-                    <div class="badge-item"><i class="fas fa-check-circle"></i> Soporte 24/7</div>
-                </div>
-            </div>
+            <button class="nav-toggle" id="mobile-toggle" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav-menu">
+                <span class="toggle-bar"></span>
+                <span class="toggle-bar"></span>
+                <span class="toggle-bar"></span>
+            </button>
 
-            <div class="hero-image">
-                <div class="mockup-container">
-                    <div class="mockup-frame">
-                        <div class="notch"></div>
-                        <div class="screen-content">
-                            <div class="app-bar">
-                                <span><i class="fas fa-bars"></i></span>
-                                <span>SmartBus</span>
-                                <span><i class="fas fa-user-circle"></i></span>
-                            </div>
-                            <div class="map-view">
-                                <div class="route-path-svg">
-                                    <svg width="100%" height="100%" viewBox="0 0 300 400" fill="none">
-                                        <path d="M100 380 C 100 300, 180 250, 150 150 S 80 50, 120 20" stroke="#007bff" stroke-width="5" stroke-linecap="round" stroke-dasharray="10 5"/>
-                                    </svg>
-                                </div>
-                                <div class="map-pin bus-pin">
-                                    <i class="fas fa-bus"></i>
-                                    <div class="pin-pulse"></div>
-                                </div>
-                                <div class="map-pin stop-pin" style="top: 20%; left: 40%;">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                </div>
-                                <div class="info-card-float">
-                                    <div class="info-header">
-                                        <strong>Ruta Centro - Norte</strong>
-                                        <span class="time-badge">5 min</span>
-                                    </div>
-                                    <div class="info-details">Próxima parada: Central</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="floating-element icon-1"><i class="fas fa-bell"></i></div>
-                    <div class="floating-element icon-2"><i class="fas fa-wifi"></i></div>
-                </div>
-            </div>
+            <nav class="nav-menu" id="nav-menu" aria-label="Menú principal">
+                <a href="#inicio" class="nav-link active">Inicio</a>
+                <a href="#funcionalidades" class="nav-link">Funcionalidades</a>
+                <a href="#simulador" class="nav-link">Rutas y Horarios</a>
+                <a href="#equipo" class="nav-link">Equipo</a>
+                <a href="#faq" class="nav-link">Ayuda</a>
+                <a href="login.html" class="nav-cta-btn">
+                    <span>Acceder</span>
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+            </nav>
         </div>
     </header>
 
-    <section class="data-banner">
-        <div class="container data-grid">
-            <div class="data-item">
-                <span class="data-number">15+</span>
-                <span class="data-label">Unidades</span>
-            </div>
-            <div class="data-divider"></div>
-            <div class="data-item">
-                <span class="data-number">100%</span>
-                <span class="data-label">Tiempo Real</span>
-            </div>
-            <div class="data-divider"></div>
-            <div class="data-item">
-                <span class="data-number">4.8</span>
-                <span class="data-label">Calificación</span>
-            </div>
-        </div>
-    </section>
+    <main id="main-content">
+        <!-- Hero Section con Simulador de Telemetría en Vivo -->
+        <section id="inicio" class="hero-section">
+            <div class="hero-glow-orbit" aria-hidden="true"></div>
+            <div class="container hero-grid">
+                <div class="hero-content">
+                    <div class="live-status-pill">
+                        <span class="live-indicator">
+                            <span class="ping-circle"></span>
+                            <span class="solid-dot"></span>
+                        </span>
+                        <span class="pill-text">Sistema de Telemetría Activo · Guamúchil, Sin.</span>
+                    </div>
 
-    <section id="funcionalidades" class="section-padding bg-alt">
-        <div class="container">
-            <div class="section-header">
-                <h2>Potencia tu Camino</h2>
-                <p>Herramientas diseñadas para pasajeros y conductores.</p>
-            </div>
+                    <h1 class="hero-title">
+                        Transporte público inteligente, <span class="text-gradient">en vivo.</span>
+                    </h1>
 
-            <div class="features-grid">
-                <div class="feature-box">
-                    <div class="icon-wrapper"><i class="fas fa-map-marked-alt"></i></div>
-                    <h3>Rastreo GPS en Vivo</h3>
-                    <p>Visualiza el movimiento de las unidades segundo a segundo sobre el mapa interactivo.</p>
+                    <p class="hero-desc">
+                        Monitorea unidades en tiempo real, consulta tiempos de llegada exactos y viaja con certeza en Guamúchil y sus rutas conectadas.
+                    </p>
+
+                    <div class="hero-cta-group">
+                        <a href="login.html" class="btn btn-primary">
+                            <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
+                            <span>Ingresar a la Plataforma</span>
+                        </a>
+                        <a href="#simulador" class="btn btn-secondary">
+                            <i class="fas fa-route" aria-hidden="true"></i>
+                            <span>Explorar Rutas</span>
+                        </a>
+                    </div>
+
+                    <div class="hero-stats-row">
+                        <div class="stat-item">
+                            <span class="stat-number">15+</span>
+                            <span class="stat-label">Unidades en flota</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-item">
+                            <span class="stat-number">100%</span>
+                            <span class="stat-label">Rastreo GPS en vivo</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-item">
+                            <span class="stat-number">24/7</span>
+                            <span class="stat-label">Disponibilidad</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="feature-box">
-                    <div class="icon-wrapper"><i class="fas fa-clock"></i></div>
-                    <h3>Predicción de Llegada</h3>
-                    <p>Algoritmos inteligentes calculan el tiempo estimado de arribo para que nunca llegues tarde.</p>
-                </div>
-                <div class="feature-box">
-                    <div class="icon-wrapper"><i class="fas fa-route"></i></div>
-                    <h3>Gestión de Rutas</h3>
-                    <p>Explora los diferentes itinerarios disponibles, paradas oficiales y horarios de salida.</p>
-                </div>
-                <div class="feature-box">
-                    <div class="icon-wrapper"><i class="fas fa-exclamation-triangle"></i></div>
-                    <h3>Reporte de Incidentes</h3>
-                    <p>Canal directo para que los conductores notifiquen fallas mecánicas o retrasos.</p>
-                </div>
-                <div class="feature-box">
-                    <div class="icon-wrapper"><i class="fas fa-bell"></i></div>
-                    <h3>Notificaciones Smart</h3>
-                    <p>Recibe alertas automáticas cuando tu camión esté cerca de tu parada.</p>
-                </div>
-                <div class="feature-box">
-                    <div class="icon-wrapper"><i class="fas fa-mobile-alt"></i></div>
-                    <h3>Multiplataforma</h3>
-                    <p>Accede desde cualquier dispositivo: computadora, tablet o celular.</p>
+
+                <!-- Radar de Telemetría / Mockup Interactivo del Autobús -->
+                <div class="hero-radar-container">
+                    <div class="radar-card">
+                        <!-- Cabecera del dispositivo -->
+                        <div class="radar-header">
+                            <div class="radar-title-group">
+                                <span class="radar-subtitle">RADAR EN VIVO</span>
+                                <h3 class="radar-title" id="active-route-name">Ruta Guamúchil – Guasave</h3>
+                            </div>
+                            <div class="radar-chip">
+                                <span class="radar-live-dot"></span>
+                                <span class="radar-live-txt">EN LÍNEA</span>
+                            </div>
+                        </div>
+
+                        <!-- Selector de ruta del radar -->
+                        <div class="radar-route-tabs" role="tablist">
+                            <button class="route-tab is-active" id="tab-guasave" type="button" role="tab" aria-selected="true" data-route="guasave">
+                                <i class="fas fa-bus-alt" aria-hidden="true"></i>
+                                <span>Guamúchil – Guasave</span>
+                                <span class="tab-badge">40 min</span>
+                            </button>
+                            <button class="route-tab" id="tab-tamazula" type="button" role="tab" aria-selected="false" data-route="tamazula">
+                                <i class="fas fa-bus-alt" aria-hidden="true"></i>
+                                <span>Guamúchil – Tamazula</span>
+                                <span class="tab-badge">30 min</span>
+                            </button>
+                        </div>
+
+                        <!-- Pantalla interactiva del mapa y la unidad -->
+                        <div class="radar-viewport">
+                            <div class="radar-grid-bg" aria-hidden="true"></div>
+
+                            <!-- Trayectoria SVG del autobús -->
+                            <svg class="radar-svg-track" viewBox="0 0 400 160" preserveAspectRatio="none">
+                                <path class="track-bg" d="M 30 110 C 120 110, 160 40, 260 40 S 320 90, 370 90" />
+                                <path class="track-progress" id="radar-track-path" d="M 30 110 C 120 110, 160 40, 260 40 S 320 90, 370 90" />
+                            </svg>
+
+                            <!-- Pines de parada -->
+                            <div class="stop-marker marker-start" title="Origen: Terminal Guamúchil">
+                                <span class="marker-dot"></span>
+                                <span class="marker-tag">Terminal Guamúchil</span>
+                            </div>
+                            <div class="stop-marker marker-mid" title="Parada actual">
+                                <span class="marker-dot pulse-stop"></span>
+                                <span class="marker-tag" id="radar-next-stop-tag">Parada 3: Centro</span>
+                            </div>
+                            <div class="stop-marker marker-end" title="Destino final">
+                                <span class="marker-dot"></span>
+                                <span class="marker-tag" id="radar-dest-tag">Guasave</span>
+                            </div>
+
+                            <!-- Autobús animado en tiempo real -->
+                            <div class="bus-tracker-beacon" id="bus-beacon">
+                                <div class="bus-beacon-icon">
+                                    <i class="fas fa-bus"></i>
+                                </div>
+                                <div class="bus-pulse-ring"></div>
+                                <div class="bus-telemetry-tooltip">
+                                    <span class="telemetry-speed" id="radar-speed">46 km/h</span>
+                                    <span class="telemetry-eta" id="radar-eta">Llega en 4 min</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Métricas de cabina de telemetría -->
+                        <div class="radar-telemetry-grid">
+                            <div class="telemetry-box">
+                                <span class="t-label"><i class="fas fa-flag-checkered"></i> PRÓXIMA PARADA</span>
+                                <strong class="t-value" id="radar-stop-name">Parada 3 de 7 (Centro)</strong>
+                            </div>
+                            <div class="telemetry-box">
+                                <span class="t-label"><i class="fas fa-clock"></i> TIEMPO ESTIMADO</span>
+                                <strong class="t-value text-accent" id="radar-eta-val">4 minutos</strong>
+                            </div>
+                            <div class="telemetry-box">
+                                <span class="t-label"><i class="fas fa-shield-alt"></i> ESTADO DE RUTA</span>
+                                <strong class="t-value text-emerald">Tráfico Normal · A tiempo</strong>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section id="equipo" class="section-padding creators-section">
-        <div class="container">
-            <div class="section-header">
-                <h2>Creadores</h2>
-                <p>El equipo de desarrollo detrás de SmartBus.</p>
-            </div>
+        <!-- Funcionalidades y Roles de la Plataforma -->
+        <section id="funcionalidades" class="features-section">
+            <div class="container">
+                <div class="section-heading text-center">
+                    <span class="section-kicker">CAPACIDADES DEL SISTEMA</span>
+                    <h2 class="section-title">Diseñado para cada participante del transporte</h2>
+                    <p class="section-subtitle">
+                        SmartBus conecta a pasajeros, conductores y operadores bajo una infraestructura común de información en tiempo real.
+                    </p>
+                </div>
 
-            <div class="creators-grid">
-                <div class="creator-card">
-                    <div class="creator-img-box">
-                        <img src="assets/img/Fer.jpg" alt="Foto" onerror="this.src='https://ui-avatars.com/api/?name=Dev+1&background=007bff&color=fff&size=150'">
+                <div class="features-cards-grid">
+                    <!-- Tarjeta 1: Pasajeros -->
+                    <div class="feature-card">
+                        <div class="feature-icon-bubble">
+                            <i class="fas fa-street-view"></i>
+                        </div>
+                        <span class="feature-role-badge">Para Pasajeros</span>
+                        <h3 class="feature-card-title">Cero esperas a ciegas</h3>
+                        <p class="feature-card-text">
+                            Visualiza la ubicación exacta del camión antes de salir de casa o del trabajo. Recibe alertas en tu dispositivo cuando la unidad se aproxime a tu parada.
+                        </p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Mapa interactivo con ruta oficial</li>
+                            <li><i class="fas fa-check"></i> Alertas push de proximidad configurables</li>
+                            <li><i class="fas fa-check"></i> Acceso web PWA sin instalaciones pesadas</li>
+                        </ul>
                     </div>
-                    <div class="creator-info">
-                        <h3>Desarrollador 1</h3>
-                        <span class="creator-role">Gerente y Programadora en Backend y Frontend.</span>
-                    </div>
-                </div>
-                <div class="creator-card">
-                    <div class="creator-img-box">
-                        <img src="assets/img/Inge.jpg" alt="Foto" onerror="this.src='https://ui-avatars.com/api/?name=Dev+2&background=007bff&color=fff&size=150'">
-                    </div>
-                    <div class="creator-info">
-                        <h3>Desarrollador 2</h3>
-                        <span class="creator-role">Programador en Backend y Frontend</span>
-                    </div>
-                </div>
-                <div class="creator-card">
-                    <div class="creator-img-box">
-                        <img src="assets/img/Puyola.jpg" alt="Foto" onerror="this.src='https://ui-avatars.com/api/?name=Dev+3&background=007bff&color=fff&size=150'">
-                    </div>
-                    <div class="creator-info">
-                        <h3>Desarrollador 3</h3>
-                        <span class="creator-role">Database Admin y Diseñadora</span>
-                    </div>
-                </div>
-                <div class="creator-card">
-                    <div class="creator-img-box">
-                        <img src="assets/img/Luis.jpg" alt="Foto" onerror="this.src='https://ui-avatars.com/api/?name=Dev+4&background=007bff&color=fff&size=150'">
-                    </div>
-                    <div class="creator-info">
-                        <h3>Desarrollador 4</h3>
-                        <span class="creator-role">Analista y Tester</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <section id="faq" class="section-padding bg-alt">
-        <div class="container narrow-container">
-            <div class="section-header">
-                <h2>Preguntas Frecuentes</h2>
-                <p>Resolvemos tus dudas para que viajes tranquilo.</p>
-            </div>
+                    <!-- Tarjeta 2: Choferes / Conductores -->
+                    <div class="feature-card feature-card-highlight">
+                        <div class="feature-icon-bubble">
+                            <i class="fas fa-id-card"></i>
+                        </div>
+                        <span class="feature-role-badge badge-primary">Para Conductores</span>
+                        <h3 class="feature-card-title">Cabina y horarios al instante</h3>
+                        <p class="feature-card-text">
+                            Accede a tu turno programado, confirma salida de ruta y sincroniza automáticamente las coordenadas de tu unidad con la central operativa.
+                        </p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Asignación automática de unidades</li>
+                            <li><i class="fas fa-check"></i> Reporte de tráfico o incidencias</li>
+                            <li><i class="fas fa-check"></i> Contador de pasajeros y paradas</li>
+                        </ul>
+                    </div>
 
-            <div class="accordion">
-                <div class="accordion-item">
-                    <div class="accordion-header">
-                        ¿Cómo obtengo mi cuenta de acceso?
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="accordion-body">
-                        Puedes registrarte directamente usando tu correo electrónico. Los conductores y administrativos son registrados internamente por el departamento.
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <div class="accordion-header">
-                        ¿La aplicación funciona en mi celular?
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="accordion-body">
-                        Sí, SmartBus es una plataforma web responsiva diseñada para funcionar perfectamente en cualquier navegador móvil (Chrome, Safari, etc.) sin necesidad de instalar nada.
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <div class="accordion-header">
-                        ¿Cómo activo las alertas de llegada en mi dispositivo?
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="accordion-body">
-                        <p style="margin-bottom: 15px;">El proceso varía ligeramente según tu navegador para garantizar tu seguridad y privacidad:</p>
-                        <ul style="list-style: none; padding: 0;">
-                            <li style="margin-bottom: 15px; border-left: 3px solid #28a745; padding-left: 15px;">
-                                <strong style="color: #28a745;"><i class="fab fa-chrome"></i> Android / Chrome / Edge:</strong><br>
-                                Es nativo. Solo haz clic en el botón <strong>"Activar Alertas"</strong> dentro del mapa y pulsa "Permitir". Si no aparece, da clic en el candado 🔒 de la URL y restablece los permisos.
-                            </li>
-                            <li style="margin-bottom: 15px; border-left: 3px solid #fd7e14; padding-left: 15px;">
-                                <strong style="color: #fd7e14;"><i class="fas fa-shield-alt"></i> Navegador Brave:</strong><br>
-                                Brave bloquea esto por defecto. Ve a <em>Configuración > Privacidad</em> y activa la opción: <strong>"Usar servicios de Google para mensajería push"</strong>. Luego reinicia el navegador.
-                            </li>
-                            <li style="border-left: 3px solid #6610f2; padding-left: 15px;">
-                                <strong style="color: #6610f2;"><i class="fab fa-apple"></i> iOS (iPhone / iPad):</strong><br>
-                                Apple requiere instalar la web como App. Toca el botón <strong>Compartir</strong> <i class="fas fa-share-square"></i>, selecciona <strong>"Agregar a Inicio"</strong> y abre la nueva App desde tu pantalla principal.
-                            </li>
+                    <!-- Tarjeta 3: Operadores y Gestión -->
+                    <div class="feature-card">
+                        <div class="feature-icon-bubble">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <span class="feature-role-badge">Para Administradores</span>
+                        <h3 class="feature-card-title">Control integral de flota</h3>
+                        <p class="feature-card-text">
+                            Monitoreo centralizado del consumo, cumplimiento de horarios, métricas de rendimiento por ruta e histórico de recorrido de cada camión.
+                        </p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Panel de telemetría y auditoría en vivo</li>
+                            <li><i class="fas fa-check"></i> Métricas operativas de combustible</li>
+                            <li><i class="fas fa-check"></i> Gestión de choferes, turnos y rutas</li>
                         </ul>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <footer class="main-footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-brand">
-                    <h5>SmartBus</h5>
-                    <p>SmartBus Platform</p>
+        <!-- Simulador Interactivo de Rutas y Horarios -->
+        <section id="simulador" class="calculator-section">
+            <div class="container">
+                <div class="calculator-card">
+                    <div class="calculator-header">
+                        <div class="calculator-copy">
+                            <span class="section-kicker">PLANIFICADOR EN VIVO</span>
+                            <h2 class="section-title">Calcula tu hora de llegada</h2>
+                            <p class="section-subtitle">
+                                Elige tu ruta y la hora en que deseas salir para calcular con precisión tu llegada estimada.
+                            </p>
+                        </div>
+                        <div class="calculator-route-selector" role="group" aria-label="Seleccionar ruta">
+                            <button class="calc-route-btn is-active" id="calc-route-guasave" type="button" data-route="guasave">
+                                <span>Guasave</span>
+                                <small>40 min</small>
+                            </button>
+                            <button class="calc-route-btn" id="calc-route-tamazula" type="button" data-route="tamazula">
+                                <span>Tamazula</span>
+                                <small>30 min</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="calculator-body">
+                        <!-- Control de control deslizante ergonómico -->
+                        <div class="calc-slider-box">
+                            <div class="slider-labels">
+                                <label for="departure-slider" class="slider-title">Hora de salida seleccionada:</label>
+                                <span class="slider-time-display" id="departure-display">07:00 AM</span>
+                            </div>
+                            <input type="range" id="departure-slider" min="360" max="1320" step="15" value="420" class="time-range-input" aria-label="Hora de salida">
+                            <div class="slider-ticks">
+                                <span>06:00</span>
+                                <span>10:00</span>
+                                <span>14:00</span>
+                                <span>18:00</span>
+                                <span>22:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Resultado calculado -->
+                        <div class="calc-result-box">
+                            <div class="result-metric">
+                                <span class="result-label">Llegada estimada</span>
+                                <span class="result-arrival-time" id="calc-arrival-time">07:40 AM</span>
+                                <span class="result-route-note" id="calc-route-note">Destino: Terminal Guasave (Duración estándar: 40 min)</span>
+                            </div>
+                            <div class="result-action">
+                                <a href="login.html" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-bell"></i>
+                                    <span>Programar Alerta</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="footer-copy">
-                    <p>&copy; 2025 Todos los derechos reservados.</p>
+            </div>
+        </section>
+
+        <!-- Sección del Equipo Creador (Hecho en Guamúchil) -->
+        <section id="equipo" class="team-section">
+            <div class="container">
+                <div class="section-heading text-center">
+                    <span class="section-kicker">TALENTO REGIONAL</span>
+                    <h2 class="section-title">Hecho con pasión en Guamúchil</h2>
+                    <p class="section-subtitle">
+                        Un equipo comprometido con transformar la movilidad urbana de nuestra ciudad a través de tecnología accesible y eficiente.
+                    </p>
+                </div>
+
+                <div class="team-cards-grid">
+                    <!-- Desarrollador 1: Fer -->
+                    <div class="team-card">
+                        <div class="team-avatar-frame">
+                            <img src="assets/img/Fer.jpg" alt="Foto de Fer" class="team-avatar" loading="lazy">
+                        </div>
+                        <h3 class="team-name">Fer</h3>
+                        <span class="team-role">Project Lead & Fullstack</span>
+                        <p class="team-bio">Coordinación de arquitectura, desarrollo backend y diseño de interfaces de usuario.</p>
+                    </div>
+
+                    <!-- Desarrollador 2: Inge -->
+                    <div class="team-card">
+                        <div class="team-avatar-frame">
+                            <img src="assets/img/Inge.jpg" alt="Foto de Inge" class="team-avatar" loading="lazy">
+                        </div>
+                        <h3 class="team-name">Inge</h3>
+                        <span class="team-role">Backend & Core Services</span>
+                        <p class="team-bio">Desarrollo de servicios de sincronización, telemetría y seguridad de la plataforma.</p>
+                    </div>
+
+                    <!-- Desarrollador 3: Puyola -->
+                    <div class="team-card">
+                        <div class="team-avatar-frame">
+                            <img src="assets/img/Puyola.jpg" alt="Foto de Puyola" class="team-avatar" loading="lazy">
+                        </div>
+                        <h3 class="team-name">Puyola</h3>
+                        <span class="team-role">Database Admin & UI/UX</span>
+                        <p class="team-bio">Gestión y modelado de bases de datos relacionales y diseño de experiencia de usuario.</p>
+                    </div>
+
+                    <!-- Desarrollador 4: Luis -->
+                    <div class="team-card">
+                        <div class="team-avatar-frame">
+                            <img src="assets/img/Luis.jpg" alt="Foto de Luis" class="team-avatar" loading="lazy">
+                        </div>
+                        <h3 class="team-name">Luis</h3>
+                        <span class="team-role">QA & System Analyst</span>
+                        <p class="team-bio">Control de calidad, pruebas en campo de ruta, análisis de requerimientos y testing.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Preguntas Frecuentes (Acordeón fluido) -->
+        <section id="faq" class="faq-section">
+            <div class="container narrow-container">
+                <div class="section-heading text-center">
+                    <span class="section-kicker">RESOLVEMOS TUS DUDAS</span>
+                    <h2 class="section-title">Preguntas Frecuentes</h2>
+                    <p class="section-subtitle">Todo lo que necesitas saber para comenzar a utilizar SmartBus hoy mismo.</p>
+                </div>
+
+                <div class="faq-accordion" role="region" aria-label="Preguntas frecuentes">
+                    <!-- Item 1 -->
+                    <div class="faq-item is-open">
+                        <button class="faq-question" type="button" aria-expanded="true">
+                            <span>¿Cómo obtengo mi cuenta de acceso a la plataforma?</span>
+                            <i class="fas fa-chevron-down faq-chevron" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-inner">
+                                Si eres pasajero, puedes ingresar y registrarte directamente con tu correo electrónico. En el caso de conductores y personal administrativo, los accesos son otorgados y verificados internamente por la administración de transporte.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="faq-item">
+                        <button class="faq-question" type="button" aria-expanded="false">
+                            <span>¿La aplicación funciona en mi celular sin instalar nada?</span>
+                            <i class="fas fa-chevron-down faq-chevron" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-inner">
+                                Sí. SmartBus es una Aplicación Web Progresiva (PWA) de alto rendimiento. Funciona de manera inmediata en cualquier navegador móvil (Chrome, Safari, Edge, Firefox). Además, puedes tocar "Agregar a la pantalla de inicio" para tenerla como app sin ocupar almacenamiento excesivo.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="faq-item">
+                        <button class="faq-question" type="button" aria-expanded="false">
+                            <span>¿Cómo activo las alertas de llegada de mi camión?</span>
+                            <i class="fas fa-chevron-down faq-chevron" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-inner">
+                                <p style="margin-bottom: 10px;">Para recibir avisos cuando el autobús esté cerca de tu parada:</p>
+                                <ul class="faq-bullets">
+                                    <li><strong>Android / Chrome / Edge:</strong> Al ingresar al mapa pulsa "Activar Alertas" y selecciona "Permitir" en el aviso de notificaciones del navegador.</li>
+                                    <li><strong>iOS (iPhone / iPad):</strong> Pulsa el botón "Compartir" en Safari, selecciona "Agregar a inicio", y abre SmartBus desde tu pantalla de inicio para habilitar notificaciones push.</li>
+                                    <li><strong>Brave Browser:</strong> En Configuración > Privacidad, activa "Usar servicios de Google para mensajería push".</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Final -->
+        <section class="cta-banner-section">
+            <div class="container">
+                <div class="cta-banner-card">
+                    <div class="cta-glow-element" aria-hidden="true"></div>
+                    <div class="cta-banner-copy">
+                        <h2 class="cta-banner-title">Tu camión ya está en camino</h2>
+                        <p class="cta-banner-text">
+                            Únete a cientos de usuarios en Guamúchil que ya optimizan su tiempo diario con SmartBus.
+                        </p>
+                    </div>
+                    <div class="cta-banner-actions">
+                        <a href="login.html" class="btn btn-primary btn-lg">
+                            <span>Comenzar Ahora</span>
+                            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer Moderno y Limpio -->
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <div class="footer-brand-col">
+                <div class="brand">
+                    <img src="assets/img/icons/icon-192x192.png" alt="SmartBus" width="28" height="28">
+                    <span class="brand-title">SmartBus</span>
+                </div>
+                <p class="footer-motto">
+                    Sistema de telemetría y gestión de movilidad para el transporte público de Guamúchil, Sinaloa.
+                </p>
+                <span class="footer-copyright">&copy; 2026 SmartBus. Todos los derechos reservados.</span>
+            </div>
+
+            <div class="footer-links-col">
+                <h4 class="footer-heading">Navegación</h4>
+                <ul class="footer-nav-list">
+                    <li><a href="#inicio">Inicio</a></li>
+                    <li><a href="#funcionalidades">Funcionalidades</a></li>
+                    <li><a href="#simulador">Rutas y Horarios</a></li>
+                    <li><a href="#equipo">Equipo</a></li>
+                    <li><a href="#faq">Preguntas Frecuentes</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-links-col">
+                <h4 class="footer-heading">Plataforma</h4>
+                <ul class="footer-nav-list">
+                    <li><a href="login.html">Iniciar Sesión</a></li>
+                    <li><a href="registro.html">Crear Cuenta</a></li>
+                    <li><a href="terminos_condiciones.html">Términos del Servicio</a></li>
+                    <li><a href="politica_privacidad.html">Privacidad</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-meta-col">
+                <h4 class="footer-heading">Región Operativa</h4>
+                <p class="footer-region-badge"><i class="fas fa-map-marker-alt"></i> Guamúchil, Sinaloa (UTC−7)</p>
+                <div class="status-indicator-box">
+                    <span class="pulse-green-dot"></span>
+                    <span>Servidores y API Operativos</span>
                 </div>
             </div>
         </div>
     </footer>
 
-    <script src="assets/js/landing.js?v=1"></script>
-    <script src="assets/js/pwa-install.js"></script>
+    <!-- Scripts de la Landing -->
+    <script src="assets/js/landing.js?v=3"></script>
+    <script src="assets/js/pwa-install.js?v=2"></script>
 </body>
 </html>
