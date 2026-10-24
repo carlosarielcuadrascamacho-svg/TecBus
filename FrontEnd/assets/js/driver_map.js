@@ -2,10 +2,12 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   // 1. VERIFICACIÓN DE SESIÓN
-  const token = localStorage.getItem("tecbus_token");
+  // La autenticación real vive en una cookie HttpOnly. Esta variable queda
+  // como compatibilidad para las llamadas antiguas que aún arman el header.
+  const token = null;
   const userString = localStorage.getItem("tecbus_user");
 
-  if (!token || !userString) {
+  if (!userString) {
     window.location.href = "login.html";
     return;
   }
@@ -76,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   // CONEXIÓN SOCKET.IO Y LÓGICA DE ESCUCHA (ESP32)
   // ============================================================
-  const socket = io(SOCKET_URL, { auth: { token } });
+  const socket = io(SOCKET_URL, { withCredentials: true });
   let geoWatchId = null;
 
   socket.on("connect", () => {
@@ -1164,31 +1166,10 @@ document.addEventListener("DOMContentLoaded", () => {
         btnSalir.disabled = true;
     }
 
-    const token = localStorage.getItem("tecbus_token");
-    const userString = localStorage.getItem("tecbus_user");
+    const userId = user._id || user.id;
 
-    if (token && userString) {
-        const user = JSON.parse(userString);
-        const userId = user._id || user.id;
-        
-        // Poner al chofer "inactivo" en la base de datos antes de salir
-        fetch(`${BACKEND_URL}/api/users/${userId}`, {
-            method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` 
-            },
-            body: JSON.stringify({ estado: "inactivo" }) 
-        }).finally(() => {
-            localStorage.removeItem("tecbus_token");
-            localStorage.removeItem("tecbus_user");
-            window.location.href = "login.html";
-        });
-    } else {
-        localStorage.removeItem("tecbus_token");
-        localStorage.removeItem("tecbus_user");
-        window.location.href = "login.html";
-    }
+    // Marca inactivo, revoca el JWT en el servidor y borra la cookie.
+    window.cerrarSesionTecBus({ userId });
   };
 
   if (btnLogout) btnLogout.addEventListener("click", logoutAction);

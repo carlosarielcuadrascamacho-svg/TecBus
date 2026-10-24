@@ -3,6 +3,9 @@
   <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://mt1.google.com https://ui-avatars.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://tecbus-api.onrender.com wss://tecbus-api.onrender.com https://smartbus-mx.onrender.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://wttr.in https://mt1.google.com https://*.tile.openstreetmap.org http://localhost:5099 ws://localhost:5099 http://127.0.0.1:5099 ws://127.0.0.1:5099; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:;" />
+    <script src="assets/js/config.js?v=1"></script>
+    <script src="assets/js/api_client.js?v=1"></script>
       <title>Registro | SmartBus</title>
       <meta name="description" content="Regístrate en SmartBus - Plataforma de transporte público inteligente.">
       <meta property="og:title" content="Registro | SmartBus">
@@ -32,22 +35,10 @@
       />
       <link rel="stylesheet" href="assets/css/base.css" />
       <link rel="stylesheet" href="assets/css/passenger.css" />
-      <script>
-        // ☁️ SIEMPRE conectar a Render
-        const BACKEND_URL = "https://tecbus-api.onrender.com";
-        const SOCKET_URL = "https://tecbus-api.onrender.com";
-      </script>
+
 
       <!-- PWA Service Worker Registration -->
-      <script>
-        if ('serviceWorker' in navigator) {
-          window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' })
-              .then(reg => console.log('[PWA] Service Worker registrado:', reg.scope))
-              .catch(err => console.error('[PWA] Error registrando SW:', err));
-          });
-        }
-      </script>
+      <script src="assets/js/pwa.js?v=1"></script>
     </head>
     <body class="d-flex align-items-center justify-content-center min-vh-100">
       <div
@@ -170,34 +161,7 @@
       <script src="assets/js/registro.js"></script>
       <script src="assets/js/pwa-install.js"></script>
 
-      <script>
-        document.addEventListener("DOMContentLoaded", function() {
-          const togglePassword = document.getElementById("togglePassword");
-          const passwordInput = document.getElementById("contrasena");
-          const eyeIcon = document.getElementById("eyeIcon");
-
-          if (togglePassword && passwordInput) {
-            togglePassword.addEventListener("click", function () {
-              // Verifica si actualmente es un campo de contraseña
-              const isPassword = passwordInput.getAttribute("type") === "password";
-              
-              // Alterna el tipo de input
-              passwordInput.setAttribute("type", isPassword ? "text" : "password");
-              
-              // Alterna el ícono según el nuevo estado
-              if (isPassword) {
-                // Ahora es texto visible -> Mostrar ojo normal
-                eyeIcon.classList.remove("fa-eye-slash");
-                eyeIcon.classList.add("fa-eye");
-              } else {
-                // Ahora está oculta -> Mostrar ojo tachado
-                eyeIcon.classList.remove("fa-eye");
-                eyeIcon.classList.add("fa-eye-slash");
-              }
-            });
-          }
-        });
-      </script>
+      <script src="assets/js/password_toggle.js?v=1"></script>
 
     </body>
   </html>

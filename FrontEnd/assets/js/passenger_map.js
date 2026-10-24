@@ -25,10 +25,13 @@ function urlBase64ToUint8Array(base64String) {
 document.addEventListener("DOMContentLoaded", () => {
   
   // --- A. VERIFICACIÓN DE SESIÓN ---
-  const token = localStorage.getItem("tecbus_token");
+  // El JWT vive en una cookie HttpOnly; localStorage solo guarda el perfil
+  // público que usa la interfaz. token queda como compatibilidad para las
+  // llamadas antiguas que aún arman el header.
+  const token = null;
   const userString = localStorage.getItem("tecbus_user");
 
-  if (!token || !userString) {
+  if (!userString) {
     window.location.href = "login.html";
     return;
   }
@@ -49,8 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
       fetch(`${BACKEND_URL}/api/users/${userId}`, {
           method: 'PUT',
           headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}` 
+              'Content-Type': 'application/json'
           },
           body: JSON.stringify({ estado: "activo" }) 
       }).catch(err => console.error("Error activando estudiante:", err));
@@ -72,8 +74,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const initialLng = -108.473;
   const initialZoom = 13;
 
-  // Conexión Socket.IO
-  const socket = io(SOCKET_URL, { auth: { token } });
+  // Conexión Socket.IO: la cookie HttpOnly viaja con withCredentials.
+  const socket = io(SOCKET_URL, { withCredentials: true });
 
   let busMarkers = {};
   let rutaPolyline = null;
@@ -345,20 +347,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const userId = user._id || user.id;
-    
-    // Intentar marcar como inactivo antes de borrar token
-    fetch(`${BACKEND_URL}/api/users/${userId}`, {
-        method: 'PUT',
-        headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({ estado: "inactivo" }) 
-    }).finally(() => {
-        localStorage.removeItem("tecbus_token");
-        localStorage.removeItem("tecbus_user");
-        window.location.href = "login.html";
-    });
+
+    // Marca inactivo, revoca el JWT en el servidor y borra la cookie.
+    window.cerrarSesionTecBus({ userId });
   };
 
   const logoutBtn = document.getElementById("logout-button");
@@ -1264,7 +1255,6 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("✅ Suscripción generada:", subscription);
 
       // 6. Guardar en Backend
-      const token = localStorage.getItem("tecbus_token");
       const response = await fetch(
         `${BACKEND_URL}/api/notificaciones/suscribir`,
         {
@@ -1272,7 +1262,6 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify(subscription),
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -1287,7 +1276,6 @@ document.addEventListener("DOMContentLoaded", () => {
       // 7. Prueba Inmediata
       await fetch(`${BACKEND_URL}/api/notificaciones/mi-prediccion-prueba`, {
         method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
       });
     } catch (error) {
       console.error("❌ ERROR TÉCNICO DETALLADO:", error);
@@ -1418,10 +1406,9 @@ document.addEventListener("DOMContentLoaded", () => {
 // ============================================================
 // Esto debe estar fuera del DOMContentLoaded para garantizar que window exista
 window.addEventListener("beforeunload", () => {
-    const token = localStorage.getItem("tecbus_token");
     const userString = localStorage.getItem("tecbus_user");
 
-    if (token && userString) {
+    if (userString) {
         const user = JSON.parse(userString);
         if (user.tipo === "estudiante") {
             const userId = user._id || user.id;
@@ -1429,7 +1416,6 @@ window.addEventListener("beforeunload", () => {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({ estado: "inactivo" }),
                 keepalive: true, 
@@ -1519,12 +1505,10 @@ window.mostrarModalRecarga = function() {
             return new Promise((resolve) => {
                 setTimeout(async () => {
                     try {
-                        const token = localStorage.getItem("tecbus_token");
                         const res = await fetch(`${BACKEND_URL}/api/transacciones/recargar`, {
                             method: "POST",
                             headers: {
-                                "Content-Type": "application/json",
-                                Authorization: `Bearer ${token}`
+                                "Content-Type": "application/json"
                             },
                             body: JSON.stringify({ monto: parseFloat(input) })
                         });

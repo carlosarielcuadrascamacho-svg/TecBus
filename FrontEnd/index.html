@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://mt1.google.com https://ui-avatars.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://tecbus-api.onrender.com wss://tecbus-api.onrender.com https://smartbus-mx.onrender.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://wttr.in https://mt1.google.com https://*.tile.openstreetmap.org http://localhost:5099 ws://localhost:5099 http://127.0.0.1:5099 ws://127.0.0.1:5099; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:;" />
+    <script src="assets/js/config.js?v=1"></script>
+    <script src="assets/js/api_client.js?v=1"></script>
     <title>SmartBus | Sistema de Transporte</title>
     <meta name="description" content="SmartBus - Plataforma de gestión y optimización de transporte público con rastreo GPS en tiempo real.">
     <meta name="author" content="SmartBus">
@@ -25,24 +28,16 @@
     <link rel="apple-touch-icon" href="/assets/img/icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/img/icons/icon-512x512.png">
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <link rel="stylesheet" href="assets/css/landing_style.css">
 
     <!-- PWA Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
-            .then(reg => console.log('[PWA] Service Worker registrado:', reg.scope))
-            .catch(err => console.error('[PWA] Error registrando SW:', err));
-        });
-      }
-    </script>
+    <script src="assets/js/pwa.js?v=1"></script>
 </head>
 <body>
 
@@ -55,7 +50,7 @@
                     <span class="brand-subtitle">Plataforma de Transporte</span>
                 </div>
             </div>
-            
+
             <div class="mobile-toggle" id="mobile-toggle">
                 <i class="fas fa-bars"></i>
             </div>
@@ -86,14 +81,14 @@
                     <a href="login.html" class="btn btn-primary btn-lg">Ingresar al Sistema</a>
                     <a href="#funcionalidades" class="btn btn-secondary btn-lg">Conocer Más</a>
                 </div>
-                
+
                 <div class="trust-badges">
                     <div class="badge-item"><i class="fas fa-check-circle"></i> Datos en Tiempo Real</div>
                     <div class="badge-item"><i class="fas fa-check-circle"></i> Acceso Seguro</div>
                     <div class="badge-item"><i class="fas fa-check-circle"></i> Soporte 24/7</div>
                 </div>
             </div>
-            
+
             <div class="hero-image">
                 <div class="mockup-container">
                     <div class="mockup-frame">
@@ -249,7 +244,7 @@
                 <h2>Preguntas Frecuentes</h2>
                 <p>Resolvemos tus dudas para que viajes tranquilo.</p>
             </div>
-            
+
             <div class="accordion">
                 <div class="accordion-item">
                     <div class="accordion-header">
@@ -310,77 +305,7 @@
         </div>
     </footer>
 
-    <script>
-        // Navbar scroll background
-        window.addEventListener('scroll', () => {
-            const nav = document.querySelector('.navbar');
-            nav.classList.toggle('scrolled', window.scrollY > 20);
-        });
-
-        // Scroll Spy (Actualiza el menú activo según la sección visible)
-        const sections = document.querySelectorAll('header, section');
-        const navLinksSpy = document.querySelectorAll('.nav-menu .nav-link');
-
-        window.addEventListener('scroll', () => {
-            let current = '';
-            
-            sections.forEach(section => {
-                const sectionTop = section.offsetTop;
-                // Restamos la altura del navbar (80px) + un pequeño margen
-                if (window.scrollY >= sectionTop - 100) {
-                    current = section.getAttribute('id');
-                }
-            });
-
-            navLinksSpy.forEach(link => {
-                link.classList.remove('active');
-                if (current && link.getAttribute('href').includes(current)) {
-                    link.classList.add('active');
-                }
-            });
-        });
-
-        // Lógica del Acordeón de Preguntas
-        document.querySelectorAll('.accordion-header').forEach(button => {
-            button.addEventListener('click', () => {
-                const item = button.parentElement;
-                document.querySelectorAll('.accordion-item').forEach(other => {
-                    if(other !== item) other.classList.remove('active');
-                });
-                item.classList.toggle('active');
-            });
-        });
-
-        // --- NUEVA LÓGICA: MENÚ MÓVIL ---
-        const mobileToggle = document.getElementById('mobile-toggle');
-        const navMenu = document.getElementById('nav-menu');
-        const navLinks = document.querySelectorAll('.nav-link');
-
-        if (mobileToggle) {
-            mobileToggle.addEventListener('click', () => {
-                navMenu.classList.toggle('active');
-                // Cambiar icono de hamburguesa a X
-                const icon = mobileToggle.querySelector('i');
-                if (navMenu.classList.contains('active')) {
-                    icon.classList.remove('fa-bars');
-                    icon.classList.add('fa-times');
-                } else {
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                }
-            });
-        }
-
-        // Cerrar menú al hacer clic en un enlace
-        navLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                navMenu.classList.remove('active');
-                const icon = mobileToggle.querySelector('i');
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            });
-        });
-    </script>
+    <script src="assets/js/landing.js?v=1"></script>
     <script src="assets/js/pwa-install.js"></script>
 </body>
 </html>

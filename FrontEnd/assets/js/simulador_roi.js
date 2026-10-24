@@ -287,15 +287,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- 8. INIT ---
   const inicializarSimulador = async () => {
       try {
-          const token = localStorage.getItem("tecbus_token");
           // Si por alguna razón BACKEND_URL no está globalmente definido aún, hacemos un fallback seguro
           const baseUrl = typeof BACKEND_URL !== 'undefined' ? BACKEND_URL : "https://tecbus-api.onrender.com";
-          
-          if (!token) throw new Error("No hay token");
 
-          const response = await fetch(`${baseUrl}/api/camiones`, {
-              headers: { Authorization: `Bearer ${token}` }
-          });
+          // La sesión viaja en la cookie HttpOnly que agrega api_client.js.
+          const response = await fetch(`${baseUrl}/api/camiones`);
           
           if (response.ok) {
               const camiones = await response.json();

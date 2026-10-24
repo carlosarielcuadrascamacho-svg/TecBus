@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://mt1.google.com https://ui-avatars.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://tecbus-api.onrender.com wss://tecbus-api.onrender.com https://smartbus-mx.onrender.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://wttr.in https://mt1.google.com https://*.tile.openstreetmap.org http://localhost:5099 ws://localhost:5099 http://127.0.0.1:5099 ws://127.0.0.1:5099; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:;" />
+    <script src="assets/js/config.js?v=1"></script>
+    <script src="assets/js/api_client.js?v=1"></script>
     <title>Panel de Conductor - SmartBus</title>
     <meta name="description" content="SmartBus - Panel de conductor con rastreo GPS y gestión de rutas.">
     <meta property="og:title" content="Panel de Conductor - SmartBus">
@@ -34,22 +37,10 @@
     <link rel="stylesheet" href="assets/css/base.css" />
     <link rel="stylesheet" href="assets/css/driver.css" />
 
-    <script>
-      // ☁️ SIEMPRE conectar a Render
-      const BACKEND_URL = "https://tecbus-api.onrender.com";
-      const SOCKET_URL = "https://tecbus-api.onrender.com";
-    </script>
+
 
     <!-- PWA Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
-            .then(reg => console.log('[PWA] Service Worker registrado:', reg.scope))
-            .catch(err => console.error('[PWA] Error registrando SW:', err));
-        });
-      }
-    </script>
+    <script src="assets/js/pwa.js?v=1"></script>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
@@ -132,7 +123,7 @@
             <i class="fas fa-tachometer-alt"></i>
             <span id="console-speed">0 <small>km/h</small></span>
           </div>
-          
+
           <div class="console-pill next-stop">
             <i class="fas fa-map-marker-alt"></i>
             <div class="stop-details">
@@ -145,7 +136,7 @@
             <i class="fas fa-users"></i>
             <span id="console-passengers">0</span>
           </div>
-          
+
           <button id="btn-reporte-incidente" class="btn-incident-circle" title="Reportar Incidente">
             <i class="fas fa-exclamation-triangle"></i>
           </button>
@@ -156,11 +147,11 @@
       <div id="hud-alerts-container" class="hud-alerts-compact"></div>
     </div>
 
-    
+
     <!-- MODAL DE REPORTE DE INCIDENTES -->
     <div id="incident-modal" class="modal">
       <div class="modal-content" style="max-width: 400px; padding: 25px;">
-        
+
         <!-- Encabezado -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
           <h2 style="margin: 0; color: white; font-size: 1.4rem; display: flex; align-items: center; gap: 10px;">
@@ -318,12 +309,12 @@
         <button class="close-overlay-btn" onclick="cerrarModalAyuda()">
           <i class="fas fa-times"></i>
         </button>
-        
+
         <!-- 2. Título al centro -->
         <div class="header-title">
           <i class="fas fa-question-circle"></i> Ayuda para Conductores
         </div>
-        
+
         <!-- 3. Elemento invisible para equilibrar el 'space-between' -->
         <div style="width: 24px;"></div>
       </div>
@@ -335,7 +326,7 @@
           </h2>
 
           <div class="faq-container fade-in-up delay-1">
-            
+
             <!-- Pregunta 1 -->
             <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
               <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
@@ -401,7 +392,7 @@
         </div>
         <h2 style="margin-bottom: 10px; color: white;">¿Cerrar Sesión?</h2>
         <p style="color: #aaa; margin-bottom: 25px; font-size: 0.95rem;">Se detendrá la transmisión de tu ubicación y saldrás de tu turno.</p>
-        
+
         <div style="display: flex; gap: 15px; justify-content: center;">
           <button class="btn btn-secondary-sm btn-animado-gris" onclick="cerrarModalLogout()" style="flex: 1; margin: 0;">Cancelar</button>
           <button class="btn btn-error-lg btn-animado-rojo" onclick="ejecutarLogout()" style="flex: 1; margin: 0; padding: 12px;">Sí, salir</button>
@@ -412,7 +403,7 @@
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="assets/js/smooth_marker.js?v=1"></script>
-    <script src="assets/js/driver_map.js?v=3"></script>
+    <script src="assets/js/driver_map.js?v=4"></script>
     <script src="assets/js/pwa-install.js"></script>
   </body>
 </html>

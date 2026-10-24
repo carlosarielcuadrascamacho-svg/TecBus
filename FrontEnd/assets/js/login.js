@@ -37,9 +37,9 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(data.message);
       }
 
-      // 3. ¡ÉXITO! Guarda el token y los datos del usuario
-      localStorage.setItem("tecbus_token", data.token);
-      // Guardamos el usuario como texto JSON para usarlo después
+      // 3. ¡ÉXITO! El token vive en una cookie HttpOnly; aquí solo
+      // guardamos los datos públicos del usuario para la interfaz.
+      localStorage.removeItem("tecbus_token");
       localStorage.setItem("tecbus_user", JSON.stringify(data.user));
 
       // 4. Redirección por Rol (¡La parte más importante!)

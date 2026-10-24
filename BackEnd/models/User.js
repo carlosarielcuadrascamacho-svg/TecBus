@@ -49,6 +49,11 @@ const userSchema = new mongoose.Schema({
         enum: ['estudiante', 'conductor', 'administrador', 'usuario'],
         default: 'estudiante'
     },
+    // Permite revocar todas las sesiones emitidas para este usuario.
+    tokenVersion: {
+        type: Number,
+        default: 0
+    },
     telefono: { type: String },
     // === SmartBus Pagos ===
     rfid_uid: { type: String, unique: true, sparse: true },

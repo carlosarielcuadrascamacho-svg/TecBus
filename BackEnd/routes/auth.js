@@ -5,8 +5,27 @@ const router = express.Router();
 const User = require('../models/User'); // Importamos nuestro Modelo de Usuario
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { protect } = require('../middleware/authMiddleware');
+const {
+    TOKEN_COOKIE,
+    opcionesCookie,
+    opcionesCookieParaBorrar,
+    getTokenFromRequest,
+} = require('../utils/cookies');
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function datosPublicos(user) {
+    return {
+        id: user._id,
+        nombre: user.nombre,
+        email: user.email,
+        tipo: user.tipo,
+        conductor: user.conductor,
+        estudiante: user.estudiante,
+        administrador: user.administrador,
+    };
+}
 
 // --- RUTA DE REGISTRO (POST /api/auth/register) ---
 router.post('/register', async (req, res) => {
@@ -94,41 +113,75 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Credenciales incorrectas.' });
         }
 
-        // 3. Crear un Token (JWT)
+        // 3. Crear un Token (JWT) con versión para poder revocar sesiones.
         const token = jwt.sign(
-            { id: user._id, tipo: user.tipo }, // Guardamos el ID y el ROL en el token
-            process.env.JWT_SECRET, // Definido en server.js (nunca usa secreto compartido)
-            { expiresIn: '1d' } // El token expira en 1 día
+            {
+                id: user._id,
+                tipo: user.tipo,
+                tokenVersion: user.tokenVersion ?? 0,
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '12h' }
         );
 
-        // 4. Enviar el token al frontend
-        // res.json({
-        //     token: token,
-        //     user: {
-        //         id: user._id,
-        //         nombre: user.nombre,
-        //         email: user.email,
-        //         tipo: user.tipo
-        //     }
-        // });
-        res.json({
-            token: token,
-            user: {
-                id: user._id,
-                nombre: user.nombre,
-                email: user.email,
-                tipo: user.tipo,
-                // 👇 ESTO ES LO NUEVO: Enviamos los datos específicos del rol
-                conductor: user.conductor,
-                estudiante: user.estudiante,
-                administrador: user.administrador
-            }
-        });
+        // 4. La cookie es HttpOnly: JavaScript no puede leer el token.
+        res.cookie(TOKEN_COOKIE, token, opcionesCookie(req));
+
+        // 5. Solo devolvemos los datos públicos del usuario.
+        res.json({ user: datosPublicos(user) });
 
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error en el servidor.' });
     }
+});
+
+// --- RUTA DE SESIÓN (POST /api/auth/session) ---
+// Canjea un token Bearer antiguo por una cookie HttpOnly. También renueva
+// la cookie de una sesión ya autenticada.
+router.post('/session', protect, (req, res) => {
+    try {
+        const token = jwt.sign(
+            {
+                id: req.user._id,
+                tipo: req.user.tipo,
+                tokenVersion: req.user.tokenVersion ?? 0,
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '12h' }
+        );
+
+        res.cookie(TOKEN_COOKIE, token, opcionesCookie(req));
+        res.json({ user: datosPublicos(req.user) });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error en el servidor.' });
+    }
+});
+
+// --- RUTA DE LOGOUT (POST /api/auth/logout) ---
+// Incrementa tokenVersion para revocar los JWT emitidos y borra la cookie.
+router.post('/logout', async (req, res) => {
+    try {
+        const token = getTokenFromRequest(req);
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                await User.updateOne(
+                    { _id: decoded.id },
+                    { $inc: { tokenVersion: 1 } }
+                );
+            } catch (error) {
+                // Token vencido o inválido: igual limpiamos la cookie.
+                console.warn('Logout con token inválido:', error.message);
+            }
+        }
+    } catch (error) {
+        console.error('Error al revocar la sesión:', error);
+    }
+
+    res.clearCookie(TOKEN_COOKIE, opcionesCookieParaBorrar(req));
+    res.json({ message: 'Sesión cerrada correctamente.' });
 });
 
 

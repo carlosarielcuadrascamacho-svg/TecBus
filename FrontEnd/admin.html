@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://mt1.google.com https://ui-avatars.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://tecbus-api.onrender.com wss://tecbus-api.onrender.com https://smartbus-mx.onrender.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://wttr.in https://mt1.google.com https://*.tile.openstreetmap.org http://localhost:5099 ws://localhost:5099 http://127.0.0.1:5099 ws://127.0.0.1:5099; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:;" />
+    <script src="assets/js/config.js?v=1"></script>
+    <script src="assets/js/api_client.js?v=1"></script>
     <title>Panel de Administración - SmartBus</title>
     <meta name="description" content="SmartBus - Panel de administración del sistema de transporte.">
     <meta property="og:title" content="Panel de Administración - SmartBus">
@@ -36,22 +39,10 @@
     <link rel="stylesheet" href="assets/css/base.css" />
     <link rel="stylesheet" href="assets/css/admin.css" />
     <link rel="stylesheet" href="assets/css/sostenibilidad.css?v=2.1" />
-    <script>
-  // ☁️ SIEMPRE conectar a Render (incluso desde mi PC local)
-  const BACKEND_URL = "https://tecbus-api.onrender.com";
-  const SOCKET_URL = "https://tecbus-api.onrender.com";
-</script>
+
 
     <!-- PWA Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
-            .then(reg => console.log('[PWA] Service Worker registrado:', reg.scope))
-            .catch(err => console.error('[PWA] Error registrando SW:', err));
-        });
-      }
-    </script>
+    <script src="assets/js/pwa.js?v=1"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -200,14 +191,14 @@
 
             <div class="map-main-area">
                 <div id="admin-map" class="full-map"></div>
-                
+
                 <!-- Toggle Heatmap -->
                 <div class="heatmap-control-panel">
                   <button id="btn-toggle-heatmap" class="btn-heatmap" onclick="toggleHeatmap()">
                     <i class="fas fa-fire"></i> Analizar Rutas Vacías
                   </button>
                 </div>
-                
+
                 <!-- Overlay de actividad rápida -->
                 <div class="activity-overlay">
                     <div class="activity-header">
@@ -580,7 +571,7 @@
               </div>
               <canvas id="chart-demanda"></canvas>
             </div>
-            
+
             <div class="analytics-card">
               <div class="card-header">
                 <h4><i class="fas fa-tachometer-alt"></i> Uso de Flota (KM)</h4>
@@ -609,7 +600,7 @@
         </section>
 
         <section id="sostenibilidad" class="dashboard-section">
-          
+
           <!-- NUEVO ENCABEZADO CON BOTÓN EXPORTAR -->
           <div class="section-header-tabs" style="margin-bottom: 20px; border-bottom: none;">
             <h3 style="margin: 0;"><i class="fas fa-leaf" style="color: #2ecc71; margin-right: 10px;"></i> Sostenibilidad y Green ROI</h3>
@@ -684,7 +675,7 @@
                     <span id="roi-flotilla-display">Calculando...</span> <small style="font-size: 0.8rem; color: #adb5bd; font-weight: 400;">unidades</small>
                   </div>
                 </div>
-                
+
                 <div class="form-group-premium" style="margin-top: 20px;">
                   <label for="roi-diesel-mensual"><i class="fas fa-dollar-sign"></i> Gasto Diésel Mensual Promedio por Camión (MXN)</label>
                   <input type="number" id="roi-diesel-mensual" value="25000" min="1000" step="500" required />
@@ -709,7 +700,7 @@
                   <span class="summary-value" id="roi-val-retorno">-- meses</span>
                 </div>
               </div>
-              
+
               <div class="roi-chart-container">
                 <canvas id="roi-chart"></canvas>
               </div>
@@ -746,13 +737,13 @@
           </div>
 
           <div class="taquilla-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px;">
-            
+
             <!-- COLUMNA IZQUIERDA: GESTIÓN DE USUARIOS -->
             <div class="analytics-card">
               <div class="card-header" style="margin-bottom: 15px;">
                 <h4><i class="fas fa-user-check"></i> Buscar Usuario / Recargas</h4>
               </div>
-              
+
               <form id="form-buscar-usuario-taquilla" class="flex-form-row">
                 <div class="form-group" style="flex-grow: 1; margin-bottom: 0;">
                   <label>Correo Electrónico</label>
@@ -880,24 +871,24 @@
               <!-- Tarifa por Ruta -->
               <h5 style="color: #0dcaf0; margin-bottom: 10px; font-size: 0.9rem;">Excepción por Ruta</h5>
               <form id="form-tarifa-ruta" class="flex-form-row" style="margin-bottom: 25px; flex-wrap: nowrap;">
-                
+
                 <div class="form-group" style="flex: 2; min-width: 160px; margin-bottom: 0;">
                   <label>Ruta</label>
                   <select id="tr-ruta" class="form-control" required>
                     <option value="">-- Seleccionar --</option>
                   </select>
                 </div>
-                
+
                 <div class="form-group" style="flex: 1; min-width: 80px; margin-bottom: 0;">
                   <label>Gral ($)</label>
                   <input type="number" id="tr-general" class="form-control" step="0.5" required>
                 </div>
-                
+
                 <div class="form-group" style="flex: 1; min-width: 80px; margin-bottom: 0;">
                   <label>Est. ($)</label>
                   <input type="number" id="tr-estudiante" class="form-control" step="0.5" required>
                 </div>
-                
+
                 <button type="submit" class="btn btn-primary" style="flex-shrink: 0;"><i class="fas fa-plus"></i> Añadir</button>
               </form>
 
@@ -918,7 +909,7 @@
                 </table>
               </div>
             </div>
-            
+
             <!-- HISTORIAL GLOBAL DE INGRESOS (ANCHO COMPLETO) -->
             <div class="analytics-card" style="grid-column: 1 / -1; margin-top: 10px;">
               <div class="card-header" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
@@ -927,7 +918,7 @@
                   <i class="fas fa-sync-alt"></i> Actualizar
                 </button>
               </div>
-              
+
               <div class="table-container" style="background: rgba(0,0,0,0.2); border-radius: 8px; max-height: 350px; overflow-y: auto;">
                 <table class="admin-table">
                   <thead>
@@ -949,7 +940,7 @@
           </div>
         </section>
       </main>
-      
+
       <div id="edit-user-modal" class="modal">
         <div class="modal-content">
           <span class="close-button">&times;</span>
@@ -1097,12 +1088,12 @@
           <form id="form-editar-horario">
             <input type="hidden" id="edit-horario-id" />
             <input type="hidden" id="edit-salida-id" />
-            
+
             <div class="form-group">
               <label>Ruta Asignada</label>
               <select id="edit-horario-ruta" required></select>
             </div>
-            
+
             <div class="form-grid">
                 <div class="form-group">
                   <label>Día</label>
@@ -1183,7 +1174,7 @@
                   <i class="fas fa-info-circle"></i>
                   <span id="editor-help-text">Haz clic en el mapa para colocar <b>paradas oficiales</b>. El sistema trazará la ruta automáticamente por las calles.</span>
               </div>
-              
+
               <div id="ruta-map-editor"></div>
 
               <form id="form-edit-ruta-mapa" class="footer-controls">
@@ -1255,7 +1246,7 @@
         </div>
         <h2 style="margin-bottom: 10px; color: white;">¿Cerrar Sesión?</h2>
         <p style="color: #aaa; margin-bottom: 25px; font-size: 0.95rem;">Saldrás del Centro de Control de forma segura.</p>
-        
+
         <div style="display: flex; gap: 15px; justify-content: center;">
           <button class="btn btn-secondary btn-animado-gris" onclick="cerrarModalLogout()" style="flex: 1; margin: 0;">Cancelar</button>
           <button class="btn btn-danger btn-animado-rojo" onclick="ejecutarLogout()" style="flex: 1; margin: 0; padding: 12px;">Sí, salir</button>
@@ -1265,10 +1256,10 @@
 
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script src="assets/js/admin_sidebar.js?v=2"></script>
+    <script src="assets/js/admin_sidebar.js?v=3"></script>
     <script src="assets/js/smooth_marker.js?v=1"></script>
-    <script src="assets/js/admin_dashboard.js?v=3"></script>
-    <script src="assets/js/simulador_roi.js?v=2.1"></script>
+    <script src="assets/js/admin_dashboard.js?v=4"></script>
+    <script src="assets/js/simulador_roi.js?v=3"></script>
     <script src="assets/js/pwa-install.js"></script>
   </body>
 </html>

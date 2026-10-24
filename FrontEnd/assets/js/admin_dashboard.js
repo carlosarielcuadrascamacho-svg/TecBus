@@ -14,9 +14,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- 1. VERIFICACIÓN DE SEGURIDAD ---
-  const token = localStorage.getItem("tecbus_token");
+  // La autenticación real vive en una cookie HttpOnly. Esta variable queda
+  // como compatibilidad para las llamadas antiguas que aún arman el header.
+  const token = null;
   const userString = localStorage.getItem("tecbus_user");
-  if (!token || !userString) {
+  if (!userString) {
     window.location.href = "login.html";
     return;
   }
@@ -76,8 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
     { nombre: "Rochin", lat: 25.579152, lon: -108.462641, tipo: "tienda" },
   ];
 
-  // Conexión Socket
-  const socket = io(SOCKET_URL, { auth: { token } });
+  // Conexión Socket: la cookie HttpOnly viaja con withCredentials.
+  const socket = io(SOCKET_URL, { withCredentials: true });
   socket.on("connect", () =>
     console.log("🔌 Admin Dashboard conectado a Socket.io:", socket.id)
   );
@@ -3048,10 +3050,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function cargarDashboardStats() {
   try {
-    const token = localStorage.getItem("tecbus_token");
-    const res = await fetch(`${BACKEND_URL}/api/camiones/estadisticas/hoy`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(`${BACKEND_URL}/api/camiones/estadisticas/hoy`);
 
     if (res.ok) {
       const data = await res.json();
@@ -3167,10 +3166,7 @@ async function mostrarPreviewRuta(rutaId) {
     document.getElementById("preview-ruta-tiempo").textContent = "-- min";
     
     try {
-        const tkn = localStorage.getItem("tecbus_token");
-        const res = await fetch(`${BACKEND_URL}/api/rutas/${rutaId}`, {
-            headers: { Authorization: `Bearer ${tkn}` }
-        });
+        const res = await fetch(`${BACKEND_URL}/api/rutas/${rutaId}`);
         const ruta = await res.json();
         
         console.log("Ruta cargada para preview:", ruta);
@@ -3571,9 +3567,7 @@ async function cargarMapaCalorVacios(map) {
     }
 
     try {
-        const respuesta = await fetch(`${BACKEND_URL}/api/historial/mapa-calor-vacio`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("tecbus_token")}` },
-        });
+        const respuesta = await fetch(`${BACKEND_URL}/api/historial/mapa-calor-vacio`);
         const resultado = await respuesta.json();
 
         // Agregar la fuente GeoJSON

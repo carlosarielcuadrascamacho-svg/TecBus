@@ -98,31 +98,19 @@ document.addEventListener("DOMContentLoaded", () => {
           btnSalir.disabled = true;
       }
 
+      let userId = null;
       try {
-          const token = localStorage.getItem("tecbus_token");
           const userString = localStorage.getItem("tecbus_user");
-          if(token && userString) {
+          if (userString) {
               const user = JSON.parse(userString);
-              if(user && user.id) {
-                  // Marcar como inactivo en la base de datos
-                  await fetch(`${BACKEND_URL}/api/users/${user.id}`, {
-                      method: 'PUT',
-                      headers: { 
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${token}` 
-                      },
-                      body: JSON.stringify({ estado: "inactivo" }) 
-                  });
-              }
+              userId = user?._id || user?.id || null;
           }
-      } catch(err) { 
-          console.error("Error al cerrar sesión en BD", err); 
-      } finally {
-          // Borrar datos locales y redirigir
-          localStorage.removeItem("tecbus_token");
-          localStorage.removeItem("tecbus_user");
-          window.location.href = "login.html"; 
+      } catch(err) {
+          console.error("Error leyendo el usuario para cerrar sesión", err);
       }
+
+      // Marca inactivo, revoca el JWT en el servidor y borra la cookie.
+      await window.cerrarSesionTecBus({ userId });
   };
 
   // --- 6. CIERRE DE PESTAÑA ---

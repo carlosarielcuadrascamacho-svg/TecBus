@@ -10,6 +10,7 @@ const { rateLimit } = require("express-rate-limit");
 const http = require("http");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
+const { TOKEN_COOKIE, parseCookies } = require("./utils/cookies");
 
 // --- SEGURIDAD: secreto JWT ---
 // Sin JWT_SECRET no se puede firmar ni verificar sesiones. Es mejor fallar
@@ -69,23 +70,32 @@ const io = new Server(server, {
   cors: {
     origin: ORIGENES_PERMITIDOS,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
 // --- SEGURIDAD: autenticación de Socket.io con el mismo JWT de la API ---
 io.use(async (socket, next) => {
   try {
+    const cookies = parseCookies(socket.handshake.headers.cookie);
+    const cookieToken = cookies[TOKEN_COOKIE];
     const authToken = socket.handshake.auth?.token;
     const headerToken = String(socket.handshake.headers.authorization || "")
       .replace(/^Bearer\s+/i, "");
-    const token = authToken || headerToken;
+    const token = cookieToken || authToken || headerToken;
 
     if (!token) return next(new Error("No autorizado"));
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select("nombre tipo");
+    const user = await User.findById(decoded.id).select(
+      "nombre tipo tokenVersion"
+    );
 
     if (!user) return next(new Error("Usuario no autorizado"));
+
+    if (Number(decoded.tokenVersion || 0) !== Number(user.tokenVersion || 0)) {
+      return next(new Error("Sesión revocada"));
+    }
 
     socket.data.user = user;
     next();
@@ -106,10 +116,86 @@ let cerrando = false;
 // 3. Middlewares de seguridad
 app.set("trust proxy", 1); // Render está detrás de 1 proxy (necesario para contar IPs en el rate limit)
 app.disable("x-powered-by");
+// CSP: los scripts inline ya se movieron a archivos propios. Los handlers
+// onclick/onerror del HTML se permiten explícitamente con script-src-attr.
+// style-src mantiene 'unsafe-inline' porque la UI usa estilos inline y las
+// librerías de mapas los generan en tiempo de ejecución.
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  baseUri: ["'self'"],
+  objectSrc: ["'none'"],
+  frameAncestors: ["'none'"],
+  formAction: ["'self'"],
+  scriptSrc: [
+    "'self'",
+    "https://cdn.jsdelivr.net",
+    "https://unpkg.com",
+    "https://cdn.socket.io",
+    "https://cdnjs.cloudflare.com",
+  ],
+  scriptSrcAttr: ["'unsafe-inline'"],
+  styleSrc: [
+    "'self'",
+    "'unsafe-inline'",
+    "https://cdn.jsdelivr.net",
+    "https://unpkg.com",
+    "https://cdnjs.cloudflare.com",
+    "https://fonts.googleapis.com",
+  ],
+  fontSrc: [
+    "'self'",
+    "data:",
+    "https://fonts.gstatic.com",
+    "https://cdnjs.cloudflare.com",
+  ],
+  imgSrc: [
+    "'self'",
+    "data:",
+    "blob:",
+    "https://basemaps.cartocdn.com",
+    "https://tiles.basemaps.cartocdn.com",
+    "https://mt1.google.com",
+    "https://ui-avatars.com",
+    "https://*.tile.openstreetmap.org",
+    "https://cdn.jsdelivr.net",
+    "https://unpkg.com",
+  ],
+  connectSrc: [
+    "'self'",
+    // Hosts externos que la aplicación puede consultar.
+    "https://cdn.jsdelivr.net",
+    "https://unpkg.com",
+    "https://cdn.socket.io",
+    "https://cdnjs.cloudflare.com",
+    "https://fonts.googleapis.com",
+    "https://fonts.gstatic.com",
+    "https://tecbus-api.onrender.com",
+    "wss://tecbus-api.onrender.com",
+    "https://smartbus-mx.onrender.com",
+    "https://basemaps.cartocdn.com",
+    "https://tiles.basemaps.cartocdn.com",
+    "https://*.basemaps.cartocdn.com",
+    "https://nominatim.openstreetmap.org",
+    "https://router.project-osrm.org",
+    "https://wttr.in",
+    "https://mt1.google.com",
+    "https://*.tile.openstreetmap.org",
+    "http://localhost:5099",
+    "ws://localhost:5099",
+    "http://127.0.0.1:5099",
+    "ws://127.0.0.1:5099",
+  ],
+  workerSrc: ["'self'", "blob:"],
+  childSrc: ["'self'", "blob:"],
+  mediaSrc: ["'self'", "blob:", "data:"],
+};
+
 app.use(
   helmet({
-    // La app carga scripts/CDN y usa scripts inline, por eso sin CSP:
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: cspDirectives,
+    },
     // El frontend (otro dominio) consume la API por CORS:
     crossOriginResourcePolicy: { policy: "cross-origin" },
     crossOriginEmbedderPolicy: false,
@@ -124,6 +210,7 @@ app.use(
     },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
+    credentials: true,
   })
 );
 app.use(express.json({ limit: "100kb" }));

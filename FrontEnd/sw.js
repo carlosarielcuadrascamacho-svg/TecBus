@@ -2,7 +2,7 @@
 
 // Subir la versión cuando cambie un asset: el fetch de nuestros JS/CSS es
 // cache-first, así que sin bump los navegadores siguen usando el archivo viejo.
-const CACHE_NAME = 'tecbus-v10';
+const CACHE_NAME = 'tecbus-v13';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -18,14 +18,19 @@ const STATIC_ASSETS = [
   '/assets/css/driver.css',
   '/assets/css/admin.css',
   '/assets/css/sostenibilidad.css?v=2.1',
-  '/assets/js/login.js',
+  '/assets/js/config.js?v=1',
+  '/assets/js/api_client.js?v=1',
+  '/assets/js/pwa.js?v=1',
+  '/assets/js/password_toggle.js?v=1',
+  '/assets/js/landing.js?v=1',
+  '/assets/js/login.js?v=2',
   '/assets/js/registro.js',
   '/assets/js/smooth_marker.js?v=1',
-  '/assets/js/passenger_map.js?v=6',
-  '/assets/js/driver_map.js?v=3',
-  '/assets/js/admin_dashboard.js?v=3',
-  '/assets/js/admin_sidebar.js?v=2',
-  '/assets/js/simulador_roi.js?v=2.1',
+  '/assets/js/passenger_map.js?v=7',
+  '/assets/js/driver_map.js?v=4',
+  '/assets/js/admin_dashboard.js?v=4',
+  '/assets/js/admin_sidebar.js?v=3',
+  '/assets/js/simulador_roi.js?v=3',
   '/assets/js/pwa-install.js',
   '/assets/img/icons/icon-192x192.png',
   '/assets/img/icons/icon-512x512.png',
@@ -78,24 +83,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API calls → Network-first (siempre intentar datos frescos del servidor)
-  if (url.href.startsWith(API_BASE)) {
-    event.respondWith(
-      networkFirst(request)
-    );
+  // Los recursos de otros orígenes (CDNs y la API cuando el frontend vive en
+  // otro dominio) los maneja directamente el navegador. Así una falla de red
+  // del service worker no bloquea scripts/CSS externos y las respuestas
+  // autenticadas de la API nunca pasan por la caché.
+  if (url.origin !== self.location.origin) {
     return;
   }
 
-  // CDN resources (Google Fonts, Font Awesome, MapLibre, Socket.IO, Bootstrap, etc.)
-  // → Cache-first con fallback a red
-  if (url.href.includes('googleapis.com') ||
-      url.href.includes('gstatic.com') ||
-      url.href.includes('cloudflare.com') ||
-      url.href.includes('unpkg.com') ||
-      url.href.includes('cdn.jsdelivr.net') ||
-      url.href.includes('cdn.socket.io')) {
+  // API calls → Network-first SIN guardar en caché. Las respuestas están
+  // autenticadas por cookie y no deben quedar disponibles para otro usuario
+  // del mismo navegador después de cerrar sesión.
+  if (url.href.startsWith(API_BASE)) {
     event.respondWith(
-      cacheFirst(request)
+      networkFirst(request, false)
     );
     return;
   }
@@ -114,7 +115,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// ─── Estrategia: Cache-First (para assets estáticos y CDN) ───
+// ─── Estrategia: Cache-First (para assets estáticos propios) ───
 async function cacheFirst(request) {
   const cachedResponse = await caches.match(request);
   if (cachedResponse) {
@@ -134,15 +135,21 @@ async function cacheFirst(request) {
 }
 
 // ─── Estrategia: Network-First (para HTML y API) ───
-async function networkFirst(request) {
+// cacheable=false se usa para respuestas autenticadas de la API.
+async function networkFirst(request, cacheable = true) {
   try {
     const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
+    if (cacheable && networkResponse.ok) {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
   } catch (error) {
+    if (!cacheable) {
+      console.warn('[SW] API sin conexión:', request.url);
+      return new Response('', { status: 408, statusText: 'Request Timeout' });
+    }
+
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
