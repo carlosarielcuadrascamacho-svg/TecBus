@@ -2,5 +2,7 @@
 **/.env
 **/SecretKeys.txt
 **/secrets.h
+**/build/
+.taste-skill/
 HALLAZGOS_AUDITORIA.txt
 GOOGLE_AUTH_PLAN.txt
