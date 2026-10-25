@@ -87,7 +87,10 @@ PRIVATE_VAPID_KEY=
 
 `API_KEY_ESP32` debe coincidir exactamente con la `API_KEY` de
 `esp32_smartbus_control/secrets.h`; si no coincide, la telemetría del ESP32
-responde `401`. `JWT_SECRET` es obligatorio: sin él el servidor no arranca.
+responde `401`. En ese mismo archivo local se configuran `WIFI_SSID` y
+`WIFI_PASS`: la red debe ser de 2.4 GHz y tener salida a internet, porque el
+ESP32 envía la telemetría por WebSocket a Render. `JWT_SECRET` es obligatorio:
+sin él el servidor no arranca.
 
 Ejecutar el servidor:
 ```Terminal

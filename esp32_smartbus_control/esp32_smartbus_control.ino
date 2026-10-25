@@ -112,8 +112,7 @@
 // =========================================================================
 
 // --- WiFi ---
-const char* WIFI_SSID = "SmartBus2";
-const char* WIFI_PASS = "SmartBus1";
+// WIFI_SSID y WIFI_PASS se definen en secrets.h (archivo local, no versionado).
 
 // --- Servidor Backend ---
 const char* SERVER_URL = "https://tecbus-api.onrender.com";
@@ -126,6 +125,10 @@ const char* WS_PATH = "/ws/telemetry";
 
 // --- API Key ---
 #include "secrets.h"
+
+#ifndef WIFI_SSID_ALT
+const char* WIFI_SSID_ALT = "";
+#endif
 
 // --- Identificador de Camión (debe coincidir con numeroUnidad en MongoDB) ---
 const char* BUS_ID = "U001";
@@ -444,6 +447,20 @@ void conectarWiFi() {
   }
   Serial.println();
 
+  if (WiFi.status() != WL_CONNECTED && strlen(WIFI_SSID_ALT) > 0) {
+    Serial.printf("[WiFi] No conectó a '%s'. Intentando con '%s'...\n", WIFI_SSID, WIFI_SSID_ALT);
+    WiFi.disconnect();
+    WiFi.begin(WIFI_SSID_ALT, WIFI_PASS);
+    inicio = millis();
+    while (WiFi.status() != WL_CONNECTED &&
+           (millis() - inicio) < TIEMPO_MAX_WIFI_INICIAL_MS) {
+      delay(500);
+      Serial.print(F("."));
+      leerGPS();
+    }
+    Serial.println();
+  }
+
   if (WiFi.status() == WL_CONNECTED) {
     Serial.printf("[WiFi] Conectado. IP asignada: %s\n", WiFi.localIP().toString().c_str());
   } else {
@@ -470,7 +487,11 @@ void gestionarWiFi() {
     estadoLED = ESPERANDO_WIFI;
     Serial.println(F("[WiFi] Conexión perdida. Reintentando..."));
     WiFi.disconnect();
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    static bool alternarSSID = false;
+    alternarSSID = !alternarSSID;
+    const char* ssidAProbar = (alternarSSID && strlen(WIFI_SSID_ALT) > 0) ? WIFI_SSID_ALT : WIFI_SSID;
+    Serial.printf("[WiFi] Probando '%s'...\n", ssidAProbar);
+    WiFi.begin(ssidAProbar, WIFI_PASS);
   }
 }
 
