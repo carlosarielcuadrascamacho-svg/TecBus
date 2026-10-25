@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "cap:sync": "npm run build && npx cap sync",
     "cap:open": "npx cap open android",
-    "assets:generate": "npx @capacitor/assets generate --android --assetPath assets-source --iconBackgroundColor '#ffffff' --splashBackgroundColor '#ffffff'"
+    "assets:generate": "npx @capacitor/assets generate --android --assetPath assets-source --iconBackgroundColor '#ffffff' --splashBackgroundColor '#ffffff'",
+    "build:bundle": "npm run build && npx cap sync && cd android && ./gradlew bundleRelease"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
