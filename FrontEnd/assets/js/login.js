@@ -53,29 +53,34 @@ window.handleGoogleCredentialResponse = procesarInicioSesionGoogle;
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login-form");
   const messageEl = document.getElementById("auth-message");
-  const submitButton = loginForm.querySelector('button[type="submit"]');
+  const submitButton = loginForm ? loginForm.querySelector('button[type="submit"]') : null;
 
   // Inicializar Google Sign-In si está disponible el SDK de Google
   function initGoogleAuth() {
     const clientId = window.GOOGLE_CLIENT_ID || "935209953046-9uked6lm4ob8bkk6ek2653bj14a5ss4k.apps.googleusercontent.com";
     if (window.google && window.google.accounts && clientId) {
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: procesarInicioSesionGoogle,
-        auto_select: false,
-      });
-
-      const container = document.getElementById("google-btn-container");
-      if (container) {
-        google.accounts.id.renderButton(container, {
-          theme: "filled_black",
-          size: "large",
-          type: "standard",
-          shape: "pill",
-          text: "continue_with",
-          logo_alignment: "left",
-          width: 320,
+      try {
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: procesarInicioSesionGoogle,
+          auto_select: false,
         });
+
+        const container = document.getElementById("google-btn-container");
+        const existingBtn = document.querySelector(".g_id_signin iframe, #google-btn-container iframe");
+        if (container && !existingBtn) {
+          google.accounts.id.renderButton(container, {
+            theme: "filled_black",
+            size: "large",
+            type: "standard",
+            shape: "pill",
+            text: "continue_with",
+            logo_alignment: "left",
+            width: 320,
+          });
+        }
+      } catch (err) {
+        console.warn("Google Sign-In init error:", err);
       }
     } else {
       setTimeout(initGoogleAuth, 300);
@@ -83,7 +88,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   initGoogleAuth();
 
-  loginForm.addEventListener("submit", async (e) => {
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
     e.preventDefault(); // Evita que la página se recargue
 
     const correo = document.getElementById("correo").value;
@@ -163,4 +169,5 @@ document.addEventListener("DOMContentLoaded", () => {
         '<i class="fas fa-sign-in-alt me-2"></i> Ingresar';
     }
   });
+  }
 });

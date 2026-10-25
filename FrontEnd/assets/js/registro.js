@@ -59,23 +59,28 @@ document.addEventListener("DOMContentLoaded", () => {
   function initGoogleAuth() {
     const clientId = window.GOOGLE_CLIENT_ID || "935209953046-9uked6lm4ob8bkk6ek2653bj14a5ss4k.apps.googleusercontent.com";
     if (window.google && window.google.accounts && clientId) {
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: procesarRegistroGoogle,
-        auto_select: false,
-      });
-
-      const container = document.getElementById("google-btn-container");
-      if (container) {
-        google.accounts.id.renderButton(container, {
-          theme: "filled_black",
-          size: "large",
-          type: "standard",
-          shape: "pill",
-          text: "signup_with",
-          logo_alignment: "left",
-          width: 320,
+      try {
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: procesarRegistroGoogle,
+          auto_select: false,
         });
+
+        const container = document.getElementById("google-btn-container");
+        const existingBtn = document.querySelector(".g_id_signin iframe, #google-btn-container iframe");
+        if (container && !existingBtn) {
+          google.accounts.id.renderButton(container, {
+            theme: "filled_black",
+            size: "large",
+            type: "standard",
+            shape: "pill",
+            text: "signup_with",
+            logo_alignment: "left",
+            width: 320,
+          });
+        }
+      } catch (err) {
+        console.warn("Google Sign-In init error:", err);
       }
     } else {
       setTimeout(initGoogleAuth, 300);
