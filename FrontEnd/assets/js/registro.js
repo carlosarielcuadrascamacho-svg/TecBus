@@ -53,7 +53,7 @@ window.handleGoogleCredentialResponse = procesarRegistroGoogle;
 document.addEventListener("DOMContentLoaded", () => {
   const registroForm = document.getElementById("registro-form");
   const messageEl = document.getElementById("auth-message");
-  const submitButton = registroForm.querySelector('button[type="submit"]');
+  const submitButton = registroForm ? registroForm.querySelector('button[type="submit"]') : null;
 
   // Inicializar Google Sign-In si está disponible el SDK de Google
   function initGoogleAuth() {
@@ -83,65 +83,65 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   initGoogleAuth();
 
-  registroForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  if (registroForm) {
+    registroForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    const nombre = document.getElementById("nombre").value;
-    const correo = document.getElementById("correo").value;
-    const contrasena = document.getElementById("contrasena").value;
-
-    if (messageEl) {
-      messageEl.textContent = "";
-      messageEl.className = "text-danger mb-2";
-    }
-
-    if (!nombre || !correo || !contrasena) {
-      if (messageEl)
-        messageEl.textContent = "Todos los campos son obligatorios.";
-      return;
-    }
-    if (!correo.includes("@") || !correo.includes(".")) {
-      if (messageEl)
-        messageEl.textContent =
-          "Por favor, usa un correo válido.";
-      return;
-    }
-
-    submitButton.disabled = true;
-    submitButton.innerHTML =
-      '<i class="fas fa-spinner fa-spin"></i> Registrando...';
-
-    try {
-      // CAMBIO: Usamos BACKEND_URL dinámico
-      const response = await fetch(BACKEND_URL + "/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombre: nombre,
-          email: correo,
-          password: contrasena,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message);
-      }
+      const nombre = document.getElementById("nombre")?.value;
+      const correo = document.getElementById("correo")?.value;
+      const contrasena = document.getElementById("contrasena")?.value;
 
       if (messageEl) {
-        messageEl.textContent = `¡Registro exitoso! Serás redirigido...`;
-        messageEl.className = "text-success mb-2";
+        messageEl.textContent = "";
+        messageEl.className = "text-danger mb-2";
       }
 
-      setTimeout(() => {
-        window.location.href = "login.html";
-      }, 2000);
-    } catch (error) {
-      if (messageEl) messageEl.textContent = error.message;
-      submitButton.disabled = false;
-      submitButton.innerHTML =
-        '<i class="fas fa-check-circle me-2"></i> Continuar Registro';
-    }
-  });
+      if (!nombre || !correo || !contrasena) {
+        if (messageEl) messageEl.textContent = "Todos los campos son obligatorios.";
+        return;
+      }
+      if (!correo.includes("@") || !correo.includes(".")) {
+        if (messageEl) messageEl.textContent = "Por favor, usa un correo válido.";
+        return;
+      }
+
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
+      }
+
+      try {
+        const response = await fetch(BACKEND_URL + "/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nombre: nombre,
+            email: correo,
+            password: contrasena,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Error al registrarse");
+        }
+
+        if (messageEl) {
+          messageEl.textContent = `¡Registro exitoso! Serás redirigido...`;
+          messageEl.className = "text-success mb-2";
+        }
+
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 2000);
+      } catch (error) {
+        if (messageEl) messageEl.textContent = error.message;
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> Continuar Registro';
+        }
+      }
+    });
+  }
 });

@@ -11,6 +11,9 @@ const { protect, adminOnly } = require("../middleware/authMiddleware");
 const { diasBusquedaHoy } = require("../utils/dias");
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'l2225010051@guasave.tecnm.mx')
+  .split(',')
+  .map(e => e.trim().toLowerCase());
 
 function usuarioPublico(user) {
   const objeto = user.toObject ? user.toObject() : { ...user };
@@ -52,6 +55,10 @@ router.post("/", protect, adminOnly, async (req, res) => {
     const rolesValidos = ["estudiante", "conductor", "administrador", "usuario"];
     if (!rolesValidos.includes(tipo)) {
       return res.status(400).json({ message: "Rol no válido." });
+    }
+
+    if (tipo === "administrador" && !ADMIN_EMAILS.includes(emailNormalizado)) {
+      return res.status(403).json({ message: "Por seguridad, solo el correo del superadministrador oficial puede tener rol de administrador." });
     }
 
     const userExists = await User.findOne({ email: emailNormalizado });
@@ -190,6 +197,10 @@ router.put("/:id", protect, async (req, res) => {
       return res.status(400).json({ message: "Rol no válido." });
     }
 
+    if (tipo === "administrador" && !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      return res.status(403).json({ message: "Por seguridad, solo el correo del superadministrador oficial puede tener rol de administrador." });
+    }
+
     const estadosValidos = [
       "activo", "inactivo", "Inactivo", "Inicio de Recorridos",
       "En Servicio", "En Espera", "Fuera de Servicio",
@@ -261,6 +272,15 @@ router.delete("/:id", protect, adminOnly, async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    // Evitar que el admin oficial sea eliminado
+    if (ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      return res
+        .status(403)
+        .json({
+          message: "La cuenta del superadministrador oficial está blindada y no puede ser eliminada.",
+        });
     }
 
     // Evitar que el admin se borre a sí mismo por error

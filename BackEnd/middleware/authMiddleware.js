@@ -44,14 +44,22 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Guardaespaldas específico para Admins
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'l2225010051@guasave.tecnm.mx')
+  .split(',')
+  .map(e => e.trim().toLowerCase());
+
+// Guardaespaldas específico para Admins con blindaje estricto de identidad
 const adminOnly = (req, res, next) => {
-  if (req.user && req.user.tipo === "administrador") {
-    next(); // ¡Luz verde para el admin!
+  if (
+    req.user &&
+    req.user.tipo === "administrador" &&
+    ADMIN_EMAILS.includes(String(req.user.email || "").trim().toLowerCase())
+  ) {
+    next(); // ¡Luz verde para el admin autorizado!
   } else {
     res
       .status(403)
-      .json({ message: "Acceso denegado. Solo para administradores." });
+      .json({ message: "Acceso denegado. Solo para el administrador oficial autorizado." });
   }
 };
 

@@ -37,61 +37,12 @@ function datosPublicos(user) {
 }
 
 // --- RUTA DE REGISTRO (POST /api/auth/register) ---
+// El registro público manual está deshabilitado para prevenir cuentas falsas sin verificar.
+// Todo nuevo usuario debe registrarse mediante Google OAuth con correo 100% verificado.
 router.post('/register', async (req, res) => {
-    try {
-        const { nombre, email, password } = req.body;
-        const emailNormalizado = String(email || "").trim().toLowerCase();
-
-        // 1. Validar que los datos estén
-        if (!nombre || !emailNormalizado || !password) {
-            return res.status(400).json({ message: 'Por favor, introduce todos los campos.' });
-        }
-
-        if (!EMAIL_REGEX.test(emailNormalizado)) {
-            return res.status(400).json({ message: 'El correo electrónico no es válido.' });
-        }
-
-        if (String(password).length < 8) {
-            return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres.' });
-        }
-        
-        // 2. Revisar si el usuario ya existe (basado en tu PDF)
-        const userExists = await User.findOne({ email: emailNormalizado })
-            .collation({ locale: 'en', strength: 2 });
-        if (userExists) {
-            return res.status(400).json({ message: 'El correo electrónico ya está registrado.' });
-        }
-
-        // 3. Encriptar la contraseña (basado en tu PDF "Hash")
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // 4. Crear el nuevo usuario (tipo 'estudiante' por defecto)
-        // Usamos el Schema que definimos en tu PDF
-        const newUser = new User({
-            nombre: nombre,
-            email: emailNormalizado,
-            password: hashedPassword,
-            tipo: 'estudiante', // Por defecto al registrarse
-            estudiante: { // Llenamos los datos de estudiante
-                matricula: "PENDIENTE", // El admin puede llenar esto después
-                carrera: "PENDIENTE"
-            }
-        });
-
-        // 5. Guardar en la Base de Datos
-        const savedUser = await newUser.save();
-
-        // 6. Enviar una respuesta exitosa
-        res.status(201).json({ 
-            message: '¡Usuario registrado exitosamente!',
-            userId: savedUser._id 
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error en el servidor.' });
-    }
+    return res.status(403).json({ 
+        message: 'Por seguridad del sistema y para garantizar la identidad de los usuarios, el registro se realiza exclusivamente con tu cuenta de Google verificada. Por favor, utiliza el botón "Registrarse con Google".' 
+    });
 });
 
 // --- RUTA DE LOGIN (POST /api/auth/login) ---
@@ -226,12 +177,18 @@ router.post('/google', async (req, res) => {
                 user.emailVerified = true;
                 modificado = true;
             }
-            // Blindaje del admin: tu correo siempre es y será administrador
-            if (esAdmin && user.tipo !== 'administrador') {
-                user.tipo = 'administrador';
-                if (!user.administrador) {
-                    user.administrador = { nivelAcceso: 'superadmin', permisos: ['all'] };
+            // Blindaje del admin: tu correo siempre es y será administrador, y ningún otro puede serlo
+            if (esAdmin) {
+                if (user.tipo !== 'administrador') {
+                    user.tipo = 'administrador';
+                    if (!user.administrador) {
+                        user.administrador = { nivelAcceso: 'superadmin', permisos: ['all'] };
+                    }
+                    modificado = true;
                 }
+            } else if (user.tipo === 'administrador') {
+                user.tipo = 'estudiante';
+                user.administrador = undefined;
                 modificado = true;
             }
             if (modificado) {
