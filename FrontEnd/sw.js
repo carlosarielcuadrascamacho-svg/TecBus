@@ -2,7 +2,7 @@
 
 // Subir la versión cuando cambie un asset: el fetch de nuestros JS/CSS es
 // cache-first, así que sin bump los navegadores siguen usando el archivo viejo.
-const CACHE_NAME = 'tecbus-v16';
+const CACHE_NAME = 'tecbus-v17';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -16,7 +16,7 @@ const STATIC_ASSETS = [
   '/manifest.webmanifest',
   '/assets/css/base.css?v=2026.2',
   '/assets/css/landing_style.css',
-  '/assets/css/passenger.css',
+  '/assets/css/passenger.css?v=2026.4',
   '/assets/css/driver.css',
   '/assets/css/admin.css',
   '/assets/css/sostenibilidad.css?v=2.1',
@@ -28,7 +28,7 @@ const STATIC_ASSETS = [
   '/assets/js/login.js?v=2026.2',
   '/assets/js/registro.js?v=2026.2',
   '/assets/js/smooth_marker.js?v=1',
-  '/assets/js/passenger_map.js?v=7',
+  '/assets/js/passenger_map.js?v=2026.4',
   '/assets/js/driver_map.js?v=4',
   '/assets/js/admin_dashboard.js?v=4',
   '/assets/js/admin_sidebar.js?v=3',

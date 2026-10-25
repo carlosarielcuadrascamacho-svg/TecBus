@@ -32,7 +32,7 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="assets/css/base.css?v=2026.2" />
-    <link rel="stylesheet" href="assets/css/passenger.css?v=2026.3" />
+    <link rel="stylesheet" href="assets/css/passenger.css?v=2026.4" />
 
     <!-- PWA Service Worker Registration -->
     <script src="assets/js/pwa.js?v=1"></script>
@@ -230,29 +230,22 @@
       <div id="toast-container" aria-live="polite"></div>
 
       <div class="map-floating-controls">
-        <button
-          id="btn-activar-notificaciones"
-          class="control-btn btn-glow-blue"
-          title="Activar Notificaciones"
-          aria-label="Activar notificaciones"
-        >
-          <i class="fas fa-bell"></i>
-          <span>Alertas</span>
-        </button>
-
         <div class="floating-tools-dock">
           <button
-            id="btn-abrir-ayuda"
-            class="control-btn btn-glass"
-            title="Instrucciones de las Notificaciones"
-            aria-label="Instrucciones de notificaciones"
+            id="btn-activar-notificaciones"
+            class="control-btn btn-glass btn-notif-control"
+            data-tooltip="Alertas de proximidad"
+            title="Activar Notificaciones de Proximidad"
+            aria-label="Activar notificaciones"
           >
-            <i class="fas fa-question"></i>
+            <i class="fas fa-bell"></i>
+            <span class="notif-badge-dot" id="notif-badge-indicator"></span>
           </button>
 
           <button
             id="btn-center-location"
             class="control-btn btn-glass"
+            data-tooltip="Mi ubicación"
             title="Mi Ubicación Actual"
             aria-label="Centrar en mi ubicación actual"
           >
@@ -262,6 +255,7 @@
           <button
             id="btn-toggle-map-style"
             class="control-btn btn-glass"
+            data-tooltip="Estilo de mapa"
             title="Cambiar Estilo de Mapa"
             aria-label="Cambiar estilo de mapa"
           >
@@ -271,10 +265,21 @@
           <button
             id="btn-toggle-3d"
             class="control-btn btn-glass"
+            data-tooltip="Vista 3D"
             title="Alternar Vista 3D"
             aria-label="Alternar vista 3D"
           >
             <i class="fas fa-cube"></i>
+          </button>
+
+          <button
+            id="btn-abrir-ayuda"
+            class="control-btn btn-glass"
+            data-tooltip="Ayuda y guía"
+            title="Instrucciones y Ayuda"
+            aria-label="Instrucciones de la plataforma"
+          >
+            <i class="fas fa-question"></i>
           </button>
         </div>
       </div>
@@ -672,7 +677,7 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="assets/js/smooth_marker.js?v=1"></script>
-    <script src="assets/js/passenger_map.js?v=2026.3"></script>
+    <script src="assets/js/passenger_map.js?v=2026.4"></script>
     <script src="assets/js/pwa-install.js"></script>
   </body>
 </html>

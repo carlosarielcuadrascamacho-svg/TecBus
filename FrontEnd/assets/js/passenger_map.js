@@ -60,10 +60,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- C. BOTÓN DE NOTIFICACIONES ---
   const btnNotif = document.getElementById("btn-activar-notificaciones");
+  function actualizarEstadoNotif(btn) {
+    if (!btn) return;
+    if ("Notification" in window && Notification.permission === "granted") {
+      btn.classList.add("granted");
+      btn.setAttribute("title", "Notificaciones de proximidad activas");
+      btn.setAttribute("data-tooltip", "Alertas activadas");
+    } else {
+      btn.classList.remove("granted");
+      btn.setAttribute("title", "Activar Notificaciones de Proximidad");
+      btn.setAttribute("data-tooltip", "Alertas de proximidad");
+    }
+  }
+
   if (btnNotif) {
     const newBtn = btnNotif.cloneNode(true);
     btnNotif.parentNode.replaceChild(newBtn, btnNotif);
     newBtn.addEventListener("click", activarNotificaciones);
+    actualizarEstadoNotif(newBtn);
     console.log("✅ Botón de notificaciones activado");
   }
 
@@ -1268,6 +1282,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!response.ok)
         throw new Error(`Error del Servidor: ${response.status}`);
+
+      actualizarEstadoNotif(document.getElementById("btn-activar-notificaciones"));
 
       alert(
         "🎉 ¡ÉXITO! Notificaciones activadas.\n\nEn unos segundos deberías recibir una notificación de confirmación de la activación."
