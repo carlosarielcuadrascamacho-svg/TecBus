@@ -32,7 +32,7 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="assets/css/base.css?v=2026.2" />
-    <link rel="stylesheet" href="assets/css/passenger.css?v=2026.2" />
+    <link rel="stylesheet" href="assets/css/passenger.css?v=2026.3" />
 
     <!-- PWA Service Worker Registration -->
     <script src="assets/js/pwa.js?v=1"></script>
@@ -126,10 +126,17 @@
 
       <div class="fullscreen-content">
         <div class="ruta-selector-container">
-          <label for="calendar-ruta-selector">Selecciona la ruta para ver su horario:</label>
-          <select id="calendar-ruta-selector" class="big-select">
-            <option value="">-- Elige una ruta --</option>
-          </select>
+          <label for="calendar-ruta-selector" class="calendar-select-label">
+            <i class="fas fa-route"></i>
+            <span>Selecciona una ruta para consultar salidas programadas:</span>
+          </label>
+          <div class="calendar-select-box">
+            <i class="fas fa-bus-alt calendar-select-icon"></i>
+            <select id="calendar-ruta-selector" class="big-select" aria-label="Selecciona la ruta">
+              <option value="">-- Elige una ruta --</option>
+            </select>
+            <i class="fas fa-chevron-down calendar-select-arrow"></i>
+          </div>
         </div>
 
         <div id="calendario-semanal" class="calendar-grid">
@@ -313,19 +320,14 @@
 
       <div id="route-info-card" class="card-panel info-card hidden">
         <div class="drag-handle"></div>
+
+        <!-- Fila 1: Título de la ruta y botones de control (Favorito y Cerrar) -->
         <div class="info-card-header">
-          <div class="route-info-main">
+          <div class="route-title-group">
+            <i class="fas fa-bus-alt route-header-icon"></i>
             <span id="card-route-name">Cargando...</span>
-            <div class="eta-inline">
-              <span class="eta-time" id="card-eta">-- min</span>
-              <span class="eta-label">ETA</span>
-            </div>
           </div>
           <div class="header-actions">
-            <div id="traffic-badge" class="traffic-badge">
-              <i class="fas fa-bolt"></i>
-              <span>Fluido</span>
-            </div>
             <button id="btn-fav-route" class="fav-btn" title="Guardar ruta favorita" aria-label="Guardar ruta favorita">
               <i class="far fa-star"></i>
             </button>
@@ -334,6 +336,19 @@
             </button>
           </div>
         </div>
+
+        <!-- Fila 2: Telemetría ETA y Estado de Tráfico (Separados para evitar colisiones) -->
+        <div class="info-card-telemetry-row">
+          <div class="eta-pill-box">
+            <span class="eta-tag"><i class="fas fa-stopwatch"></i> ETA</span>
+            <span class="eta-time" id="card-eta">-- min</span>
+          </div>
+          <div id="traffic-badge" class="traffic-badge">
+            <i class="fas fa-bolt"></i>
+            <span>Fluido</span>
+          </div>
+        </div>
+
         <div class="info-card-body">
           <div class="details-row-compact">
             <span><i class="fas fa-route"></i> <span id="card-distance">-- km</span></span>
@@ -657,7 +672,7 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="assets/js/smooth_marker.js?v=1"></script>
-    <script src="assets/js/passenger_map.js?v=2026.2"></script>
+    <script src="assets/js/passenger_map.js?v=2026.3"></script>
     <script src="assets/js/pwa-install.js"></script>
   </body>
 </html>

@@ -748,56 +748,38 @@ header.passenger-header {
   pointer-events: none;
 }
 
+/* Fila 1: Título y Botones de Control */
 .info-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   gap: 12px;
 }
 
-.route-info-main {
-  flex: 1;
+.route-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
+  flex: 1;
+}
+
+.route-header-icon {
+  color: var(--color-primario-light);
+  font-size: 1.05rem;
+  flex-shrink: 0;
 }
 
 #card-route-name {
-  font-size: 1.12rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  margin-bottom: 4px;
-  display: block;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: #ffffff;
-}
-
-.eta-inline {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.eta-inline .eta-time {
-  font-size: 1.45rem;
-  font-weight: 800;
-  font-family: var(--font-mono);
-  color: var(--color-primario-light);
-  letter-spacing: -0.02em;
-  white-space: nowrap;
-}
-
-.eta-inline .eta-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--color-texto-gris);
-  text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--glass-border);
-  padding: 2px 7px;
-  border-radius: 4px;
-  letter-spacing: 0.05em;
 }
 
 .header-actions {
@@ -807,10 +789,63 @@ header.passenger-header {
   flex-shrink: 0;
 }
 
-.traffic-badge {
+/* Fila 2: Telemetría ETA + Tráfico (Independiente y sin colisiones) */
+.info-card-telemetry-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
+
+.eta-pill-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.eta-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-texto-gris);
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
   gap: 5px;
+  flex-shrink: 0;
+}
+
+.eta-tag i {
+  color: var(--color-primario-light);
+  font-size: 0.72rem;
+}
+
+.eta-time {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-primario-light);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.traffic-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 4px 10px;
   border-radius: var(--radius-full);
   font-size: 0.72rem;
@@ -820,9 +855,11 @@ header.passenger-header {
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
   border: 1px solid rgba(16, 185, 129, 0.3);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
-.traffic-badge.concurrido {
+.traffic-badge.busy {
   background: rgba(245, 158, 11, 0.15);
   color: #fbbf24;
   border-color: rgba(245, 158, 11, 0.3);
@@ -1526,7 +1563,7 @@ header.passenger-header {
 }
 
 /* ----------------------------------------------------- */
-/* 10. Calendario de Horarios                           */
+/* 10. Calendario de Horarios (#fullscreen-horarios)     */
 /* ----------------------------------------------------- */
 .ruta-selector-container {
   margin-bottom: 24px;
@@ -1535,38 +1572,188 @@ header.passenger-header {
   gap: 8px;
 }
 
-.ruta-selector-container label {
-  font-size: 0.9rem;
+.calendar-select-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--color-texto-gris);
 }
 
+.calendar-select-label i {
+  color: var(--color-primario-light);
+}
+
+.calendar-select-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.calendar-select-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--color-primario-light);
+  font-size: 1rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.calendar-select-arrow {
+  position: absolute;
+  right: 14px;
+  color: var(--color-texto-gris);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
 .big-select {
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 38px 12px 42px;
   background: rgba(11, 17, 32, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   color: #ffffff;
   font-size: 0.95rem;
   font-weight: 600;
+  appearance: none;
+  -webkit-appearance: none;
   outline: none;
   cursor: pointer;
+  transition: border-color var(--dur-hover) var(--ease-out), box-shadow var(--dur-hover) var(--ease-out);
+}
+
+.big-select:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.big-select:focus {
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
 }
 
 .calendar-grid {
-  background: rgba(11, 17, 32, 0.7);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  min-height: auto;
+}
+
+.day-card {
+  background: rgba(11, 17, 32, 0.9);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 24px;
-  min-height: 200px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--dur-hover) var(--ease-out), border-color var(--dur-hover) var(--ease-out);
+}
+
+.day-card:hover {
+  border-color: rgba(14, 165, 233, 0.35);
+  transform: translateY(-2px);
+}
+
+.day-header {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.16) 0%, rgba(2, 132, 199, 0.06) 100%);
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.day-header h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.day-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 90px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.cal-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  transition: background-color var(--dur-hover) var(--ease-out), border-color var(--dur-hover) var(--ease-out);
+}
+
+.cal-item:hover {
+  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(14, 165, 233, 0.25);
+}
+
+.cal-time {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-primario-light);
+  letter-spacing: -0.01em;
+}
+
+.cal-bus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-texto-gris);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cal-bus i {
+  color: var(--color-acento);
+  font-size: 0.85rem;
+}
+
+.no-service {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 12px;
+  color: var(--color-texto-apagado);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-style: italic;
 }
 
 .placeholder-text {
+  grid-column: 1 / -1;
   text-align: center;
   color: var(--color-texto-apagado);
-  margin: 40px 0;
+  padding: 48px 20px;
   font-size: 0.95rem;
+  background: rgba(11, 17, 32, 0.6);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
 }
 
 /* ----------------------------------------------------- */
