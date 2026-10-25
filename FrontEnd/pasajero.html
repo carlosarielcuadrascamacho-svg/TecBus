@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://mt1.google.com https://ui-avatars.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://tecbus-api.onrender.com wss://tecbus-api.onrender.com https://smartbus-mx.onrender.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://wttr.in https://mt1.google.com https://*.tile.openstreetmap.org http://localhost:5099 ws://localhost:5099 http://127.0.0.1:5099 ws://127.0.0.1:5099; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:;" />
     <script src="assets/js/config.js?v=1"></script>
     <script src="assets/js/api_client.js?v=1"></script>
@@ -29,20 +29,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    />
-    <link rel="stylesheet" href="assets/css/base.css" />
-    <link rel="stylesheet" href="assets/css/passenger.css" />
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-
-
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="assets/css/base.css?v=2026.2" />
+    <link rel="stylesheet" href="assets/css/passenger.css?v=2026.2" />
 
     <!-- PWA Service Worker Registration -->
     <script src="assets/js/pwa.js?v=1"></script>
@@ -50,15 +40,19 @@
 
   <body id="student-body">
     <header class="passenger-header">
-      <button class="menu-icon-btn" id="btn-menu-toggle" aria-label="Abrir menú de navegación">
-        <i class="fas fa-bars"></i>
-      </button>
+      <div class="header-left">
+        <button class="menu-icon-btn" id="btn-menu-toggle" aria-label="Abrir menú de navegación">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="header-brand">
+          <img src="assets/img/icons/icon-192x192.png" alt="Logo SmartBus" class="header-brand-img" width="28" height="28" />
+          <span class="header-brand-text">SmartBus</span>
+        </div>
+      </div>
 
-      <div class="header-brand-wrap">
+      <div class="header-center">
         <div class="header-title">
-          <div class="header-brand-dot" aria-hidden="true"></div>
           <h1>SmartBus</h1>
-          <p>Transporte Inteligente</p>
         </div>
       </div>
 
@@ -132,9 +126,7 @@
 
       <div class="fullscreen-content">
         <div class="ruta-selector-container">
-          <label for="calendar-ruta-selector"
-            >Selecciona la ruta para ver su horario:</label
-          >
+          <label for="calendar-ruta-selector">Selecciona la ruta para ver su horario:</label>
           <select id="calendar-ruta-selector" class="big-select">
             <option value="">-- Elige una ruta --</option>
           </select>
@@ -162,7 +154,9 @@
 
         <div class="profile-card">
           <div class="profile-avatar-wrap">
-            <i class="fas fa-user-circle profile-avatar"></i>
+            <div class="profile-avatar-inner">
+              <i class="fas fa-user"></i>
+            </div>
           </div>
           <h3 id="perfil-nombre-completo" class="profile-user-name">Cargando...</h3>
           <span id="perfil-rol" class="profile-role-badge">PASAJERO</span>
@@ -195,6 +189,7 @@
 
           <button
             class="btn btn-primary-lg profile-confirm-btn"
+            id="btn-perfil-accept"
             onclick="document.getElementById('btn-perfil-close').click()"
           >
             Aceptar
@@ -224,7 +219,7 @@
     <div id="map-container">
       <div id="map"></div>
 
-      <!-- 🚨 Avisos de incidentes enviados por el conductor (se filtran por ruta) -->
+      <!-- 🚨 Avisos de incidentes enviados por el conductor -->
       <div id="toast-container" aria-live="polite"></div>
 
       <div class="map-floating-controls">
@@ -238,53 +233,64 @@
           <span>Alertas</span>
         </button>
 
-        <button
-          id="btn-abrir-ayuda"
-          class="control-btn btn-glass"
-          title="Instrucciones de las Notificaciones"
-          aria-label="Instrucciones de notificaciones"
-        >
-          <i class="fas fa-question"></i>
-        </button>
+        <div class="floating-tools-dock">
+          <button
+            id="btn-abrir-ayuda"
+            class="control-btn btn-glass"
+            title="Instrucciones de las Notificaciones"
+            aria-label="Instrucciones de notificaciones"
+          >
+            <i class="fas fa-question"></i>
+          </button>
 
-        <button
-          id="btn-center-location"
-          class="control-btn btn-glass"
-          title="Mi Ubicación Actual"
-          aria-label="Centrar en mi ubicación actual"
-        >
-          <i class="fas fa-crosshairs"></i>
-        </button>
+          <button
+            id="btn-center-location"
+            class="control-btn btn-glass"
+            title="Mi Ubicación Actual"
+            aria-label="Centrar en mi ubicación actual"
+          >
+            <i class="fas fa-crosshairs"></i>
+          </button>
 
-        <button
-          id="btn-toggle-map-style"
-          class="control-btn btn-glass"
-          title="Cambiar Estilo de Mapa"
-          aria-label="Cambiar estilo de mapa"
-        >
-          <i class="fas fa-layer-group"></i>
-        </button>
+          <button
+            id="btn-toggle-map-style"
+            class="control-btn btn-glass"
+            title="Cambiar Estilo de Mapa"
+            aria-label="Cambiar estilo de mapa"
+          >
+            <i class="fas fa-layer-group"></i>
+          </button>
 
-        <button
-          id="btn-toggle-3d"
-          class="control-btn btn-glass"
-          title="Alternar Vista 3D"
-          aria-label="Alternar vista 3D"
-        >
-          <i class="fas fa-cube"></i>
-        </button>
+          <button
+            id="btn-toggle-3d"
+            class="control-btn btn-glass"
+            title="Alternar Vista 3D"
+            aria-label="Alternar vista 3D"
+          >
+            <i class="fas fa-cube"></i>
+          </button>
+        </div>
       </div>
 
       <div class="map-controls card-panel">
-        <div class="route-select-wrapper">
-          <label for="ruta-selector" class="route-select-label">
-            <i class="fas fa-bus-alt"></i>
-            <span>Ruta</span>
-          </label>
-          <div class="custom-select-container">
+        <div class="route-select-card">
+          <div class="route-select-header">
+            <div class="route-select-meta">
+              <i class="fas fa-route"></i>
+              <span>Ruta de Transporte</span>
+            </div>
+            <div class="route-live-badge">
+              <span class="live-dot-ping"></span>
+              <span class="live-dot"></span>
+              <span>En Vivo</span>
+            </div>
+          </div>
+          <div class="route-select-box">
+            <i class="fas fa-bus-alt route-box-icon"></i>
             <select id="ruta-selector" class="custom-select" aria-label="Selecciona tu ruta de transporte">
               <option value="">Cargando rutas disponibles...</option>
             </select>
+            <i class="fas fa-chevron-down route-box-arrow"></i>
           </div>
         </div>
       </div>
@@ -320,10 +326,10 @@
               <i class="fas fa-bolt"></i>
               <span>Fluido</span>
             </div>
-            <button id="btn-fav-route" class="fav-btn">
+            <button id="btn-fav-route" class="fav-btn" title="Guardar ruta favorita" aria-label="Guardar ruta favorita">
               <i class="far fa-star"></i>
             </button>
-            <button id="btn-close-card" class="close-card-btn">
+            <button id="btn-close-card" class="close-card-btn" title="Ocultar información" aria-label="Ocultar información">
               <i class="fas fa-times"></i>
             </button>
           </div>
@@ -359,7 +365,7 @@
           <!-- Acciones Integradas en la Tarjeta -->
           <div class="info-card-actions">
             <button id="btn-estoy-aqui-card" class="btn btn-primary-compact">
-              <i class="fas fa-location-arrow"></i> Notificar
+              <i class="fas fa-location-arrow"></i> Notificar mi Parada
             </button>
             <button id="btn-ver-historial-card" class="btn btn-secondary-compact">
               <i class="fas fa-history"></i> Historial
@@ -372,9 +378,9 @@
     <div id="fullscreen-instrucciones" class="fullscreen-overlay">
       <div class="overlay-header">
         <div class="header-title">
-          <i class="fas fa-broadcast-tower"></i>  Guía de Conexión
+          <i class="fas fa-broadcast-tower"></i> Guía de Conexión
         </div>
-        <button id="btn-cerrar-instrucciones" class="close-overlay-btn">
+        <button id="btn-cerrar-instrucciones" class="close-overlay-btn" aria-label="Cerrar instrucciones">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -391,22 +397,14 @@
           <div class="instructions-grid">
             <div class="instruction-card fade-in-up delay-1">
               <div class="card-icon" style="color: #28a745">
-                <i class="fab fa-chrome"></i> <i class="fab fa-edge"></i> <i class="fab fa-android" style="transform: translateY(0px);"></i>
+                <i class="fab fa-chrome"></i> <i class="fab fa-edge"></i> <i class="fab fa-android"></i>
               </div>
               <h3>Chrome / Edge (Android)</h3>
               <p class="desc">Nativo y rápido.</p>
               <ul class="steps">
-                <li>
-                  1. Clic en el botón <i class="fas fa-bell"></i> del mapa.
-                </li>
-                <li>
-                  2. Selecciona <span class="badge-allow">Permitir</span> cuando
-                  pregunte.
-                </li>
-                <li>
-                  3. Si no pregunta, clic en el candado 🔒 de la URL y
-                  "Restablecer permisos".
-                </li>
+                <li>1. Clic en el botón <i class="fas fa-bell"></i> del mapa.</li>
+                <li>2. Selecciona <span class="badge-allow">Permitir</span> cuando pregunte.</li>
+                <li>3. Si no pregunta, clic en el candado 🔒 de la URL y "Restablecer permisos".</li>
               </ul>
             </div>
 
@@ -417,14 +415,8 @@
               <h3>Brave Browser</h3>
               <p class="desc">Requiere permiso especial.</p>
               <ul class="steps">
-                <li>
-                  1. Ve a <strong>Configuración</strong> >
-                  <strong>Privacidad</strong>.
-                </li>
-                <li>
-                  2. Activa:
-                  <em>"Usar servicios de Google para mensajería push"</em>.
-                </li>
+                <li>1. Ve a <strong>Configuración</strong> > <strong>Privacidad</strong>.</li>
+                <li>2. Activa: <em>"Usar servicios de Google para mensajería push"</em>.</li>
                 <li>3. Reinicia el navegador.</li>
               </ul>
             </div>
@@ -436,10 +428,7 @@
               <h3>iOS (iPhone/iPad)</h3>
               <p class="desc">Requiere instalar como App.</p>
               <ul class="steps">
-                <li>
-                  1. Toca el botón <strong>Compartir</strong>
-                  <i class="fas fa-share-square"></i>.
-                </li>
+                <li>1. Toca el botón <strong>Compartir</strong> <i class="fas fa-share-square"></i>.</li>
                 <li>2. Elige <strong>"Agregar a Inicio"</strong>.</li>
                 <li>3. Abre la nueva App creada en tu inicio.</li>
                 <li>4. Activa las alertas desde ahí.</li>
@@ -465,40 +454,41 @@
       <div class="overlay-content overlay-content-wallet">
         <div class="wallet-layout-container">
 
-          <!-- 1. TARJETA DIGITAL DE TRÁNSITO INTELIGENTE -->
+          <!-- TARJETA DIGITAL DE TRÁNSITO INTELIGENTE -->
           <div class="transit-card">
-            <div class="transit-card-shimmer" aria-hidden="true"></div>
-            
             <div class="transit-card-top">
               <div class="transit-card-brand">
-                <span class="transit-chip-icon" aria-hidden="true"></span>
-                <i class="fas fa-wifi transit-nfc-icon" title="Pago sin contacto NFC activo"></i>
+                <img src="assets/img/icons/icon-192x192.png" alt="SmartBus" class="transit-brand-logo" width="32" height="32" />
+                <div class="transit-brand-info">
+                  <span class="transit-brand-title">SmartBus Pass</span>
+                  <span class="transit-brand-subtitle">Transporte Inteligente · Guamúchil</span>
+                </div>
               </div>
               <div class="transit-card-status">
                 <span class="transit-status-dot"></span>
-                <span>Pase Digital Activo</span>
+                <span>Pase Activo</span>
               </div>
             </div>
 
             <div class="transit-card-middle">
-              <span class="transit-balance-label">Saldo Disponible en Tarjeta</span>
+              <span class="transit-balance-label">Saldo Disponible</span>
               <h1 id="monedero-saldo-vista" class="transit-balance-value font-mono">$--</h1>
-              <p class="transit-balance-caption">Válido en todas las rutas activas de SmartBus</p>
+              <p class="transit-balance-caption">Válido en todas las unidades y rutas activas</p>
             </div>
 
             <div class="transit-card-bottom">
               <div class="transit-card-meta">
                 <span class="transit-meta-label">Titular</span>
-                <span class="transit-meta-val">Pasajero SmartBus</span>
+                <span class="transit-meta-val">Pasajero Conectado</span>
               </div>
               <div class="transit-card-meta text-right">
-                <span class="transit-meta-label">ID Virtual</span>
-                <span class="transit-meta-val font-mono">•••• 8421</span>
+                <span class="transit-meta-label">Validación</span>
+                <span class="transit-meta-val"><i class="fas fa-wifi" style="transform: rotate(90deg); margin-right: 4px; color: var(--color-primario);"></i> NFC / QR Oficial</span>
               </div>
             </div>
           </div>
 
-          <!-- 2. HISTORIAL DE TRANSACCIONES -->
+          <!-- HISTORIAL DE TRANSACCIONES -->
           <div class="wallet-history-panel">
             <div class="wallet-history-header">
               <i class="fas fa-receipt"></i>
@@ -519,7 +509,7 @@
         <div class="header-title">
           <i class="fas fa-question-circle"></i> Centro de Ayuda
         </div>
-        <button class="close-overlay-btn" onclick="cerrarModalAyuda()">
+        <button class="close-overlay-btn" onclick="cerrarModalAyuda()" aria-label="Cerrar ayuda">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -587,7 +577,7 @@
               </div>
             </div>
 
-            <!-- Pregunta 6 (NUEVA: Significado de ETA) -->
+            <!-- Pregunta 6 -->
             <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
               <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
                 <span style="font-weight: 600;"><i class="fas fa-stopwatch" style="color: var(--color-primario); width: 25px;"></i> ¿Qué significa ETA en la tarjeta de la ruta?</span>
@@ -598,7 +588,7 @@
               </div>
             </div>
 
-            <!-- Pregunta 7 (Marcador de ubicación) -->
+            <!-- Pregunta 7 -->
             <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
               <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
                 <span style="font-weight: 600;"><i class="fas fa-map-marker-alt" style="color: var(--color-primario); width: 25px;"></i> ¿Qué es el marcador azul claro en el mapa?</span>
@@ -609,7 +599,7 @@
               </div>
             </div>
 
-            <!-- Pregunta 8 (Línea y Puntos) -->
+            <!-- Pregunta 8 -->
             <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
               <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
                 <span style="font-weight: 600;"><i class="fas fa-route" style="color: var(--color-primario); width: 25px;"></i> ¿Qué son la línea azul y los puntos amarillos?</span>
@@ -620,7 +610,7 @@
               </div>
             </div>
 
-            <!-- Pregunta 9 (Mi Monedero) -->
+            <!-- Pregunta 9 -->
             <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
               <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
                 <span style="font-weight: 600;"><i class="fas fa-wallet" style="color: var(--color-primario); width: 25px;"></i> ¿Cómo recargo mi monedero?</span>
@@ -631,14 +621,14 @@
               </div>
             </div>
 
-            <!-- Pregunta 10 (Gastos e Ingresos) -->
+            <!-- Pregunta 10 -->
             <div class="instruction-card" style="margin-bottom: 12px; padding: 0; text-align: left;">
               <button onclick="toggleFaq(this)" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px; background: transparent; border: none; color: white; font-size: 1.05rem; cursor: pointer; outline: none;">
                 <span style="font-weight: 600;"><i class="fas fa-receipt" style="color: var(--color-primario); width: 25px;"></i> ¿Dónde puedo ver mis gastos e ingresos?</span>
                 <i class="fas fa-chevron-down" style="transition: transform 0.3s ease;"></i>
               </button>
               <div class="faq-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.3s ease; padding: 0 18px; background: rgba(255,255,255,0.02);">
-                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Ve a la sección "Mi Monedero" desde el menú principal. En la parte inferior encontrarás tu historial bancario detallado. Tus <strong>ingresos (recargas)</strong> resaltarán en color verde indicando que sumaste saldo, mientras que tus <strong>gastos (pagos de pasaje)</strong> mostrarán el ícono de un camión, el nombre de la ruta que tomaste y se restarán de tu saldo disponible.</p>
+                <p style="padding-bottom: 18px; color: #ccc; margin: 0; font-size: 0.9rem;">Ve a la sección "Mi Monedero" desde el menú principal. En la parte inferior encontrarás tu historial de movimientos detallado. Tus <strong>ingresos (recargas)</strong> resaltarán en color verde indicando que sumaste saldo, mientras que tus <strong>gastos (pagos de pasaje)</strong> mostrarán el ícono de un camión, el nombre de la ruta que tomaste y se restarán de tu saldo disponible.</p>
               </div>
             </div>
 
@@ -665,12 +655,9 @@
 
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-
-    <!-- Agrega esta línea para que el monedero y las alertas funcionen -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script src="assets/js/smooth_marker.js?v=1"></script>
-    <script src="assets/js/passenger_map.js?v=7"></script>
+    <script src="assets/js/passenger_map.js?v=2026.2"></script>
     <script src="assets/js/pwa-install.js"></script>
   </body>
 </html>
