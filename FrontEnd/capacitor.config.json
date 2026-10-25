@@ -1,0 +1,9 @@
+{
+  "appId": "com.smartbus.app",
+  "appName": "SmartBus",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}
