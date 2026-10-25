@@ -59,16 +59,25 @@ document.addEventListener("DOMContentLoaded", () => {
   function initGoogleAuth() {
     const clientId = window.GOOGLE_CLIENT_ID || "935209953046-9uked6lm4ob8bkk6ek2653bj14a5ss4k.apps.googleusercontent.com";
     if (window.google && window.google.accounts && clientId) {
-      try {
-        google.accounts.id.initialize({
-          client_id: clientId,
-          callback: procesarInicioSesionGoogle,
-          auto_select: false,
-        });
+      if (window.__gsi_login_initialized) return;
+      window.__gsi_login_initialized = true;
 
-        const container = document.getElementById("google-btn-container");
-        const existingBtn = document.querySelector(".g_id_signin iframe, #google-btn-container iframe");
-        if (container && !existingBtn) {
+      if (!document.getElementById("g_id_onload")) {
+        try {
+          google.accounts.id.initialize({
+            client_id: clientId,
+            callback: procesarInicioSesionGoogle,
+            auto_select: false,
+          });
+        } catch (err) {
+          console.warn("Google Sign-In init error:", err);
+        }
+      }
+
+      const container = document.getElementById("google-btn-container");
+      const existingBtn = document.querySelector(".g_id_signin iframe, #google-btn-container iframe");
+      if (container && !existingBtn && !document.querySelector(".g_id_signin")) {
+        try {
           google.accounts.id.renderButton(container, {
             theme: "filled_black",
             size: "large",
@@ -78,9 +87,9 @@ document.addEventListener("DOMContentLoaded", () => {
             logo_alignment: "left",
             width: 320,
           });
+        } catch (err) {
+          console.warn("Google renderButton error:", err);
         }
-      } catch (err) {
-        console.warn("Google Sign-In init error:", err);
       }
     } else {
       setTimeout(initGoogleAuth, 300);

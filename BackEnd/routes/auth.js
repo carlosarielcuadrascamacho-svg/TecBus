@@ -127,11 +127,7 @@ router.post('/google', async (req, res) => {
             return res.status(400).json({ message: 'Credencial de Google no proporcionada.' });
         }
 
-        const clientId = process.env.GOOGLE_CLIENT_ID;
-        if (!clientId) {
-            console.error('GOOGLE_CLIENT_ID no está configurado en las variables de entorno.');
-            return res.status(500).json({ message: 'Autenticación con Google no configurada en el servidor.' });
-        }
+        const clientId = process.env.GOOGLE_CLIENT_ID || '935209953046-9uked6lm4ob8bkk6ek2653bj14a5ss4k.apps.googleusercontent.com';
 
         // 1. Validar el token con los servidores de Google
         const ticket = await googleClient.verifyIdToken({

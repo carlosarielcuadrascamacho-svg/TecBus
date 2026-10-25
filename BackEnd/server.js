@@ -128,6 +128,8 @@ const cspDirectives = {
   formAction: ["'self'"],
   scriptSrc: [
     "'self'",
+    "https://accounts.google.com",
+    "https://accounts.google.com/gsi/client",
     "https://cdn.jsdelivr.net",
     "https://unpkg.com",
     "https://cdn.socket.io",
@@ -137,6 +139,7 @@ const cspDirectives = {
   styleSrc: [
     "'self'",
     "'unsafe-inline'",
+    "https://accounts.google.com/gsi/style",
     "https://cdn.jsdelivr.net",
     "https://unpkg.com",
     "https://cdnjs.cloudflare.com",
@@ -152,6 +155,8 @@ const cspDirectives = {
     "'self'",
     "data:",
     "blob:",
+    "https://lh3.googleusercontent.com",
+    "https://ssl.gstatic.com",
     "https://basemaps.cartocdn.com",
     "https://tiles.basemaps.cartocdn.com",
     "https://mt1.google.com",
@@ -163,6 +168,8 @@ const cspDirectives = {
   connectSrc: [
     "'self'",
     // Hosts externos que la aplicación puede consultar.
+    "https://accounts.google.com",
+    "https://accounts.google.com/gsi/",
     "https://cdn.jsdelivr.net",
     "https://unpkg.com",
     "https://cdn.socket.io",
@@ -185,8 +192,9 @@ const cspDirectives = {
     "http://127.0.0.1:5099",
     "ws://127.0.0.1:5099",
   ],
+  frameSrc: ["'self'", "https://accounts.google.com", "https://accounts.google.com/gsi/"],
   workerSrc: ["'self'", "blob:"],
-  childSrc: ["'self'", "blob:"],
+  childSrc: ["'self'", "blob:", "https://accounts.google.com", "https://accounts.google.com/gsi/"],
   mediaSrc: ["'self'", "blob:", "data:"],
 };
 
@@ -196,6 +204,8 @@ app.use(
       useDefaults: false,
       directives: cspDirectives,
     },
+    // Permite que la ventana emergente de Google OAuth se comunique por window.postMessage:
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     // El frontend (otro dominio) consume la API por CORS:
     crossOriginResourcePolicy: { policy: "cross-origin" },
     crossOriginEmbedderPolicy: false,
