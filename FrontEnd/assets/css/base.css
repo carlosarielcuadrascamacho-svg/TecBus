@@ -337,3 +337,32 @@ button:active, .btn:active {
     scroll-behavior: auto !important;
   }
 }
+
+/* Integración y Corrección Visual de Google Sign-In en Tema Oscuro */
+.google-btn-wrapper,
+.g_id_signin,
+#google-btn-container {
+  color-scheme: light !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  border-radius: 9999px !important;
+  overflow: hidden !important;
+  display: inline-flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  max-height: 44px !important;
+  line-height: 0 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.google-btn-wrapper iframe,
+.g_id_signin iframe,
+#google-btn-container iframe {
+  color-scheme: light !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-radius: 9999px !important;
+  border: none !important;
+  display: block !important;
+}
