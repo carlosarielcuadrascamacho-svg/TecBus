@@ -5,7 +5,14 @@ const router = express.Router();
 const User = require('../models/User'); // Importamos nuestro Modelo de Usuario
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 const { protect } = require('../middleware/authMiddleware');
+
+const googleClient = new OAuth2Client();
+
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'l2225010051@guasave.tecnm.mx')
+    .split(',')
+    .map(e => e.trim().toLowerCase());
 const {
     TOKEN_COOKIE,
     opcionesCookie,
@@ -24,6 +31,8 @@ function datosPublicos(user) {
         conductor: user.conductor,
         estudiante: user.estudiante,
         administrador: user.administrador,
+        avatar: user.avatar,
+        authProvider: user.authProvider,
     };
 }
 
@@ -156,6 +165,124 @@ router.post('/session', protect, (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error en el servidor.' });
+    }
+});
+
+// --- RUTA DE LOGIN CON GOOGLE (POST /api/auth/google) ---
+router.post('/google', async (req, res) => {
+    try {
+        const { credential } = req.body;
+        if (!credential) {
+            return res.status(400).json({ message: 'Credencial de Google no proporcionada.' });
+        }
+
+        const clientId = process.env.GOOGLE_CLIENT_ID;
+        if (!clientId) {
+            console.error('GOOGLE_CLIENT_ID no está configurado en las variables de entorno.');
+            return res.status(500).json({ message: 'Autenticación con Google no configurada en el servidor.' });
+        }
+
+        // 1. Validar el token con los servidores de Google
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: clientId,
+        });
+
+        const payload = ticket.getPayload();
+        if (!payload || !payload.email) {
+            return res.status(400).json({ message: 'Error validando identidad con Google.' });
+        }
+
+        if (!payload.email_verified) {
+            return res.status(400).json({ message: 'El correo de Google no está verificado.' });
+        }
+
+        const email = String(payload.email).trim().toLowerCase();
+        const googleId = payload.sub;
+        const nombre = payload.name || payload.given_name || email.split('@')[0];
+        const avatar = payload.picture;
+
+        // 2. Determinar privilegios
+        const esAdmin = ADMIN_EMAILS.includes(email);
+        const esEstudianteTecNM = email.endsWith('@guasave.tecnm.mx');
+
+        // 3. Buscar si el usuario ya existe por googleId o email
+        let user = await User.findOne({
+            $or: [{ googleId: googleId }, { email: email }]
+        });
+
+        if (user) {
+            let modificado = false;
+            if (!user.googleId) {
+                user.googleId = googleId;
+                user.authProvider = user.password ? 'both' : 'google';
+                modificado = true;
+            }
+            if (!user.avatar && avatar) {
+                user.avatar = avatar;
+                modificado = true;
+            }
+            if (!user.emailVerified) {
+                user.emailVerified = true;
+                modificado = true;
+            }
+            // Blindaje del admin: tu correo siempre es y será administrador
+            if (esAdmin && user.tipo !== 'administrador') {
+                user.tipo = 'administrador';
+                if (!user.administrador) {
+                    user.administrador = { nivelAcceso: 'superadmin', permisos: ['all'] };
+                }
+                modificado = true;
+            }
+            if (modificado) {
+                await user.save();
+            }
+        } else {
+            // Usuario nuevo
+            const tipoUsuario = esAdmin ? 'administrador' : 'estudiante';
+
+            user = new User({
+                nombre: nombre,
+                email: email,
+                googleId: googleId,
+                authProvider: 'google',
+                avatar: avatar,
+                emailVerified: true,
+                tipo: tipoUsuario,
+                es_estudiante: esEstudianteTecNM,
+                estado: 'activo',
+                estudiante: {
+                    matricula: esEstudianteTecNM ? email.split('@')[0].toUpperCase() : 'PENDIENTE',
+                    carrera: 'PENDIENTE',
+                },
+                administrador: esAdmin ? { nivelAcceso: 'superadmin', permisos: ['all'] } : undefined
+            });
+            await user.save();
+        }
+
+        // 4. Crear JWT para la sesión en TecBus
+        const token = jwt.sign(
+            {
+                id: user._id,
+                tipo: user.tipo,
+                tokenVersion: user.tokenVersion ?? 0,
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '12h' }
+        );
+
+        // 5. Configurar cookie HttpOnly
+        res.cookie(TOKEN_COOKIE, token, opcionesCookie(req));
+
+        // 6. Devolver datos públicos
+        res.json({
+            user: datosPublicos(user),
+            token: token
+        });
+
+    } catch (error) {
+        console.error('Error en login con Google:', error);
+        res.status(401).json({ message: 'Token de Google inválido o expirado.' });
     }
 });
 

@@ -182,7 +182,8 @@ static const int LED_BUILTIN_PIN = 2;  // LED integrado ESP32
 TinyGPSPlus gps;
 HardwareSerial gpsSerial(2);        // UART2 para GPS
 
-MFRC522 mfrc522(RFID_SS_PIN, RFID_RST_PIN);
+MFRC522 rfid(RFID_SS_PIN, RFID_RST_PIN);
+#define mfrc522 rfid
 
 WiFiClientSecure clienteTLS;        // TLS para HTTPS (global, conserva la sesión)
 HTTPClient httpCliente;             // Cliente HTTP global: evita cerrar TLS en cada envío
@@ -335,18 +336,13 @@ void setup() {
   digitalWrite(RFID_RST_PIN, HIGH);
   delay(50);
 
-  SPI.begin(18, 19, 23, 5);
-  SPI.setFrequency(500000);  // 500 kHz en el bus SPI para compensar el cable largo CAT6
-  mfrc522.PCD_Init();
-  delay(80);  // Estabilización módulo RFID
-  mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_max); // Aumentar alcance y sensibilidad de lectura
-  byte rfidVer = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
-  if (rfidVer == 0x00 || rfidVer == 0xFF) {
-    Serial.printf("[RFID] ⚠️ ERROR: Módulo RC522 NO responde en bus SPI (Versión: 0x%02X)\n", rfidVer);
-    Serial.println(F("       Revisa cables: VCC=3.3V, GND, SDA=GPIO5, SCK=18, MOSI=23, MISO=19, RST=4"));
-  } else {
-    Serial.printf("[RFID] MFRC522 detectado correctamente (Firmware: 0x%02X, Ganancia MAX)\n", rfidVer);
-  }
+  SPI.begin(18, 19, 23, 5); // SCK, MISO, MOSI, SS
+  delay(50);
+  rfid.PCD_Init();
+  delay(50);
+  rfid.PCD_SetAntennaGain(rfid.RxGain_max);
+  Serial.print("[RFID] Version del chip: ");
+  rfid.PCD_DumpVersionToSerial();
 
   // --- DHT22 ---
   dht.begin();

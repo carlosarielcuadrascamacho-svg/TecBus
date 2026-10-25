@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://mt1.google.com https://ui-avatars.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://tecbus-api.onrender.com wss://tecbus-api.onrender.com https://smartbus-mx.onrender.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://wttr.in https://mt1.google.com https://*.tile.openstreetmap.org http://localhost:5099 ws://localhost:5099 http://127.0.0.1:5099 ws://127.0.0.1:5099; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://accounts.google.com/gsi/client https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://lh3.googleusercontent.com https://ssl.gstatic.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://mt1.google.com https://ui-avatars.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://accounts.google.com/gsi/ https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://tecbus-api.onrender.com wss://tecbus-api.onrender.com https://smartbus-mx.onrender.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://wttr.in https://mt1.google.com https://*.tile.openstreetmap.org http://localhost:5099 ws://localhost:5099 http://127.0.0.1:5099 ws://127.0.0.1:5099; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; child-src 'self' blob: https://accounts.google.com/gsi/; media-src 'self' blob: data:;" />
     <script type="module" src="/assets/js/config.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="assets/js/api_client.js?v=1"></script>
     <title>Iniciar Sesión | SmartBus</title>
     <meta name="description" content="Inicia sesión en SmartBus - Plataforma de transporte público inteligente en Guamúchil.">
@@ -56,6 +57,18 @@
         <p class="auth-subtitle">
           Ingresa al sistema de movilidad <span class="text-primary fw-semibold">SmartBus</span>
         </p>
+      </div>
+
+      <!-- Inicio de Sesión Rápido y Seguro con Google -->
+      <div class="mb-3 d-flex flex-column align-items-center">
+        <div id="google-btn-container" class="w-100 d-flex justify-content-center"></div>
+      </div>
+
+      <div class="position-relative text-center my-4">
+        <hr class="border-secondary opacity-25 m-0" />
+        <span class="position-absolute top-50 start-50 translate-middle px-3 bg-dark text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">
+          O con credenciales
+        </span>
       </div>
 
       <form id="login-form">

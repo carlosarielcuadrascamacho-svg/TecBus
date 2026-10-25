@@ -4,6 +4,7 @@
 **/SecretKeys.txt
 **/secrets.h
 **/build/
+**/client_secret_*.json
 .taste-skill/
 HALLAZGOS_AUDITORIA.txt
 GOOGLE_AUTH_PLAN.txt

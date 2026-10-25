@@ -40,8 +40,26 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true, // Tu diseño especifica "Hash"
+        required: false, // Opcional para cuentas de Google
         select: false // Nunca se devuelve por accidente en consultas normales
+    },
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true,
+        trim: true
+    },
+    authProvider: {
+        type: String,
+        enum: ['local', 'google', 'both'],
+        default: 'local'
+    },
+    avatar: {
+        type: String
+    },
+    emailVerified: {
+        type: Boolean,
+        default: false
     },
     tipo: {
         type: String,

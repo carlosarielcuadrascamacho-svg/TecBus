@@ -1,9 +1,87 @@
 // frontend/assets/js/login.js
 
+async function procesarInicioSesionGoogle(response) {
+  const messageEl = document.getElementById("auth-message");
+  if (messageEl) {
+    messageEl.textContent = "Verificando cuenta con Google...";
+    messageEl.className = "text-info mb-3";
+  }
+
+  try {
+    const res = await fetch(BACKEND_URL + "/api/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential: response.credential }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || "Error al autenticar con Google");
+    }
+
+    localStorage.removeItem("tecbus_token");
+    localStorage.setItem("tecbus_user", JSON.stringify(data.user));
+
+    const paneles = {
+      estudiante: "pasajero.html",
+      conductor: "conductor.html",
+      administrador: "admin.html",
+      usuario: "pasajero.html",
+    };
+
+    const destino = paneles[data.user.tipo] || "pasajero.html";
+
+    if (messageEl) {
+      messageEl.textContent = `¡Hola, ${data.user.nombre}! Redirigiendo...`;
+      messageEl.className = "text-success mb-3";
+    }
+
+    setTimeout(() => {
+      window.location.href = destino;
+    }, 800);
+  } catch (error) {
+    console.error("Error en Google Sign-In:", error);
+    if (messageEl) {
+      messageEl.textContent = error.message;
+      messageEl.className = "text-danger mb-3";
+    }
+  }
+}
+
+window.handleGoogleCredentialResponse = procesarInicioSesionGoogle;
+
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login-form");
   const messageEl = document.getElementById("auth-message");
   const submitButton = loginForm.querySelector('button[type="submit"]');
+
+  // Inicializar Google Sign-In si está disponible el SDK de Google
+  function initGoogleAuth() {
+    const clientId = window.GOOGLE_CLIENT_ID || "935209953046-9uked6lm4ob8bkk6ek2653bj14a5ss4k.apps.googleusercontent.com";
+    if (window.google && window.google.accounts && clientId) {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: procesarInicioSesionGoogle,
+        auto_select: false,
+      });
+
+      const container = document.getElementById("google-btn-container");
+      if (container) {
+        google.accounts.id.renderButton(container, {
+          theme: "filled_black",
+          size: "large",
+          type: "standard",
+          shape: "pill",
+          text: "continue_with",
+          logo_alignment: "left",
+          width: 320,
+        });
+      }
+    } else {
+      setTimeout(initGoogleAuth, 300);
+    }
+  }
+  initGoogleAuth();
 
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault(); // Evita que la página se recargue
