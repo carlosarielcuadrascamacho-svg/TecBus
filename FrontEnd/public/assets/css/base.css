@@ -1,0 +1,339 @@
+/* ==========================================================================
+   SmartBus — Base Stylesheet & Design System Tokens
+   Shared design foundation across Landing, Pasajero, Conductor, Admin & Auth.
+   Aligned with Emil Kowalski motion tokens & Impeccable typography standards.
+   ========================================================================== */
+
+/* 1. Importación de Fuentes */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap");
+
+/* 2. Variables de Diseño (Tema Obsidian & Transit Blue) */
+:root {
+  /* Paleta Base */
+  --color-fondo: #060913;
+  --color-fondo-alt: #03060d;
+  --color-superficie: #0b1120;
+  --color-superficie-card: rgba(15, 23, 42, 0.75);
+  --color-superficie-elevada: #111a2e;
+  --color-superficie-hover: rgba(24, 34, 60, 0.85);
+
+  /* Acentos de Marca */
+  --color-primario: #0ea5e9;
+  --color-primario-dark: #0284c7;
+  --color-primario-light: #38bdf8;
+  --color-primario-rgb: 14, 165, 233;
+  
+  --color-secundario: rgba(255, 255, 255, 0.08);
+  --color-acento: #10b981;
+  --color-acento-rgb: 16, 185, 129;
+  --color-hover: #0284c7;
+
+  /* Estados */
+  --color-exito: #10b981;
+  --color-error: #ef4444;
+  --color-error-hover: #dc2626;
+  --color-alerta: #f59e0b;
+
+  /* Tipografía */
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-texto-claro: #f8fafc;
+  --color-texto-gris: #94a3b8;
+  --color-texto-apagado: #64748b;
+  --color-borde: rgba(255, 255, 255, 0.08);
+
+  /* Glassmorphism & Efectos */
+  --glass-bg: rgba(11, 17, 32, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(16px);
+  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 24px rgba(14, 165, 233, 0.25);
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  /* Emil Kowalski Motion Tokens */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-press: 140ms;
+  --dur-hover: 200ms;
+  --dur-motion: 280ms;
+
+  /* Override de variables Bootstrap */
+  --bs-body-bg: var(--color-fondo);
+  --bs-body-color: var(--color-texto-claro);
+  --bs-primary: var(--color-primario);
+  --bs-primary-rgb: var(--color-primario-rgb);
+  --bs-border-color: var(--color-borde);
+}
+
+/* 3. Estilos Base Globales */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: var(--color-fondo);
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-fondo);
+  color: var(--color-texto-claro);
+  margin: 0;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: var(--color-primario);
+  transition: color var(--dur-hover) var(--ease-out);
+}
+a:hover {
+  color: var(--color-primario-light);
+}
+
+/* Emil Kowalski: Microinteracciones táctiles en botones */
+button, .btn {
+  font-family: var(--font-sans);
+  transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-hover) var(--ease-out), border-color var(--dur-hover) var(--ease-out), box-shadow var(--dur-hover) var(--ease-out);
+}
+button:active, .btn:active {
+  transform: scale(0.97);
+}
+
+/* Scrollbars personalizados con acento discreto */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-fondo);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 165, 233, 0.4);
+}
+
+/* Overrides para Bootstrap en Modo Oscuro */
+[data-bs-theme="dark"] body {
+  background-color: var(--color-fondo);
+  color: var(--color-texto-claro);
+}
+
+[data-bs-theme="dark"] .card {
+  background-color: var(--color-superficie-card);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--glass-shadow);
+}
+
+/* MapLibre Popup Styling */
+.maplibregl-popup-content {
+  background: rgba(11, 17, 32, 0.95) !important;
+  color: var(--color-texto-claro) !important;
+  border: 1px solid rgba(14, 165, 233, 0.3) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8) !important;
+  padding: 14px 16px !important;
+  backdrop-filter: blur(10px) !important;
+}
+.maplibregl-popup-content * {
+  color: var(--color-texto-claro) !important;
+}
+.maplibregl-popup-tip {
+  border-top-color: rgba(11, 17, 32, 0.95) !important;
+}
+.maplibregl-popup-close-button {
+  color: var(--color-texto-gris) !important;
+  font-size: 16px !important;
+  padding: 4px 8px !important;
+}
+.maplibregl-popup-close-button:hover {
+  color: #fff !important;
+  background: transparent !important;
+}
+
+/* ─── PWA Install Banner (Rediseñado y Moderno) ─── */
+#pwa-install-banner {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  width: calc(100% - 32px);
+  max-width: 440px;
+  background: rgba(11, 17, 32, 0.92);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), var(--shadow-glow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: pwa-banner-slide-up var(--dur-motion) var(--ease-out);
+  transition: opacity var(--dur-motion) var(--ease-out), transform var(--dur-motion) var(--ease-out);
+}
+#pwa-install-banner.pwa-banner-hiding {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
+}
+.pwa-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+}
+.pwa-banner-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primario), var(--color-primario-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
+}
+.pwa-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pwa-banner-text strong {
+  color: var(--color-texto-claro);
+  font-size: 14px;
+  font-weight: 700;
+}
+.pwa-banner-text span {
+  color: var(--color-texto-gris);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pwa-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.pwa-banner-btn {
+  background: linear-gradient(135deg, var(--color-primario), var(--color-primario-dark));
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+  transition: transform var(--dur-press) var(--ease-out), box-shadow var(--dur-hover) var(--ease-out);
+  white-space: nowrap;
+}
+.pwa-banner-btn:hover {
+  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.5);
+}
+.pwa-banner-btn:active {
+  transform: scale(0.97);
+}
+.pwa-banner-btn-dismiss {
+  background: transparent;
+  color: var(--color-texto-gris);
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  transition: color var(--dur-hover) var(--ease-out);
+}
+.pwa-banner-btn-dismiss:hover {
+  color: var(--color-texto-claro);
+}
+
+@keyframes pwa-banner-slide-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  #pwa-install-banner {
+    bottom: 12px;
+    width: calc(100% - 24px);
+  }
+  .pwa-banner-content {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+}
+
+/* ==========================================================================
+   Input Groups Ergonómicos y Modernos
+   ========================================================================== */
+.input-group {
+  border-radius: var(--radius-sm);
+  transition: box-shadow var(--dur-hover) var(--ease-out);
+}
+.input-group .form-control {
+  background-color: rgba(3, 7, 18, 0.7);
+  color: var(--color-texto-claro);
+  border: 1px solid var(--color-borde);
+  font-size: 0.95rem;
+  padding: 11px 14px;
+}
+.input-group .form-control:focus {
+  box-shadow: none !important;
+  background-color: rgba(3, 7, 18, 0.9);
+}
+.input-group .input-group-text {
+  background-color: rgba(3, 7, 18, 0.7);
+  border: 1px solid var(--color-borde);
+  color: var(--color-texto-gris);
+}
+
+.input-group:focus-within {
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3);
+}
+.input-group:focus-within .form-control,
+.input-group:focus-within .input-group-text {
+  border-color: var(--color-primario) !important;
+}
+.input-group:focus-within .input-group-text i {
+  color: var(--color-primario) !important;
+}
+
+/* Soporte para preferencias de accesibilidad y movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
