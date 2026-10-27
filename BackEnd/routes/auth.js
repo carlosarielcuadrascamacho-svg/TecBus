@@ -135,7 +135,8 @@ router.post('/google', async (req, res) => {
 
         const webClientId = process.env.GOOGLE_CLIENT_ID || '935209953046-9uked6lm4ob8bkk6ek2653bj14a5ss4k.apps.googleusercontent.com';
         const androidClientId = process.env.GOOGLE_ANDROID_CLIENT_ID || '935209953046-gthvlevovhlivr97ahg5ihlk9nos61au.apps.googleusercontent.com';
-        const allowedAudiences = [webClientId, androidClientId].filter(Boolean);
+        const playStoreClientId = process.env.GOOGLE_PLAYSTORE_CLIENT_ID || '935209953046-s07jd8rklb50iev8qjk4lcinkcqq3tih.apps.googleusercontent.com';
+        const allowedAudiences = [webClientId, androidClientId, playStoreClientId].filter(Boolean);
 
         // 1. Validar el token con los servidores de Google
         const ticket = await googleClient.verifyIdToken({
