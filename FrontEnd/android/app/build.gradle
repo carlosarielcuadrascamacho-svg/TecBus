@@ -4,7 +4,7 @@ android {
     namespace = "com.smartbus.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.smartbus.app"
+        applicationId "com.smartbusmx.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
