@@ -1,15 +1,17 @@
 // Cliente HTTP común de TecBus.
 //
-// - Envía cookies HttpOnly en las llamadas a la API.
-// - Elimina cabeceras "Bearer null/undefined" que quedaron en el código
-//   antiguo mientras se termina la migración.
-// - Canjea un token viejo de localStorage por una cookie HttpOnly.
-// - Centraliza el cierre de sesión para revocar el JWT en el servidor.
+// - Soporte Dual-Auth (Cookie HttpOnly + Bearer Token en localStorage):
+//   Fundamental para iOS Safari, iPadOS y PWAs en WebKit donde Apple ITP (Intelligent Tracking
+//   Prevention) bloquea por defecto cookies cross-site entre Render (smartbus-mx vs tecbus-api).
+// - Envía automáticamente credentials: "include" y cabecera "Authorization: Bearer <token>"
+//   en todas las peticiones dirigidas a la API.
+// - Reemplaza o limpia "Bearer null/undefined" de llamadas heredadas.
+// - Centraliza el cierre de sesión y revocación en servidor.
 
 (function () {
   "use strict";
 
-  const LEGACY_TOKEN_KEY = "tecbus_token";
+  const TOKEN_KEY = "tecbus_token";
   const USER_KEY = "tecbus_user";
   const nativeFetch = window.fetch.bind(window);
 
@@ -35,17 +37,25 @@
     }
   }
 
-  function limpiarHeaders(headers) {
-    if (!headers) return headers;
-
-    const normalizados = new Headers(headers);
+  function prepararHeaders(headers) {
+    const normalizados = new Headers(headers || {});
     const auth = normalizados.get("Authorization");
 
-    // El código anterior guardaba el token en localStorage. Al quitarlo,
-    // algunas llamadas siguen enviando "Bearer null"; el backend ya no las
-    // necesita porque autentica por cookie.
-    if (auth && /^Bearer\s*(null|undefined)?\s*$/i.test(auth)) {
-      normalizados.delete("Authorization");
+    let token = null;
+    try {
+      token = localStorage.getItem(TOKEN_KEY);
+    } catch {
+      token = null;
+    }
+
+    const authEsInvalido = !auth || /^Bearer\s*(null|undefined)?\s*$/i.test(auth);
+
+    if (authEsInvalido) {
+      if (token) {
+        normalizados.set("Authorization", `Bearer ${token}`);
+      } else {
+        normalizados.delete("Authorization");
+      }
     }
 
     return normalizados;
@@ -54,31 +64,36 @@
   window.fetch = function (input, init) {
     const opciones = Object.assign({}, init || {});
 
-    if (esUrlApi(input) && opciones.credentials === undefined) {
-      opciones.credentials = "include";
-    }
-
-    if (opciones.headers) {
-      opciones.headers = limpiarHeaders(opciones.headers);
+    if (esUrlApi(input)) {
+      if (opciones.credentials === undefined) {
+        opciones.credentials = "include";
+      }
+      opciones.headers = prepararHeaders(opciones.headers);
+    } else if (opciones.headers) {
+      const headers = new Headers(opciones.headers);
+      const auth = headers.get("Authorization");
+      if (auth && /^Bearer\s*(null|undefined)?\s*$/i.test(auth)) {
+        headers.delete("Authorization");
+      }
+      opciones.headers = headers;
     }
 
     return nativeFetch(input, opciones);
   };
 
-  // Migración transparente: si el navegador todavía tiene el JWT viejo,
-  // lo cambiamos por una cookie HttpOnly sin obligar al usuario a relogin.
-  let tokenLegacy = null;
+  // Mantener sesión sincronizada si tenemos token
+  let tokenActual = null;
   try {
-    tokenLegacy = localStorage.getItem(LEGACY_TOKEN_KEY);
+    tokenActual = localStorage.getItem(TOKEN_KEY);
   } catch {
-    tokenLegacy = null;
+    tokenActual = null;
   }
 
-  if (tokenLegacy) {
+  if (tokenActual) {
     nativeFetch(obtenerBaseApi() + "/api/auth/session", {
       method: "POST",
       credentials: "include",
-      headers: { Authorization: "Bearer " + tokenLegacy },
+      headers: { Authorization: "Bearer " + tokenActual },
     })
       .then(async (response) => {
         if (response.ok) {
@@ -87,38 +102,46 @@
             if (data && data.user) {
               localStorage.setItem(USER_KEY, JSON.stringify(data.user));
             }
+            if (data && data.token) {
+              localStorage.setItem(TOKEN_KEY, data.token);
+            }
           } catch {
-            // La cookie ya quedó establecida; el usuario se conserva.
-          }
-
-          try {
-            localStorage.removeItem(LEGACY_TOKEN_KEY);
-          } catch {
-            // localStorage puede estar bloqueado; la cookie sigue funcionando.
+            // No interrumpe navegación si falla parseo
           }
         } else if (response.status === 401 || response.status === 403) {
           try {
-            localStorage.removeItem(LEGACY_TOKEN_KEY);
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
           } catch {
-            // Nada más que hacer.
+            // Silencioso
           }
         }
       })
       .catch(() => {
-        // Error de red: conservamos el token viejo para reintentar luego.
+        // Error de red: preservamos el token para reintentos posteriores
       });
   }
 
   window.cerrarSesionTecBus = async function (opciones = {}) {
     const { userId, estado = "inactivo" } = opciones;
 
+    let token = null;
+    try {
+      token = localStorage.getItem(TOKEN_KEY);
+    } catch {
+      token = null;
+    }
+
+    const authHeader = token ? { Authorization: "Bearer " + token } : {};
+
     try {
       if (userId) {
-        await window.fetch(
+        await nativeFetch(
           obtenerBaseApi() + "/api/users/" + encodeURIComponent(userId),
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: Object.assign({ "Content-Type": "application/json" }, authHeader),
+            credentials: "include",
             body: JSON.stringify({ estado }),
           }
         );
@@ -128,15 +151,17 @@
     }
 
     try {
-      await window.fetch(obtenerBaseApi() + "/api/auth/logout", {
+      await nativeFetch(obtenerBaseApi() + "/api/auth/logout", {
         method: "POST",
+        credentials: "include",
+        headers: authHeader,
       });
     } catch (error) {
       console.error("No se pudo revocar la sesión en el servidor:", error);
     }
 
     try {
-      localStorage.removeItem(LEGACY_TOKEN_KEY);
+      localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
     } catch {
       // Si localStorage está bloqueado, igual redirigimos.

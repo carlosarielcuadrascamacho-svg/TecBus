@@ -25,10 +25,9 @@ function urlBase64ToUint8Array(base64String) {
 document.addEventListener("DOMContentLoaded", () => {
   
   // --- A. VERIFICACIÓN DE SESIÓN ---
-  // El JWT vive en una cookie HttpOnly; localStorage solo guarda el perfil
-  // público que usa la interfaz. token queda como compatibilidad para las
-  // llamadas antiguas que aún arman el header.
-  const token = null;
+  // Soporte dual-auth: token en localStorage para iOS Safari/PWA (bloqueo ITP cross-site)
+  // y cookie HttpOnly para navegadores estándar.
+  const token = localStorage.getItem("tecbus_token") || null;
   const userString = localStorage.getItem("tecbus_user");
 
   if (!userString) {
@@ -60,10 +59,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- C. BOTÓN DE NOTIFICACIONES ---
   const btnNotif = document.getElementById("btn-activar-notificaciones");
+  function actualizarEstadoNotif(btn) {
+    if (!btn) return;
+    if ("Notification" in window && Notification.permission === "granted") {
+      btn.classList.add("granted");
+      btn.setAttribute("title", "Notificaciones de proximidad activas");
+      btn.setAttribute("data-tooltip", "Alertas activadas");
+    } else {
+      btn.classList.remove("granted");
+      btn.setAttribute("title", "Activar Notificaciones de Proximidad");
+      btn.setAttribute("data-tooltip", "Alertas de proximidad");
+    }
+  }
+
   if (btnNotif) {
     const newBtn = btnNotif.cloneNode(true);
     btnNotif.parentNode.replaceChild(newBtn, btnNotif);
     newBtn.addEventListener("click", activarNotificaciones);
+    actualizarEstadoNotif(newBtn);
     console.log("✅ Botón de notificaciones activado");
   }
 
@@ -74,8 +87,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const initialLng = -108.473;
   const initialZoom = 13;
 
-  // Conexión Socket.IO: la cookie HttpOnly viaja con withCredentials.
-  const socket = io(SOCKET_URL, { withCredentials: true });
+  // Conexión Socket.IO: enviamos cookie y auth token para compatibilidad total con iOS
+  const socket = io(SOCKET_URL, { withCredentials: true, auth: { token } });
 
   let busMarkers = {};
   let rutaPolyline = null;
@@ -527,6 +540,12 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/rutas`, { headers: { Authorization: `Bearer ${token}` } });
       const rutas = await response.json();
+
+      if (!Array.isArray(rutas)) {
+        console.error("Respuesta no válida al cargar rutas:", rutas);
+        selectorElement.innerHTML = '<option value="">-- No se pudieron cargar las rutas --</option>';
+        return;
+      }
       
       const favs = JSON.parse(localStorage.getItem("tecbus_fav_routes") || "[]");
       
@@ -545,7 +564,10 @@ document.addEventListener("DOMContentLoaded", () => {
       selectorElement.innerHTML += '<optgroup label="Todas las Rutas">';
       normales.forEach(r => selectorElement.innerHTML += `<option value="${r._id}">${r.nombre}</option>`);
       selectorElement.innerHTML += '</optgroup>';
-    } catch (error) { console.error(error); }
+    } catch (error) {
+      console.error("Error al cargar rutas:", error);
+      selectorElement.innerHTML = '<option value="">-- Error al cargar rutas --</option>';
+    }
   }
 
   const mapRutaSelector = document.getElementById("ruta-selector");
@@ -1268,6 +1290,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!response.ok)
         throw new Error(`Error del Servidor: ${response.status}`);
+
+      actualizarEstadoNotif(document.getElementById("btn-activar-notificaciones"));
 
       alert(
         "🎉 ¡ÉXITO! Notificaciones activadas.\n\nEn unos segundos deberías recibir una notificación de confirmación de la activación."

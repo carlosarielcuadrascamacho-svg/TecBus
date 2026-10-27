@@ -17,8 +17,8 @@ const coordenadasValidas = (p) =>
   Number(p[1]) >= -90 && Number(p[1]) <= 90;
 
 // --- RUTA 1: Obtener TODAS las rutas ---
-// GET /api/rutas
-router.get("/", protect, async (req, res) => {
+// GET /api/rutas (Público: mapa de pasajeros y consulta de recorridos)
+router.get("/", async (req, res) => {
   try {
     const rutas = await Ruta.find(); // Busca todas las rutas
     res.json(rutas);
@@ -112,8 +112,8 @@ router.delete("/:id", protect, adminOnly, async (req, res) => {
   }
 });
 // --- RUTA 5: OBTENER las paradas de UNA ruta (para el estudiante) ---
-// GET /api/rutas/:id
-router.get("/:id", protect, async (req, res) => {
+// GET /api/rutas/:id (Público: trazo de ruta y paradas en el mapa)
+router.get("/:id", async (req, res) => {
   try {
     if (!idValido(req.params.id)) {
       return res.status(400).json({ message: "ID de ruta inválido" });

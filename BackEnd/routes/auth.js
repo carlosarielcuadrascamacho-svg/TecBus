@@ -87,8 +87,11 @@ router.post('/login', async (req, res) => {
         // 4. La cookie es HttpOnly: JavaScript no puede leer el token.
         res.cookie(TOKEN_COOKIE, token, opcionesCookie(req));
 
-        // 5. Solo devolvemos los datos públicos del usuario.
-        res.json({ user: datosPublicos(user) });
+        // 5. Devolvemos datos públicos y el token JWT (crucial para clientes sin cookies cross-site como iOS Safari/PWA).
+        res.json({
+            user: datosPublicos(user),
+            token: token
+        });
 
     } catch (error) {
         console.error(error);
@@ -112,7 +115,10 @@ router.post('/session', protect, (req, res) => {
         );
 
         res.cookie(TOKEN_COOKIE, token, opcionesCookie(req));
-        res.json({ user: datosPublicos(req.user) });
+        res.json({
+            user: datosPublicos(req.user),
+            token: token
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error en el servidor.' });

@@ -14,9 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- 1. VERIFICACIÓN DE SEGURIDAD ---
-  // La autenticación real vive en una cookie HttpOnly. Esta variable queda
-  // como compatibilidad para las llamadas antiguas que aún arman el header.
-  const token = null;
+  // Soporte dual-auth: token en localStorage para iOS Safari/PWA (bloqueo ITP cross-site)
+  // y cookie HttpOnly para navegadores estándar.
+  const token = localStorage.getItem("tecbus_token") || null;
   const userString = localStorage.getItem("tecbus_user");
   if (!userString) {
     window.location.href = "login.html";
@@ -78,8 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
     { nombre: "Rochin", lat: 25.579152, lon: -108.462641, tipo: "tienda" },
   ];
 
-  // Conexión Socket: la cookie HttpOnly viaja con withCredentials.
-  const socket = io(SOCKET_URL, { withCredentials: true });
+  // Conexión Socket: enviamos cookie y auth token para compatibilidad total con iOS
+  const socket = io(SOCKET_URL, { withCredentials: true, auth: { token } });
   socket.on("connect", () =>
     console.log("🔌 Admin Dashboard conectado a Socket.io:", socket.id)
   );

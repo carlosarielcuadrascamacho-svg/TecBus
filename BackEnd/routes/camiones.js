@@ -146,8 +146,8 @@ router.get('/mi-unidad', protect, async (req, res) => {
 //  RUTAS GENERALES (CRUD)
 // ==================================================================
 
-// --- Obtener todos los camiones ---
-router.get("/", protect, async (req, res) => {
+// --- Obtener todos los camiones (Público: mapa general de unidades) ---
+router.get("/", async (req, res) => {
   try {
     const camiones = await Camion.find()
       .populate("rutaAsignada", "nombre")
@@ -160,7 +160,8 @@ router.get("/", protect, async (req, res) => {
 
 // --- Camiones de una RUTA (fuente: la asignación directa del camión) ---
 // El horario NO interviene: si el camión tiene la ruta asignada, aparece siempre.
-router.get("/por-ruta/:rutaId", protect, async (req, res) => {
+// Público: mapa en tiempo real de pasajeros y consulta de flota
+router.get("/por-ruta/:rutaId", async (req, res) => {
   try {
     const { rutaId } = req.params;
 
@@ -284,8 +285,8 @@ router.delete("/:id", protect, adminOnly, async (req, res) => {
 });
 
 // --- RUTA NUEVA: Obtener un camión por su ID ---
-// GET /api/camiones/:id
-router.get("/:id", protect, async (req, res) => {
+// GET /api/camiones/:id (Público: detalle de unidad al seleccionarla en mapa)
+router.get("/:id", async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "ID de camión inválido" });

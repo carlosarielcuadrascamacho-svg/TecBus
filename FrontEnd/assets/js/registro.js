@@ -19,7 +19,9 @@ async function procesarRegistroGoogle(response) {
       throw new Error(data.message || "Error al autenticar con Google");
     }
 
-    localStorage.removeItem("tecbus_token");
+    if (data.token) {
+      localStorage.setItem("tecbus_token", data.token);
+    }
     localStorage.setItem("tecbus_user", JSON.stringify(data.user));
 
     const paneles = {

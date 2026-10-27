@@ -19,7 +19,9 @@ async function procesarInicioSesionGoogle(response) {
       throw new Error(data.message || "Error al autenticar con Google");
     }
 
-    localStorage.removeItem("tecbus_token");
+    if (data.token) {
+      localStorage.setItem("tecbus_token", data.token);
+    }
     localStorage.setItem("tecbus_user", JSON.stringify(data.user));
 
     const paneles = {
@@ -130,9 +132,10 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(data.message);
       }
 
-      // 3. ¡ÉXITO! El token vive en una cookie HttpOnly; aquí solo
-      // guardamos los datos públicos del usuario para la interfaz.
-      localStorage.removeItem("tecbus_token");
+      // 3. ¡ÉXITO! Guardamos perfil y token (dual-auth para compatibilidad con iOS Safari/PWA)
+      if (data.token) {
+        localStorage.setItem("tecbus_token", data.token);
+      }
       localStorage.setItem("tecbus_user", JSON.stringify(data.user));
 
       // 4. Redirección por Rol (¡La parte más importante!)

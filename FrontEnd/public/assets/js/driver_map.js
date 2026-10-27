@@ -2,9 +2,9 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   // 1. VERIFICACIÓN DE SESIÓN
-  // La autenticación real vive en una cookie HttpOnly. Esta variable queda
-  // como compatibilidad para las llamadas antiguas que aún arman el header.
-  const token = null;
+  // Soporte dual-auth: token en localStorage para iOS Safari/PWA (bloqueo ITP cross-site)
+  // y cookie HttpOnly para navegadores estándar.
+  const token = localStorage.getItem("tecbus_token") || null;
   const userString = localStorage.getItem("tecbus_user");
 
   if (!userString) {
@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   // CONEXIÓN SOCKET.IO Y LÓGICA DE ESCUCHA (ESP32)
   // ============================================================
-  const socket = io(SOCKET_URL, { withCredentials: true });
+  const socket = io(SOCKET_URL, { withCredentials: true, auth: { token } });
   let geoWatchId = null;
 
   socket.on("connect", () => {
