@@ -47,7 +47,7 @@ const { diasBusquedaHoy } = require("./utils/dias");
 // --- SEGURIDAD: orígenes permitidos (CORS) ---
 const origenesConfigurados =
   process.env.CORS_ORIGINS ||
-  "https://smartbus-mx.onrender.com,https://tecbus-api.onrender.com,http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://127.0.0.1:3000";
+  "https://smartbus-mx.onrender.com,https://tecbus-api.onrender.com,https://localhost,capacitor://localhost,http://localhost,http://localhost:5173,http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://127.0.0.1:3000";
 
 if (process.env.NODE_ENV === "production" && !process.env.CORS_ORIGINS) {
   console.warn(
@@ -60,15 +60,26 @@ const ORIGENES_PERMITIDOS = origenesConfigurados
   .map((o) => o.trim())
   .filter(Boolean);
 
-const esOrigenPermitido = (origin) =>
-  !origin || ORIGENES_PERMITIDOS.includes(origin);
+const esOrigenPermitido = (origin) => {
+  if (!origin || origin === "null") return true;
+  if (ORIGENES_PERMITIDOS.includes(origin)) return true;
+  // Permitir cualquier esquema nativo y local de Capacitor / Android / iOS WebViews
+  if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return true;
+  if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return true;
+  if (/^capacitor:\/\/localhost/.test(origin)) return true;
+  if (/^ionic:\/\/localhost/.test(origin)) return true;
+  return false;
+};
 
 // 2. Inicializar la aplicación
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ORIGENES_PERMITIDOS,
+    origin: (origin, callback) => {
+      if (esOrigenPermitido(origin)) return callback(null, true);
+      return callback(new Error("CORS no permitido para Socket.io"));
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
