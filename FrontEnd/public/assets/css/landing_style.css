@@ -1118,42 +1118,75 @@ ul {
    Equipo Creador (Talento de Guamúchil)
    ========================================================================== */
 .team-section {
-    padding: 90px 0;
+    padding: 100px 0;
+    position: relative;
 }
 
 .team-cards-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 24px;
+    max-width: 1060px;
+    margin: 0 auto;
 }
 
 .team-card {
-    background: var(--bg-card);
+    flex: 0 1 310px;
+    width: 310px;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.75) 0%, rgba(11, 17, 32, 0.9) 100%);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
-    padding: 28px 16px;
+    padding: 32px 24px;
     text-align: center;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 100%;
-    transition: transform var(--dur-motion) var(--ease-out), border-color var(--dur-hover) var(--ease-out);
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--dur-motion) var(--ease-out), 
+                border-color var(--dur-hover) var(--ease-out),
+                box-shadow var(--dur-hover) var(--ease-out);
 }
+
+.team-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.6), transparent);
+    opacity: 0.5;
+    transition: all var(--dur-hover) var(--ease-out);
+}
+
 .team-card:hover {
     transform: translateY(-6px);
-    border-color: rgba(14, 165, 233, 0.35);
+    border-color: rgba(14, 165, 233, 0.4);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6), 0 0 24px rgba(14, 165, 233, 0.15);
+}
+
+.team-card:hover::before {
+    left: 10%;
+    right: 10%;
+    opacity: 1;
 }
 
 .team-avatar-frame {
-    width: 90px;
-    height: 90px;
+    width: 96px;
+    height: 96px;
     border-radius: 50%;
     padding: 3px;
     background: linear-gradient(135deg, var(--primary), var(--emerald));
-    margin-bottom: 16px;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    margin-bottom: 18px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 16px rgba(14, 165, 233, 0.2);
+    position: relative;
+    flex-shrink: 0;
 }
+
 .team-avatar {
     width: 100%;
     height: 100%;
@@ -1163,23 +1196,41 @@ ul {
 }
 
 .team-name {
-    font-size: 1.15rem;
-    font-weight: 700;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
     color: var(--text-contrast);
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
+
 .team-role {
-    font-size: 0.78rem;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
     color: var(--primary-light);
-    margin-bottom: 10px;
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.22);
+    border-radius: var(--radius-full);
+    padding: 4px 12px;
+    margin-bottom: 14px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    line-height: 1.25;
 }
+
+.team-role i {
+    font-size: 0.7rem;
+    color: var(--emerald);
+}
+
 .team-bio {
-    font-size: 0.86rem;
+    font-size: 0.88rem;
     color: var(--text-secondary);
-    line-height: 1.5;
+    line-height: 1.6;
+    margin: 0;
 }
 
 /* ==========================================================================
@@ -1412,8 +1463,9 @@ ul {
         gap: 20px;
     }
     .team-card {
-        flex: 1 1 220px;
-        max-width: 300px;
+        flex: 0 1 290px;
+        width: 290px;
+        max-width: 320px;
     }
     .footer-grid {
         grid-template-columns: 1fr 1fr;
@@ -1466,11 +1518,16 @@ ul {
         width: 100%;
     }
     .team-cards-grid {
-        display: grid;
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
     }
     .team-card {
+        flex: 1 1 100%;
+        width: 100%;
         max-width: 100%;
+        padding: 26px 20px;
     }
     .footer-grid {
         grid-template-columns: 1fr;
