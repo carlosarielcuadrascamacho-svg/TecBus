@@ -1123,20 +1123,21 @@ ul {
 
 .team-cards-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
 }
 
 .team-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
-    padding: 28px 20px;
+    padding: 28px 16px;
     text-align: center;
     backdrop-filter: blur(8px);
     display: flex;
     flex-direction: column;
     align-items: center;
+    height: 100%;
     transition: transform var(--dur-motion) var(--ease-out), border-color var(--dur-hover) var(--ease-out);
 }
 .team-card:hover {
@@ -1405,7 +1406,14 @@ ul {
         grid-template-columns: 1fr;
     }
     .team-cards-grid {
-        grid-template-columns: repeat(2, 1fr);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+    }
+    .team-card {
+        flex: 1 1 220px;
+        max-width: 300px;
     }
     .footer-grid {
         grid-template-columns: 1fr 1fr;
@@ -1458,7 +1466,11 @@ ul {
         width: 100%;
     }
     .team-cards-grid {
+        display: grid;
         grid-template-columns: 1fr;
+    }
+    .team-card {
+        max-width: 100%;
     }
     .footer-grid {
         grid-template-columns: 1fr;
