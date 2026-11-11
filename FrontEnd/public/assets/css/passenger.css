@@ -2061,33 +2061,41 @@ header.passenger-header {
 /* ==========================================================================
    Reseñas — modal de calificación (reutiliza el markup de la landing)
    ========================================================================== */
-.review-modal {
+dialog.review-modal {
   position: fixed;
   inset: 0;
-  z-index: 3500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+  margin: auto;
+  width: min(540px, calc(100% - 40px));
+  max-width: none;
+  max-height: min(90dvh, 760px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
 }
 
-.review-modal[hidden] {
-  display: none;
+dialog.review-modal[open] {
+  display: block;
 }
 
-.review-modal-backdrop {
-  position: absolute;
-  inset: 0;
+dialog.review-modal:modal {
+  overscroll-behavior: contain;
+}
+
+dialog.review-modal::backdrop {
   background: rgba(2, 6, 16, 0.82);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  overflow: hidden;
+  overscroll-behavior: contain;
   animation: reviewFadeIn 0.2s var(--ease-out);
 }
 
 .review-modal-panel {
   position: relative;
-  width: min(100%, 540px);
-  max-height: min(90vh, 760px);
+  width: 100%;
+  max-height: min(90dvh, 760px);
   overflow-y: auto;
   background: linear-gradient(180deg, #0d1527 0%, #080d19 100%);
   border: 1px solid var(--glass-border);
@@ -2168,7 +2176,9 @@ header.passenger-header {
 .review-google-btn {
   display: flex;
   justify-content: center;
+  max-width: 100%;
   min-height: 44px;
+  overflow: hidden;
 }
 
 .review-auth-message {
@@ -2406,6 +2416,84 @@ header.passenger-header {
   max-width: 36ch;
 }
 
+.review-auth[hidden],
+.review-form[hidden],
+.review-success[hidden] {
+  display: none;
+}
+
+.review-google-native-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: min(100%, 300px);
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-full);
+  background: #ffffff;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-hover) var(--ease-out);
+}
+
+.review-google-native-btn:hover {
+  background: #f1f5f9;
+}
+
+.review-google-native-btn:active {
+  transform: scale(0.98);
+}
+
+.review-google-native-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.review-modal .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 26px;
+  font-family: inherit;
+  font-size: 0.96rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: transform var(--dur-press) var(--ease-out), box-shadow var(--dur-hover) var(--ease-out), background-color var(--dur-hover) var(--ease-out), border-color var(--dur-hover) var(--ease-out);
+}
+
+.review-modal .btn:active {
+  transform: scale(0.97);
+}
+
+.review-modal .btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.review-modal .btn-primary {
+  background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-primario-dark) 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 18px rgba(14, 165, 233, 0.35);
+}
+
+.review-modal .btn-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 26px rgba(14, 165, 233, 0.5);
+  transform: translateY(-2px);
+}
+
+.review-modal .btn-primary:active:not(:disabled) {
+  transform: scale(0.97) translateY(0);
+}
+
 .review-success .btn {
   margin-top: 8px;
 }
@@ -2421,14 +2509,15 @@ header.passenger-header {
 }
 
 @media (max-width: 640px) {
-  .review-modal {
-    padding: 12px;
+  dialog.review-modal {
+    width: calc(100% - 24px);
+    max-height: 94dvh;
   }
 
   .review-modal-panel {
     padding: 22px;
     border-radius: 18px;
-    max-height: 94vh;
+    max-height: 94dvh;
   }
 
   .review-stars {

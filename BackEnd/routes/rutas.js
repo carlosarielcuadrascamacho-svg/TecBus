@@ -6,6 +6,7 @@ const router = express.Router();
 const Ruta = require("../models/Ruta"); // Importamos el modelo de Ruta
 const { protect, adminOnly } = require("../middleware/authMiddleware"); // Reusamos el guardaespaldas
 const Horario = require("../models/Horario");
+const Resena = require("../models/Resena");
 
 const idValido = (id) => mongoose.Types.ObjectId.isValid(id);
 const coordenadasValidas = (p) =>
@@ -75,6 +76,7 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
     const ruta = await Ruta.findById(req.params.id);
 
     if (ruta) {
+      const nombreAnterior = ruta.nombre;
       ruta.nombre = req.body.nombre || ruta.nombre;
       ruta.descripcion = req.body.descripcion || ruta.descripcion;
       ruta.tiempoEstimadoTotal = req.body.tiempoEstimadoTotal || ruta.tiempoEstimadoTotal;
@@ -82,6 +84,12 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
         req.body.activa !== undefined ? req.body.activa : ruta.activa;
 
       const rutaActualizada = await ruta.save();
+      if (rutaActualizada.nombre && rutaActualizada.nombre !== nombreAnterior) {
+        await Resena.updateMany(
+          { rutaId: rutaActualizada._id },
+          { $set: { rutaNombre: String(rutaActualizada.nombre).slice(0, 120) } }
+        );
+      }
       res.json(rutaActualizada);
     } else {
       res.status(404).json({ message: "Ruta no encontrada" });

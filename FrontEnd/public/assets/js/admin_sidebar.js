@@ -35,6 +35,23 @@ document.addEventListener("DOMContentLoaded", () => {
   if (backdrop) backdrop.addEventListener("click", toggleSidebar);
 
   // --- 4. NAVEGACIÓN ENTRE PESTAÑAS (VISUAL) ---
+  function activarSeccion(targetId, link) {
+    if (!targetId || !targetId.startsWith("#")) return;
+    const targetSection = document.querySelector(targetId);
+    if (!targetSection) return;
+
+    navLinks.forEach((nav) => nav.classList.remove("active"));
+    if (link) link.classList.add("active");
+
+    sections.forEach((sec) => sec.classList.remove("active"));
+    targetSection.classList.add("active");
+
+    if (pageTitle && link) {
+      const spanText = link.querySelector("span");
+      pageTitle.textContent = spanText ? spanText.textContent.trim() : link.textContent.trim();
+    }
+  }
+
   navLinks.forEach((link) => {
     link.addEventListener("click", (e) => {
       // Si es el botón de cerrar sesión, manejamos la lógica básica aquí o dejamos que pase
@@ -48,21 +65,10 @@ document.addEventListener("DOMContentLoaded", () => {
       // Validar si es un enlace de navegación interna (#)
       if (!targetId || !targetId.startsWith("#")) return;
 
-      // A. Actualizar clases 'active' en el menú
-      navLinks.forEach((nav) => nav.classList.remove("active"));
-      link.classList.add("active");
+      activarSeccion(targetId, link);
 
-      // B. Mostrar la sección correspondiente y ocultar las demás
-      sections.forEach((sec) => sec.classList.remove("active"));
-      const targetSection = document.querySelector(targetId);
-      if (targetSection) {
-        targetSection.classList.add("active");
-      }
-
-      // C. Actualizar el título de la página (Solo el texto principal, ignorando badges)
-      if (pageTitle) {
-          const spanText = link.querySelector("span");
-          pageTitle.textContent = spanText ? spanText.textContent.trim() : link.textContent.trim();
+      if (window.location.hash !== targetId && history.replaceState) {
+        history.replaceState(null, "", targetId);
       }
 
       // D. Cerrar menú automáticamente en móviles
@@ -71,6 +77,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
+
+  if (window.location.hash && window.location.hash !== "#logout") {
+    const initialLink = Array.from(navLinks).find(
+      (l) => l.getAttribute("href") === window.location.hash
+    );
+    if (initialLink) {
+      activarSeccion(window.location.hash, initialLink);
+    }
+  }
 
   // --- 5. LOGOUT (NUEVO MODAL) ---
   const btnLogout = Array.from(navLinks).find(l => l.textContent.includes("Cerrar Sesión"));

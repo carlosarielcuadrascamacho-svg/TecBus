@@ -7,8 +7,11 @@
   "use strict";
 
   const TOKEN_KEY = "tecbus_token";
+  const PAGE_SIZE = 25;
   let resenas = [];
-  let cargando = false;
+  let page = 1;
+  let pages = 1;
+  let listController = null;
 
   function apiBase() {
     return window.BACKEND_URL || "https://tecbus-api.onrender.com";
@@ -238,23 +241,37 @@
     const tr = document.createElement("tr");
     const td = document.createElement("td");
     td.colSpan = 7;
-    td.style.textAlign = "center";
-    td.style.padding = "40px 20px";
 
-    const icon = document.createElement("div");
-    icon.style.fontSize = "3rem";
-    icon.style.color = "#38bdf8";
-    icon.style.marginBottom = "15px";
-    icon.appendChild(icono("fas fa-comment-slash"));
+    const empty = document.createElement("div");
+    empty.className = "resenas-admin-empty";
 
+    const icon = icono("fas fa-comment-slash");
     const p = document.createElement("p");
-    p.style.color = "#94a3b8";
-    p.style.margin = "0";
     p.textContent = mensaje;
 
-    td.append(icon, p);
+    empty.append(icon, p);
+    td.appendChild(empty);
     tr.appendChild(td);
     tbody.appendChild(tr);
+  }
+
+  function renderPaginacionAdmin() {
+    const pag = $("admin-resenas-paginacion");
+    if (!pag) return;
+
+    const info = $("admin-resenas-page-info");
+    const prev = $("admin-resenas-prev");
+    const next = $("admin-resenas-next");
+
+    if (!resenas.length || pages <= 1) {
+      pag.hidden = true;
+      return;
+    }
+
+    pag.hidden = false;
+    if (info) info.textContent = `Página ${page} de ${pages}`;
+    if (prev) prev.disabled = page <= 1;
+    if (next) next.disabled = page >= pages;
   }
 
   async function cargarResumenAdmin() {
@@ -268,7 +285,7 @@
 
       if (promedio) {
         promedio.textContent =
-          data.total > 0 ? Number(data.promedio).toFixed(1) : "—";
+          data.visibles > 0 ? Number(data.promedio).toFixed(1) : "—";
       }
       if (total) total.textContent = String(data.total ?? 0);
       if (visibles) visibles.textContent = String(data.visibles ?? 0);
@@ -279,12 +296,15 @@
   }
 
   async function cargarResenasAdmin() {
-    if (cargando) return;
-
     const tbody = $("tabla-resenas-body");
     if (!tbody) return;
 
-    cargando = true;
+    if (listController) listController.abort();
+    listController = new AbortController();
+    const { signal } = listController;
+
+    const pag = $("admin-resenas-paginacion");
+    if (pag) pag.hidden = true;
 
     tbody.innerHTML = "";
     const loading = document.createElement("tr");
@@ -300,21 +320,35 @@
 
     try {
       const data = await api(
-        `/api/resenas/admin?estado=${encodeURIComponent(estado)}&limit=100`
+        `/api/resenas/admin?estado=${encodeURIComponent(estado)}&page=${page}&limit=${PAGE_SIZE}`,
+        { signal }
       );
+      if (signal.aborted) return;
+
+      const totalPages = data.pages || 1;
+      if (totalPages > 0 && page > totalPages) {
+        page = totalPages;
+        return cargarResenasAdmin();
+      }
+
+      pages = totalPages;
       resenas = data.items || [];
 
       if (!resenas.length) {
         renderVacio("No hay reseñas con este filtro.");
+        renderPaginacionAdmin();
         return;
       }
 
       tbody.innerHTML = "";
       resenas.forEach((resena) => tbody.appendChild(crearFila(resena)));
+      renderPaginacionAdmin();
     } catch (error) {
+      if (error.name === "AbortError" || signal.aborted) return;
+      pages = 1;
+      resenas = [];
       renderVacio(error.message || "No se pudieron cargar las reseñas.");
-    } finally {
-      cargando = false;
+      renderPaginacionAdmin();
     }
   }
 
@@ -410,7 +444,30 @@
     });
 
     const filtro = $("filtro-resenas-estado");
-    if (filtro) filtro.addEventListener("change", cargarResenasAdmin);
+    if (filtro) {
+      filtro.addEventListener("change", () => {
+        page = 1;
+        cargarResenasAdmin();
+      });
+    }
+
+    const prev = $("admin-resenas-prev");
+    if (prev) {
+      prev.addEventListener("click", () => {
+        if (page <= 1) return;
+        page -= 1;
+        cargarResenasAdmin();
+      });
+    }
+
+    const next = $("admin-resenas-next");
+    if (next) {
+      next.addEventListener("click", () => {
+        if (page >= pages) return;
+        page += 1;
+        cargarResenasAdmin();
+      });
+    }
 
     const recargar = $("btn-recargar-resenas");
     if (recargar) {

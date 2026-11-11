@@ -21,8 +21,9 @@
     calificacion: 0,
     editing: false,
     googleReady: false,
-    lastFocus: null,
-    loadingList: false,
+    listController: null,
+    myReviewController: null,
+    formLoadId: 0,
   };
 
   function apiBase() {
@@ -105,6 +106,27 @@
     return icon;
   }
 
+  function esUsuarioGoogle(user) {
+    if (!user) return false;
+    return (
+      user.authProvider === "google" ||
+      String(user.avatar || "").includes("googleusercontent.com")
+    );
+  }
+
+  function renderBadgeVerificacion(el, esGoogle) {
+    if (!el) return;
+    el.textContent = "";
+    el.appendChild(
+      crearIcono(esGoogle ? "fas fa-circle-check" : "fas fa-user-check")
+    );
+    el.appendChild(
+      document.createTextNode(
+        esGoogle ? " Verificado con Google" : " Pasajero registrado"
+      )
+    );
+  }
+
   function formatearFecha(iso) {
     if (!iso) return "";
     try {
@@ -172,8 +194,7 @@
     nombre.textContent = item.nombre || "Pasajero";
 
     const verificado = document.createElement("span");
-    verificado.appendChild(crearIcono("fas fa-circle-check"));
-    verificado.appendChild(document.createTextNode(" Verificado con Google"));
+    renderBadgeVerificacion(verificado, Boolean(item.verificadoGoogle));
 
     autor.append(nombre, verificado);
     head.append(autor, crearEstrellasCard(item.calificacion));
@@ -310,9 +331,12 @@
 
   async function cargarResenas() {
     const grid = $("resenas-grid");
-    if (!grid || state.loadingList) return;
+    if (!grid) return;
 
-    state.loadingList = true;
+    if (state.listController) state.listController.abort();
+    state.listController = new AbortController();
+    const { signal } = state.listController;
+
     renderSkeletons(grid);
 
     const params = new URLSearchParams();
@@ -321,12 +345,13 @@
     if (state.rutaId) params.set("rutaId", state.rutaId);
 
     try {
-      const data = await api(`/api/resenas?${params.toString()}`);
+      const data = await api(`/api/resenas?${params.toString()}`, { signal });
+      if (signal.aborted) return;
+
       const pages = data.pages || 1;
 
       if (pages > 0 && state.page > pages) {
         state.page = pages;
-        state.loadingList = false;
         return cargarResenas();
       }
 
@@ -335,12 +360,12 @@
 
       renderResenas(data.items || []);
       renderPaginacion();
+      grid.setAttribute("aria-busy", "false");
     } catch (error) {
+      if (error.name === "AbortError" || signal.aborted) return;
       renderErrorLista(grid, error.message);
       const pag = $("resenas-paginacion");
       if (pag) pag.hidden = true;
-    } finally {
-      state.loadingList = false;
       grid.setAttribute("aria-busy", "false");
     }
   }
@@ -655,8 +680,24 @@
     if (error) error.textContent = "";
   }
 
-  async function cargarMisResenas() {
+  function setFormLoading(loading) {
+    const form = $("review-form");
+    if (!form) return;
+    form.querySelectorAll("select, textarea, button").forEach((el) => {
+      el.disabled = loading;
+    });
+  }
+
+  async function cargarMisResenas(loadId = ++state.formLoadId) {
     if (!state.user || !token()) return;
+
+    if (state.myReviewController) state.myReviewController.abort();
+    state.myReviewController = new AbortController();
+    const { signal } = state.myReviewController;
+
+    setFormLoading(true);
+    const subtitle = $("review-modal-subtitle");
+    if (subtitle) subtitle.textContent = "Cargando tu historial de reseñas…";
 
     const select = $("review-ruta");
     const rutaId = select ? select.value : "";
@@ -665,22 +706,40 @@
       : "?rutaId=general";
 
     try {
-      const data = await api(`/api/resenas/mia${query}`);
+      const data = await api(`/api/resenas/mia${query}`, { signal });
+      if (signal.aborted || state.formLoadId !== loadId) return;
+
       const item = data.items?.[0];
       if (item) aplicarResenaExistente(item);
       else resetFormulario();
     } catch (error) {
+      if (error.name === "AbortError" || signal.aborted || state.formLoadId !== loadId) {
+        return;
+      }
       if (error.status === 401) {
         limpiarSesion();
         state.user = null;
         mostrarAuth(
           "Tu sesión expiró. Vuelve a verificar tu cuenta con Google."
         );
+      } else {
+        resetFormulario();
+      }
+    } finally {
+      if (!signal.aborted && state.formLoadId === loadId) {
+        setFormLoading(false);
       }
     }
   }
 
   function mostrarAuth(mensaje = "") {
+    state.formLoadId += 1;
+    if (state.myReviewController) {
+      state.myReviewController.abort();
+      state.myReviewController = null;
+    }
+    setFormLoading(false);
+
     const auth = $("review-auth");
     const form = $("review-form");
     const success = $("review-success");
@@ -697,6 +756,11 @@
 
   function mostrarFormulario(user) {
     state.user = user || storedUser();
+    const loadId = ++state.formLoadId;
+    if (state.myReviewController) {
+      state.myReviewController.abort();
+      state.myReviewController = null;
+    }
 
     const auth = $("review-auth");
     const form = $("review-form");
@@ -710,8 +774,14 @@
     const avatar = $("review-user-avatar");
 
     if (nombre) nombre.textContent = state.user?.nombre || "Pasajero";
+    renderBadgeVerificacion($("review-user-badge"), esUsuarioGoogle(state.user));
 
     if (avatar) {
+      avatar.onerror = () => {
+        avatar.onerror = null;
+        avatar.src = "assets/img/icons/icon-192x192.png";
+        avatar.alt = "";
+      };
       if (state.user?.avatar) {
         avatar.src = state.user.avatar;
         avatar.alt = `Foto de ${state.user.nombre || "pasajero"}`;
@@ -722,11 +792,26 @@
       }
     }
 
+    resetFormulario();
+    setFormLoading(true);
+    const subtitle = $("review-modal-subtitle");
+    if (subtitle) subtitle.textContent = "Cargando tu historial de reseñas…";
+
     renderStarInput();
-    cargarRutas().then(() => cargarMisResenas());
+    cargarRutas().then(() => {
+      if (state.formLoadId !== loadId || !$("review-modal")?.open) return;
+      cargarMisResenas(loadId);
+    });
   }
 
   function mostrarExito(mensaje) {
+    state.formLoadId += 1;
+    if (state.myReviewController) {
+      state.myReviewController.abort();
+      state.myReviewController = null;
+    }
+    setFormLoading(false);
+
     const auth = $("review-auth");
     const form = $("review-form");
     const success = $("review-success");
@@ -739,16 +824,29 @@
     if (text) text.textContent = mensaje || "Tu opinión ya está publicada.";
   }
 
+  function limpiarEstadoModal() {
+    state.formLoadId += 1;
+    if (state.myReviewController) {
+      state.myReviewController.abort();
+      state.myReviewController = null;
+    }
+    setFormLoading(false);
+
+    const msg = $("review-auth-message");
+    if (msg) msg.textContent = "";
+  }
+
   function abrirModal() {
     const modal = $("review-modal");
     if (!modal) return;
 
-    state.lastFocus = document.activeElement;
-    modal.hidden = false;
-    document.body.style.overflow = "hidden";
+    const sidebar = $("sidebar");
+    if (sidebar) sidebar.classList.remove("active");
 
     const user = storedUser();
     state.user = user && token() ? user : null;
+
+    if (!modal.open) modal.showModal();
 
     if (state.user) mostrarFormulario(state.user);
     else mostrarAuth();
@@ -761,57 +859,18 @@
     const modal = $("review-modal");
     if (!modal) return;
 
-    modal.hidden = true;
-    document.body.style.overflow = "";
-
-    const msg = $("review-auth-message");
-    if (msg) msg.textContent = "";
-
-    if (state.lastFocus && typeof state.lastFocus.focus === "function") {
-      state.lastFocus.focus();
-    }
-    state.lastFocus = null;
-  }
-
-  function manejarTecladoModal(event) {
-    const modal = $("review-modal");
-    if (!modal || modal.hidden) return;
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      cerrarModal();
-      return;
-    }
-
-    if (event.key !== "Tab") return;
-
-    const panel = modal.querySelector(".review-modal-panel");
-    if (!panel) return;
-
-    const focusables = Array.from(
-      panel.querySelectorAll(
-        'a[href], button:not([disabled]), textarea, select, input, iframe, [tabindex]:not([tabindex="-1"])'
-      )
-    ).filter(
-      (el) => el.offsetParent !== null || el === document.activeElement
-    );
-
-    if (!focusables.length) return;
-
-    const primero = focusables[0];
-    const ultimo = focusables[focusables.length - 1];
-
-    if (event.shiftKey && document.activeElement === primero) {
-      event.preventDefault();
-      ultimo.focus();
-    } else if (!event.shiftKey && document.activeElement === ultimo) {
-      event.preventDefault();
-      primero.focus();
+    if (modal.open) {
+      modal.close();
+    } else {
+      limpiarEstadoModal();
     }
   }
 
   async function manejarEnvio(event) {
     event.preventDefault();
+
+    const boton = $("review-submit");
+    if (boton?.disabled) return;
 
     const errorEl = $("review-error");
     const hint = $("review-stars-hint");
@@ -846,7 +905,6 @@
     }
 
     const select = $("review-ruta");
-    const boton = $("review-submit");
     if (boton) {
       boton.disabled = true;
       const span = boton.querySelector("span");
@@ -920,9 +978,60 @@
     });
   }
 
+  async function iniciarGoogleNativo(btn) {
+    const msg = $("review-auth-message");
+    if (btn) btn.disabled = true;
+    if (msg) msg.textContent = "Conectando con Google…";
+
+    try {
+      if (!window.SocialLogin) {
+        throw new Error("El acceso nativo con Google no está disponible.");
+      }
+
+      await window.SocialLogin.initialize({
+        google: {
+          webClientId: window.GOOGLE_CLIENT_ID,
+          mode: "online",
+        },
+      });
+
+      const res = await window.SocialLogin.login({
+        provider: "google",
+        options: {},
+      });
+
+      const idToken = res?.result?.idToken || res?.idToken;
+      if (!idToken) {
+        throw new Error("Google no devolvió una credencial válida.");
+      }
+
+      await manejarCredencialGoogle({ credential: idToken });
+    } catch (error) {
+      if (msg) {
+        msg.textContent =
+          error?.message || "No se pudo completar el acceso con Google.";
+      }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
   async function initGoogleButton() {
     const cont = $("review-google-btn");
     if (!cont || state.googleReady) return;
+
+    if (window.Capacitor?.isNativePlatform?.()) {
+      cont.innerHTML = "";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "review-google-native-btn";
+      btn.appendChild(crearIcono("fab fa-google"));
+      btn.appendChild(document.createTextNode("Continuar con Google"));
+      btn.addEventListener("click", () => iniciarGoogleNativo(btn));
+      cont.appendChild(btn);
+      state.googleReady = true;
+      return;
+    }
 
     try {
       await cargarGoogleScript();
@@ -938,6 +1047,9 @@
         cancel_on_tap_outside: true,
       });
 
+      const availableWidth = cont.clientWidth || window.innerWidth - 64;
+      const btnWidth = Math.max(200, Math.min(300, Math.floor(availableWidth)));
+
       cont.innerHTML = "";
       window.google.accounts.id.renderButton(cont, {
         theme: "filled_black",
@@ -945,7 +1057,7 @@
         shape: "pill",
         text: "continue_with",
         locale: "es",
-        width: 300,
+        width: btnWidth,
       });
 
       state.googleReady = true;
@@ -1053,7 +1165,31 @@
       el.addEventListener("click", cerrarModal);
     });
 
-    document.addEventListener("keydown", manejarTecladoModal);
+    modal.addEventListener("close", limpiarEstadoModal);
+
+    if (!("closedBy" in HTMLDialogElement.prototype)) {
+      let backdropPointerDown = false;
+      const estaFuera = (event) => {
+        if (event.target !== modal) return false;
+        const rect = modal.getBoundingClientRect();
+        return (
+          event.clientX < rect.left ||
+          event.clientX > rect.right ||
+          event.clientY < rect.top ||
+          event.clientY > rect.bottom
+        );
+      };
+
+      modal.addEventListener("pointerdown", (event) => {
+        backdropPointerDown = estaFuera(event);
+      });
+      modal.addEventListener("pointerup", (event) => {
+        if (backdropPointerDown && estaFuera(event)) {
+          cerrarModal();
+        }
+        backdropPointerDown = false;
+      });
+    }
 
     const form = $("review-form");
     if (form) form.addEventListener("submit", manejarEnvio);
@@ -1070,7 +1206,7 @@
     }
 
     const select = $("review-ruta");
-    if (select) select.addEventListener("change", cargarMisResenas);
+    if (select) select.addEventListener("change", () => cargarMisResenas());
 
     const stars = $("review-stars");
     if (stars) {

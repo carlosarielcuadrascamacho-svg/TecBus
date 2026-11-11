@@ -30,6 +30,7 @@ const resenaSchema = new mongoose.Schema(
     },
     visible: { type: Boolean, default: true },
     destacada: { type: Boolean, default: false },
+    verificadoGoogle: { type: Boolean, default: false },
     // Huella con sal para detectar abuso sin almacenar la IP real.
     ipHash: { type: String, select: false },
   },

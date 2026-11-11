@@ -17,6 +17,8 @@ const RUTA_GENERAL = "Servicio general";
 const resenaLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: 10,
+  // Limitar por usuario autenticado evita bloquear a todo el campus detrás de la misma IP NAT.
+  keyGenerator: (req) => String(req.user?._id || ""),
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: {
@@ -31,6 +33,15 @@ function hashIp(req) {
   return crypto.createHmac("sha256", salt).update(ip).digest("hex");
 }
 
+function esUsuarioVerificadoGoogle(user) {
+  return Boolean(
+    user &&
+      (user.googleId ||
+        user.authProvider === "google" ||
+        user.authProvider === "both")
+  );
+}
+
 function serializar(resena, { admin = false } = {}) {
   const data = {
     _id: resena._id,
@@ -42,6 +53,7 @@ function serializar(resena, { admin = false } = {}) {
     comentario: resena.comentario,
     visible: resena.visible,
     destacada: resena.destacada,
+    verificadoGoogle: Boolean(resena.verificadoGoogle),
     createdAt: resena.createdAt,
     updatedAt: resena.updatedAt,
   };
@@ -118,6 +130,7 @@ router.get("/resumen", async (req, res) => {
       ]),
       Resena.aggregate([
         { $match: { visible: true } },
+        { $sort: { updatedAt: -1 } },
         {
           $group: {
             _id: "$rutaId",
@@ -129,6 +142,16 @@ router.get("/resumen", async (req, res) => {
         { $sort: { total: -1, _id: 1 } },
       ]),
     ]);
+
+    const rutaIds = porRuta.map((r) => r._id).filter(Boolean);
+    const rutasActuales = rutaIds.length
+      ? await Ruta.find({ _id: { $in: rutaIds } })
+          .select("nombre")
+          .lean()
+      : [];
+    const nombresPorId = new Map(
+      rutasActuales.map((r) => [String(r._id), r.nombre])
+    );
 
     const distribucion = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     distribucionAgg.forEach((d) => {
@@ -143,7 +166,10 @@ router.get("/resumen", async (req, res) => {
       distribucion,
       rutas: porRuta.map((r) => ({
         rutaId: r._id || null,
-        rutaNombre: r.rutaNombre || RUTA_GENERAL,
+        rutaNombre:
+          (r._id ? nombresPorId.get(String(r._id)) : null) ||
+          r.rutaNombre ||
+          RUTA_GENERAL,
         total: r.total,
         promedio: Number(r.promedio.toFixed(2)),
       })),
@@ -179,7 +205,7 @@ router.get("/mia", protect, async (req, res) => {
 });
 
 // ─── PRIVADO: crear o actualizar la reseña del usuario ───
-router.post("/", resenaLimiter, protect, async (req, res) => {
+router.post("/", protect, resenaLimiter, async (req, res) => {
   try {
     const calificacion = Number(req.body.calificacion);
     if (!Number.isInteger(calificacion) || calificacion < 1 || calificacion > 5) {
@@ -216,16 +242,19 @@ router.post("/", resenaLimiter, protect, async (req, res) => {
 
     const filtro = { usuarioId: req.user._id, rutaId: parsed.rutaId };
     const existente = await Resena.findOne(filtro).select("_id").lean();
+    const nombreAutor =
+      String(req.user.nombre || "").trim().slice(0, 80) || "Pasajero";
 
     const resena = await Resena.findOneAndUpdate(
       filtro,
       {
         $set: {
-          nombre: String(req.user.nombre || "Pasajero").slice(0, 80),
+          nombre: nombreAutor,
           avatar: String(req.user.avatar || "").slice(0, 500),
           rutaNombre,
           calificacion,
           comentario,
+          verificadoGoogle: esUsuarioVerificadoGoogle(req.user),
           ipHash: hashIp(req),
         },
       },
@@ -237,10 +266,14 @@ router.post("/", resenaLimiter, protect, async (req, res) => {
       }
     );
 
-    res.status(existente ? 200 : 201).json({
-      message: existente
+    const mensaje = !existente
+      ? "¡Gracias por compartir tu experiencia!"
+      : resena.visible
         ? "Tu reseña se actualizó correctamente."
-        : "¡Gracias por compartir tu experiencia!",
+        : "Tu reseña se actualizó, aunque permanece oculta por moderación.";
+
+    res.status(existente ? 200 : 201).json({
+      message: mensaje,
       resena: serializar(resena),
     });
   } catch (error) {
@@ -297,7 +330,7 @@ router.get("/admin/resumen", protect, adminOnly, async (req, res) => {
         Resena.countDocuments({}),
         Resena.countDocuments({ visible: true }),
         Resena.countDocuments({ visible: false }),
-        Resena.countDocuments({ destacada: true }),
+        Resena.countDocuments({ visible: true, destacada: true }),
         Resena.aggregate([
           { $match: { visible: true } },
           { $group: { _id: null, promedio: { $avg: "$calificacion" } } },

@@ -588,10 +588,9 @@
     </footer>
 
     <!-- Modal para escribir una reseña -->
-    <div class="review-modal" id="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title" hidden>
-        <div class="review-modal-backdrop" data-cerrar-resena></div>
-        <div class="review-modal-panel" role="document">
-            <button type="button" class="review-modal-close" id="review-modal-close" aria-label="Cerrar formulario de reseña">
+    <dialog class="review-modal" id="review-modal" closedby="any" aria-labelledby="review-modal-title">
+        <div class="review-modal-panel">
+            <button type="button" class="review-modal-close" id="review-modal-close" aria-label="Cerrar formulario de reseña" autofocus>
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>
 
@@ -615,7 +614,7 @@
                     <img id="review-user-avatar" src="assets/img/icons/icon-192x192.png" alt="" width="42" height="42">
                     <div>
                         <strong id="review-user-name">Pasajero</strong>
-                        <span><i class="fas fa-circle-check" aria-hidden="true"></i> Verificado con Google</span>
+                        <span id="review-user-badge"><i class="fas fa-circle-check" aria-hidden="true"></i> Verificado con Google</span>
                     </div>
                 </div>
 
@@ -654,11 +653,11 @@
                 <button type="button" class="btn btn-primary" data-cerrar-resena>Cerrar</button>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <!-- Scripts de la Landing -->
     <script src="assets/js/landing.js?v=3"></script>
-    <script src="assets/js/resenas.js?v=1"></script>
+    <script src="assets/js/resenas.js?v=2"></script>
     <script src="assets/js/pwa-install.js?v=2"></script>
 </body>
 </html>
