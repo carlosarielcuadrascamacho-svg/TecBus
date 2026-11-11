@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://mt1.google.com https://ui-avatars.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://tecbus-api.onrender.com wss://tecbus-api.onrender.com https://smartbus-mx.onrender.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://wttr.in https://mt1.google.com https://*.tile.openstreetmap.org http://localhost:5099 ws://localhost:5099 http://127.0.0.1:5099 ws://127.0.0.1:5099; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://accounts.google.com https://accounts.google.com/gsi/client https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://lh3.googleusercontent.com https://ssl.gstatic.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://mt1.google.com https://ui-avatars.com https://*.tile.openstreetmap.org https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://accounts.google.com https://accounts.google.com/gsi/ https://cdn.jsdelivr.net https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://tecbus-api.onrender.com wss://tecbus-api.onrender.com https://smartbus-mx.onrender.com https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://wttr.in https://mt1.google.com https://*.tile.openstreetmap.org http://localhost:5099 ws://localhost:5099 http://127.0.0.1:5099 ws://127.0.0.1:5099; frame-src 'self' https://accounts.google.com https://accounts.google.com/gsi/; worker-src 'self' blob:; child-src 'self' blob: https://accounts.google.com https://accounts.google.com/gsi/; media-src 'self' blob: data:;" />
     <script type="module" src="/assets/js/config.js"></script>
     <script src="assets/js/api_client.js?v=2"></script>
 
@@ -69,6 +69,7 @@
                 <a href="#funcionalidades" class="nav-link">Funcionalidades</a>
                 <a href="#simulador" class="nav-link">Rutas y Horarios</a>
                 <a href="#equipo" class="nav-link">Equipo</a>
+                <a href="#resenas" class="nav-link">Reseñas</a>
                 <a href="#faq" class="nav-link">Ayuda</a>
                 <a href="login.html" class="nav-cta-btn">
                     <span>Acceder</span>
@@ -406,6 +407,60 @@
             </div>
         </section>
 
+        <!-- Reseñas de pasajeros -->
+        <section id="resenas" class="resenas-section">
+            <div class="container">
+                <div class="section-heading text-center">
+                    <span class="section-kicker">COMUNIDAD SMARTBUS</span>
+                    <h2 class="section-title">Lo que dicen nuestros pasajeros</h2>
+                    <p class="section-subtitle">
+                        Experiencias reales de quienes ya viajan con nosotros en Guamúchil. Tu opinión ayuda a que el servicio siga mejorando.
+                    </p>
+                </div>
+
+                <div class="resenas-resumen" id="resenas-resumen">
+                    <div class="resenas-resumen-score">
+                        <div class="resenas-score-line">
+                            <span class="resenas-promedio" id="resenas-promedio">—</span>
+                            <span class="resenas-promedio-max">/ 5</span>
+                        </div>
+                        <div class="resenas-stars-static" id="resenas-promedio-estrellas" role="img" aria-label="Calificación promedio"></div>
+                        <span class="resenas-total" id="resenas-total">Cargando reseñas…</span>
+                        <button type="button" class="btn btn-primary resenas-cta" id="btn-abrir-resena">
+                            <i class="fas fa-pen" aria-hidden="true"></i>
+                            <span>Escribir una reseña</span>
+                        </button>
+                    </div>
+
+                    <div class="resenas-resumen-detalle">
+                        <div class="resenas-distribucion" id="resenas-distribucion" aria-label="Distribución de calificaciones"></div>
+                        <div class="resenas-rutas-chips" id="resenas-rutas-chips" role="group" aria-label="Filtrar reseñas por ruta">
+                            <button type="button" class="resenas-chip is-active" data-ruta-id="">Todas</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="resenas-grid" id="resenas-grid" aria-live="polite" aria-busy="true"></div>
+
+                <div class="resenas-vacio" id="resenas-vacio" hidden>
+                    <span class="resenas-vacio-icon"><i class="fas fa-comment-dots" aria-hidden="true"></i></span>
+                    <h3>Aún no hay reseñas</h3>
+                    <p>Sé la primera persona en contar cómo fue tu experiencia con SmartBus.</p>
+                    <button type="button" class="btn btn-secondary" data-abrir-resena>Escribir la primera reseña</button>
+                </div>
+
+                <nav class="resenas-paginacion" id="resenas-paginacion" aria-label="Paginación de reseñas" hidden>
+                    <button type="button" class="btn btn-secondary btn-sm" id="resenas-prev" aria-label="Página anterior">
+                        <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    </button>
+                    <span id="resenas-page-info">1 / 1</span>
+                    <button type="button" class="btn btn-secondary btn-sm" id="resenas-next" aria-label="Página siguiente">
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </button>
+                </nav>
+            </div>
+        </section>
+
         <!-- Preguntas Frecuentes (Acordeón fluido) -->
         <section id="faq" class="faq-section">
             <div class="container narrow-container">
@@ -506,6 +561,7 @@
                     <li><a href="#funcionalidades">Funcionalidades</a></li>
                     <li><a href="#simulador">Rutas y Horarios</a></li>
                     <li><a href="#equipo">Equipo</a></li>
+                    <li><a href="#resenas">Reseñas</a></li>
                     <li><a href="#faq">Preguntas Frecuentes</a></li>
                 </ul>
             </div>
@@ -531,8 +587,78 @@
         </div>
     </footer>
 
+    <!-- Modal para escribir una reseña -->
+    <div class="review-modal" id="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title" hidden>
+        <div class="review-modal-backdrop" data-cerrar-resena></div>
+        <div class="review-modal-panel" role="document">
+            <button type="button" class="review-modal-close" id="review-modal-close" aria-label="Cerrar formulario de reseña">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+
+            <div class="review-modal-head">
+                <span class="review-modal-icon"><i class="fas fa-star" aria-hidden="true"></i></span>
+                <div>
+                    <h2 id="review-modal-title">Comparte tu experiencia</h2>
+                    <p id="review-modal-subtitle">Tu opinión ayuda a que más personas viajen con confianza.</p>
+                </div>
+            </div>
+
+            <div id="review-auth" class="review-auth" hidden>
+                <p>Para publicar una reseña verifica tu identidad con Google. Así garantizamos que cada opinión viene de una persona real.</p>
+                <div id="review-google-btn" class="review-google-btn"></div>
+                <p id="review-auth-message" class="review-auth-message" role="alert"></p>
+                <p class="review-auth-alt">¿No aparece el botón? <a href="login.html">Inicia sesión aquí</a> y vuelve a intentarlo.</p>
+            </div>
+
+            <form id="review-form" class="review-form" hidden novalidate>
+                <div class="review-user">
+                    <img id="review-user-avatar" src="assets/img/icons/icon-192x192.png" alt="" width="42" height="42">
+                    <div>
+                        <strong id="review-user-name">Pasajero</strong>
+                        <span><i class="fas fa-circle-check" aria-hidden="true"></i> Verificado con Google</span>
+                    </div>
+                </div>
+
+                <fieldset class="review-field review-field-stars">
+                    <legend>¿Cómo calificas el servicio?</legend>
+                    <div class="review-stars" id="review-stars" role="radiogroup" aria-label="Calificación de 1 a 5 estrellas"></div>
+                    <p class="review-hint" id="review-stars-hint">Selecciona una calificación</p>
+                </fieldset>
+
+                <div class="review-field">
+                    <label for="review-ruta">¿Sobre qué quieres hablar?</label>
+                    <select id="review-ruta" name="rutaId">
+                        <option value="">Servicio general</option>
+                    </select>
+                </div>
+
+                <div class="review-field">
+                    <label for="review-comentario">Tu comentario</label>
+                    <textarea id="review-comentario" name="comentario" rows="4" minlength="10" maxlength="600" placeholder="Cuéntanos qué tal fue tu viaje, la puntualidad, la atención del conductor…" required></textarea>
+                    <div class="review-meta">
+                        <span id="review-error" class="review-error" role="alert"></span>
+                        <span class="review-counter"><span id="review-counter">0</span>/600</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary review-submit" id="review-submit">
+                    <span>Publicar reseña</span>
+                </button>
+                <p class="review-legal">Al publicar aceptas que tu nombre y foto de Google sean visibles junto a tu reseña.</p>
+            </form>
+
+            <div id="review-success" class="review-success" hidden>
+                <span class="review-success-icon"><i class="fas fa-check" aria-hidden="true"></i></span>
+                <h3>¡Gracias por tu reseña!</h3>
+                <p id="review-success-text">Tu opinión ya está publicada.</p>
+                <button type="button" class="btn btn-primary" data-cerrar-resena>Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts de la Landing -->
     <script src="assets/js/landing.js?v=3"></script>
+    <script src="assets/js/resenas.js?v=1"></script>
     <script src="assets/js/pwa-install.js?v=2"></script>
 </body>
 </html>

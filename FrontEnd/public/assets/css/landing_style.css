@@ -1546,3 +1546,814 @@ ul {
         animation: none !important;
     }
 }
+
+/* ==========================================================================
+   Reseñas de pasajeros
+   ========================================================================== */
+.resenas-section {
+    padding: 100px 0;
+    position: relative;
+}
+
+.resenas-resumen {
+    display: grid;
+    grid-template-columns: minmax(240px, 300px) 1fr;
+    gap: 40px;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.85) 60%);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 32px 36px;
+    margin-bottom: 36px;
+    position: relative;
+    overflow: hidden;
+}
+
+.resenas-resumen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.55), transparent);
+}
+
+.resenas-resumen-score {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.resenas-score-line {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.resenas-promedio {
+    font-size: 3.2rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--text-contrast);
+    font-variant-numeric: tabular-nums;
+}
+
+.resenas-promedio-max {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.resenas-stars-static {
+    position: relative;
+    display: inline-block;
+    color: rgba(148, 163, 184, 0.32);
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.resenas-stars-row {
+    display: flex;
+    gap: 3px;
+}
+
+.resenas-stars-row i {
+    flex: 0 0 auto;
+}
+
+.resenas-stars-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    overflow: hidden;
+    white-space: nowrap;
+    color: var(--warning);
+}
+
+.resenas-total {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+}
+
+.resenas-cta {
+    margin-top: 14px;
+}
+
+.resenas-resumen-detalle {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.resenas-distribucion {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    max-width: 440px;
+    width: 100%;
+}
+
+.resenas-dist-row {
+    display: grid;
+    grid-template-columns: 14px 1fr 30px;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.resenas-dist-label {
+    text-align: right;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.resenas-dist-track {
+    height: 7px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.resenas-dist-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+    transition: width 0.6s var(--ease-out);
+}
+
+.resenas-dist-count {
+    text-align: right;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.resenas-rutas-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.resenas-chip {
+    border: 1px solid var(--border-subtle);
+    background: rgba(15, 23, 42, 0.55);
+    color: var(--text-secondary);
+    padding: 7px 13px;
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--dur-hover) var(--ease-out), background-color var(--dur-hover) var(--ease-out), border-color var(--dur-hover) var(--ease-out);
+}
+
+.resenas-chip:hover {
+    color: var(--text-contrast);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.resenas-chip.is-active {
+    color: var(--primary-light);
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.4);
+}
+
+.resenas-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.resena-card {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.75) 0%, rgba(11, 17, 32, 0.9) 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--dur-motion) var(--ease-out), border-color var(--dur-hover) var(--ease-out), box-shadow var(--dur-hover) var(--ease-out);
+}
+
+.resena-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(14, 165, 233, 0.3);
+    box-shadow: var(--shadow-card);
+}
+
+.resena-card.is-destacada {
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+.resena-card.is-destacada::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.7), transparent);
+}
+
+.resena-card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.resena-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #0f172a;
+    flex-shrink: 0;
+}
+
+.resena-avatar-fallback {
+    display: grid;
+    place-items: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--primary-light);
+    background: rgba(14, 165, 233, 0.15);
+}
+
+.resena-autor {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.resena-autor strong {
+    font-size: 0.92rem;
+    color: var(--text-contrast);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.resena-autor span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    color: var(--emerald);
+}
+
+.resena-card-stars {
+    display: inline-flex;
+    gap: 2px;
+    color: var(--warning);
+    font-size: 0.78rem;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.resena-card-stars .is-off {
+    color: rgba(148, 163, 184, 0.3);
+}
+
+.resena-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--warning);
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: var(--radius-full);
+    padding: 3px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    align-self: flex-start;
+}
+
+.resena-comentario {
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: var(--text-secondary);
+    flex: 1;
+    overflow-wrap: anywhere;
+}
+
+.resena-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.resena-ruta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--primary-light);
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    padding: 3px 9px;
+    border-radius: var(--radius-full);
+}
+
+.resena-fecha {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.resena-skeleton {
+    min-height: 220px;
+}
+
+.resena-skeleton-line {
+    height: 10px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 37%, rgba(255, 255, 255, 0.05) 63%);
+    background-size: 400% 100%;
+    animation: resenaShimmer 1.4s ease infinite;
+}
+
+.resena-skeleton-line.is-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+}
+
+@keyframes resenaShimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: 0 0; }
+}
+
+.resenas-vacio {
+    text-align: center;
+    padding: 56px 24px;
+    border: 1px dashed var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: rgba(15, 23, 42, 0.35);
+}
+
+.resenas-vacio-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    margin-bottom: 14px;
+    font-size: 1.3rem;
+    color: var(--primary-light);
+    background: rgba(14, 165, 233, 0.1);
+    border: 1px solid rgba(14, 165, 233, 0.25);
+}
+
+.resenas-vacio h3 {
+    font-size: 1.2rem;
+    color: var(--text-contrast);
+    margin-bottom: 6px;
+}
+
+.resenas-vacio p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+}
+
+.resenas-paginacion {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 30px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.resenas-paginacion button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* Modal de reseña */
+.review-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.review-modal[hidden] {
+    display: none;
+}
+
+.review-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 16, 0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: reviewFadeIn 0.2s var(--ease-out);
+}
+
+.review-modal-panel {
+    position: relative;
+    width: min(100%, 540px);
+    max-height: min(90vh, 760px);
+    overflow-y: auto;
+    background: linear-gradient(180deg, #0d1527 0%, #080d19 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 22px;
+    padding: 30px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+    animation: reviewPanelIn 0.32s var(--ease-spring);
+}
+
+.review-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: color var(--dur-hover) var(--ease-out), background-color var(--dur-hover) var(--ease-out);
+}
+
+.review-modal-close:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.review-modal-head {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding-right: 36px;
+    margin-bottom: 22px;
+}
+
+.review-modal-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+    color: var(--warning);
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.review-modal-head h2 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    margin-bottom: 3px;
+}
+
+.review-modal-head p {
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.review-auth {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.review-auth > p {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.review-google-btn {
+    display: flex;
+    justify-content: center;
+    min-height: 44px;
+}
+
+.review-auth-alt {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.review-auth-alt a {
+    color: var(--primary-light);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.review-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.review-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+
+.review-user img {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #0f172a;
+}
+
+.review-user div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.review-user strong {
+    font-size: 0.9rem;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.review-user span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    color: var(--emerald);
+}
+
+.review-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.review-field label,
+.review-field legend {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    padding: 0;
+}
+
+.review-field select,
+.review-field textarea {
+    width: 100%;
+    background: rgba(6, 9, 19, 0.7);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    transition: border-color var(--dur-hover) var(--ease-out), box-shadow var(--dur-hover) var(--ease-out);
+}
+
+.review-field select:focus,
+.review-field textarea:focus {
+    outline: none;
+    border-color: var(--border-active);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
+.review-field textarea {
+    resize: vertical;
+    min-height: 110px;
+    line-height: 1.55;
+}
+
+.review-field textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+.review-stars {
+    display: flex;
+    gap: 6px;
+}
+
+.review-star {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(148, 163, 184, 0.4);
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: transform var(--dur-press) var(--ease-out), color var(--dur-hover) var(--ease-out), border-color var(--dur-hover) var(--ease-out), background-color var(--dur-hover) var(--ease-out);
+}
+
+.review-star:hover {
+    transform: translateY(-2px);
+    color: var(--warning);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+.review-star.is-filled {
+    color: var(--warning);
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.review-star:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
+.review-hint {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+}
+
+.review-hint.is-error {
+    color: #f87171;
+}
+
+.review-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 18px;
+}
+
+.review-error {
+    font-size: 0.76rem;
+    color: #f87171;
+    line-height: 1.4;
+}
+
+.review-counter {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.review-counter.is-near-limit {
+    color: var(--warning);
+}
+
+.review-submit {
+    width: 100%;
+    margin-top: 2px;
+}
+
+.review-submit:disabled {
+    opacity: 0.55;
+    cursor: wait;
+    transform: none;
+}
+
+.review-legal {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.5;
+}
+
+.review-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    padding: 14px 0 4px;
+}
+
+.review-success-icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.review-success h3 {
+    font-size: 1.25rem;
+    color: #ffffff;
+}
+
+.review-success p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    max-width: 36ch;
+}
+
+.review-success .btn {
+    margin-top: 8px;
+}
+
+@keyframes reviewFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes reviewPanelIn {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 960px) {
+    .resenas-resumen {
+        grid-template-columns: 1fr;
+        gap: 28px;
+        padding: 28px;
+    }
+
+    .resenas-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .resenas-section {
+        padding: 72px 0;
+    }
+
+    .resenas-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .resenas-resumen-score {
+        align-items: center;
+        text-align: center;
+    }
+
+    .resenas-cta {
+        width: 100%;
+    }
+
+    .review-modal {
+        padding: 12px;
+    }
+
+    .review-modal-panel {
+        padding: 22px;
+        border-radius: 18px;
+        max-height: 94vh;
+    }
+
+    .review-stars {
+        gap: 4px;
+    }
+
+    .review-star {
+        width: 38px;
+        height: 38px;
+    }
+}
+
+.review-auth-message {
+    min-height: 1em;
+    font-size: 0.8rem;
+    color: #f87171;
+    text-align: center;
+}
+
+.review-auth-message:empty {
+    display: none;
+}

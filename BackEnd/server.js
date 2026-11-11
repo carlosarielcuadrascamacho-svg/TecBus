@@ -39,6 +39,7 @@ const historialRoutes = require("./routes/historial");
 const taquillaRoutes = require("./routes/taquilla");
 const pagoRoutes = require("./routes/pagos");
 const transaccionRoutes = require("./routes/transacciones");
+const resenaRoutes = require("./routes/resenas");
 const { startAnalyticsJobs, detenerAnalyticsJobs } = require("./analytics/cronJobs");
 const { iniciarWebSocketTelemetria } = require("./realtime/telemetrySocket");
 const { buscarCamion, puedeOperarUnidad } = require("./utils/unidad");
@@ -339,6 +340,7 @@ app.use('/api/historial', historialRoutes);
 app.use("/api/taquilla", taquillaRoutes);
 app.use("/api/pagos", pagoRoutes);
 app.use("/api/transacciones", transaccionRoutes);
+app.use("/api/resenas", resenaRoutes);
 
 // 6. LÓGICA DE SOCKET.IO (TIEMPO REAL)
 function esAdministrador(user) {

@@ -2827,3 +2827,102 @@
 :root {
     --color-acento: #10b981;
 }
+
+/* ==========================================================================
+   Reseñas — panel de administración
+   ========================================================================== */
+.resenas-admin-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.resenas-filter-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-borde, rgba(255, 255, 255, 0.1));
+  color: var(--color-texto, #f8fafc);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.resenas-filter-select:focus {
+  outline: none;
+  border-color: var(--color-primario, #0ea5e9);
+}
+
+.resenas-admin-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 170px;
+}
+
+.resenas-admin-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #0f172a;
+  flex-shrink: 0;
+}
+
+.resenas-admin-avatar-fallback {
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.15);
+}
+
+.resenas-admin-user strong {
+  display: block;
+  font-size: 0.85rem;
+  color: #f8fafc;
+}
+
+.resenas-admin-user small {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.resenas-admin-stars {
+  display: inline-flex;
+  gap: 2px;
+  color: #f59e0b;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.resenas-admin-stars .is-off {
+  color: rgba(148, 163, 184, 0.3);
+}
+
+.resenas-admin-comment {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+
+.resenas-admin-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.resenas-admin-badges .badge {
+  font-size: 0.68rem;
+  padding: 3px 8px;
+}
+
+.resenas-admin-actions {
+  display: flex;
+  gap: 5px;
+}
